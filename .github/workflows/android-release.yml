@@ -189,9 +189,6 @@ jobs:
 
             ### 📥 روابط التحميل المباشر لملف الـ APK بنقرة واحدة:
             - **[تحميل MyApp-v${{ steps.version_info.outputs.version_name }}.apk مباشرة (Direct Download)](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-v${{ steps.version_info.outputs.version_name }}.apk)**
-            - **[تحميل MyApp-v${{ steps.version_info.outputs.version_name }}-${{ steps.version_info.outputs.version_code }}.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-v${{ steps.version_info.outputs.version_name }}-${{ steps.version_info.outputs.version_code }}.apk)**
-            - **[تحميل MyApp-Release.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-Release.apk)**
-            - **[تحميل Ck-v${{ steps.version_info.outputs.version_name }}.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/Ck-v${{ steps.version_info.outputs.version_name }}.apk)**
 
             ---
 
