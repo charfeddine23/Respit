@@ -1,11 +1,89 @@
-<div align="center">
+# Charfeddine Ka - نظام تتبع إجازات وعطل الأفراد (V1.40.2)
+## Algerian Personnel Leave & Vacation Management Android App
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+تطبيق أندرويد متكامل واحترافي مبني باستخدام **Kotlin** و **Jetpack Compose** و **Room Database** بنمط تصميم **Liquid Glass (الزجاج السائل المريح للعين)** وبمعدل حركة فائق النعومة **60 FPS**، مع دعم كامل للبناء الآلي لحزم **Debug APK** والتنزيل المباشر عبر **GitHub Actions** و **GitHub Releases**.
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 📥 التحميل المباشر لملف التطبيق (Direct APK Download)
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+يمكنك تحميل ملف الـ APK المباشر وتثبيته على أي هاتف أندرويد بسهولة تامة:
 
-</div>
+### 1. عبر قسم الإصدارات (GitHub Releases) - الأسرع وبنقرة واحدة 🚀
+- انتقل إلى صفحة **[Releases](../../releases)** في هذا المستودع على GitHub.
+- في أحدث إصدار (**Latest Release v1.40.2**)، ستجد الروابط المباشرة لملفات الـ APK:
+  - **`MyAppv1.40.2.apk`** ⭐
+  - **`MyApp-v1.40.2.apk`**
+  - **`MyApp.apk`**
+  - **`Ck-v1.40.2.apk`**
+  - **`Ck.apk`**
+  - **`Permission-CK.apk`**
+- سيبدأ تنزيل ملف الـ APK فور النقر لتثبيته مباشرة على هاتفك.
+
+### 2. عبر مخرجات مسار العمل (GitHub Actions Artifacts) 📦
+- انتقل إلى تبويب **Actions** في أعلى المستودع على GitHub.
+- اختر أحدث تشغيل مكتمل لمسار **Build & Release Debug APK**.
+- في أسفل صفحة الملخص (Summary)، ستجد قسم **Artifacts**.
+- اضغط على **`CharfeddineKa-apk-v1.40.2`** لتنزيل الحزمة كاملة.
+
+---
+
+## ⚡ كيفية تشغيل البناء الآلي (Automated Build & CI/CD)
+
+يعمل ملف مسار العمل `.github/workflows/build-apk.yml` تلقائياً في الحالات التالية:
+1. **عند أي Push أو دمج في فرع `main` أو `master`**.
+2. **عند إنشاء وسَم جديد (Git Tag)** مثل `v1.40.2` أو أي وسم يبدأ بـ `v*`.
+3. **التشغيل اليدوي المباشر (Workflow Dispatch)**:
+   - اذهب إلى تبويب **Actions** في مستودع GitHub.
+   - اختر **Build & Release Debug APK** من القائمة اليسرى.
+   - اضغط على زر **Run workflow**.
+   - يمكنك تحديد اسم ووسم الإصدار (افتراضياً `v1.40.2`) والتأكد من تحديد خيار نشر الإصدار.
+   - اضغط **Run workflow** ليبدأ البناء الآلي تلقائياً (بناء Gradle، استعادة Keystore، توليد الحزم، ونشرها في Releases والأرتيفاكتس).
+
+---
+
+## 🌟 الميزات الرئيسية للتطبيق (Features - v1.40.2)
+
+1. **قائمة ومركز التنبيهات المخصص (Notifications Center)**:
+   - واجهة مستقلة لاستعراض التنبيهات الذكية (مواعيد الدخول اليوم، المتأخرين، اقتراب موعد استئناف العمل، بداية الإجازات، والأفراد المستحقين لإجازة جديدة).
+   - إمكانية **تثبيت (Pinning)** الإشعارات المهمة لتظهر دائماً في أعلى القائمة.
+   - إمكانية **مسح أو حذف** أي إشعار فردي أو مسح جميع التنبيهات.
+   - زر إشعارات علوي بزوايا دائرية خفيفة (`Rounded Corners`) مع عداد تنبيهات حي ومباشر.
+2. **سجل عمليات البحث الأخيرة (Recent Searches)**:
+   - شريط البحث يحفظ تلقائياً آخر 5 عمليات بحث للوصول السريع إلى الأفراد بضغطة زر.
+3. **تنسيق التواريخ القياسي (`dd-MM-yyyy`)**:
+   - عرض دقيق لتواريخ الاستفادة والدخول بصيغة اليوم-الشهر-السنة باتجاه LTR واضح ومقروء.
+4. **أيقونة التطبيق الموحدة (Custom Adaptive Launcher Icon)**:
+   - هوية بصرية موحدة تطابق الشعار الداخلي للتطبيق بدقة عالية.
+5. **التبديل الفوري بين الوضع الليلي والنهاري**:
+   - تبديل سلس وبنقرة واحدة على عنوان التطبيق في الشريط العلوي.
+6. **الرتب العسكرية الـ 15 كاملة والولايات الجزائرية الـ 69**:
+   - تغطية شاملة لجميع الرتب والولايات مع فلاتر سريعة وخيارات ترتيب متعددة.
+7. **تخزين محلي فائق السرعة والأمان (Room SQLite Database)**:
+   - يعمل التطبيق بالكامل بدون إنترنت وبخصوصية تامة للبيانات.
+
+---
+
+## 🛠️ البناء المحلي (Local Build)
+
+إذا أردت تجميع المشروع على حاسوبك محلياً:
+
+```bash
+# استنساخ المستودع
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+cd YOUR_REPO
+
+# فك تشفير keystore في حال الحاجة
+if [ -f debug.keystore.base64 ]; then
+  base64 -d debug.keystore.base64 > debug.keystore
+fi
+
+# منح صلاحية التنفيذ لـ gradlew
+chmod +x gradlew
+
+# بناء ملف Debug APK
+./gradlew :app:assembleDebug
+
+# ستجد ملف الـ APK الناتج في:
+# app/build/outputs/apk/debug/app-debug.apk
+```

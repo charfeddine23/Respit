@@ -1,0 +1,125 @@
+package com.example.data
+
+import android.content.Context
+import android.content.SharedPreferences
+
+enum class AppThemeMode(val code: String, val titleAr: String) {
+    SYSTEM("system", "اتباع نظام الجهاز"),
+    LIGHT("light", "الوضع النهاري"),
+    DARK("dark", "الوضع الليلي");
+
+    companion object {
+        fun fromCode(code: String): AppThemeMode {
+            return entries.find { it.code == code } ?: SYSTEM
+        }
+    }
+}
+
+class SettingsManager(context: Context) {
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val KEY_THEME_MODE = "pref_theme_mode"
+        private const val KEY_DARK_MODE = "pref_dark_mode"
+        private const val KEY_DUTY_THRESHOLD = "pref_duty_threshold_days"
+        private const val KEY_PIN_ENABLED = "pref_pin_enabled"
+        private const val KEY_PIN_CODE = "pref_pin_code"
+        private const val KEY_LANGUAGE = "pref_language"
+        private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
+        private const val KEY_DISMISSED_NOTIFICATIONS = "pref_dismissed_notifications"
+        const val DEFAULT_DUTY_THRESHOLD = 45
+    }
+
+    var themeMode: AppThemeMode
+        get() {
+            val code = prefs.getString(KEY_THEME_MODE, null)
+            return if (code != null) {
+                AppThemeMode.fromCode(code)
+            } else {
+                // Backward compatibility if only isDarkMode was set
+                if (prefs.contains(KEY_DARK_MODE)) {
+                    if (prefs.getBoolean(KEY_DARK_MODE, false)) AppThemeMode.DARK else AppThemeMode.LIGHT
+                } else {
+                    AppThemeMode.SYSTEM
+                }
+            }
+        }
+        set(value) {
+            prefs.edit()
+                .putString(KEY_THEME_MODE, value.code)
+                .putBoolean(KEY_DARK_MODE, value == AppThemeMode.DARK)
+                .apply()
+        }
+
+    var isDarkMode: Boolean
+        get() = themeMode == AppThemeMode.DARK
+        set(value) {
+            themeMode = if (value) AppThemeMode.DARK else AppThemeMode.LIGHT
+        }
+
+    var dutyThresholdDays: Int
+        get() = prefs.getInt(KEY_DUTY_THRESHOLD, DEFAULT_DUTY_THRESHOLD)
+        set(value) = prefs.edit().putInt(KEY_DUTY_THRESHOLD, value).apply()
+
+    var isPinEnabled: Boolean
+        get() = prefs.getBoolean(KEY_PIN_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_PIN_ENABLED, value).apply()
+
+    var pinCode: String
+        get() = prefs.getString(KEY_PIN_CODE, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_PIN_CODE, value).apply()
+
+    var language: String
+        get() = prefs.getString(KEY_LANGUAGE, "ar") ?: "ar"
+        set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
+
+    var pinnedNotificationIds: Set<String>
+        get() = prefs.getStringSet(KEY_PINNED_NOTIFICATIONS, emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_PINNED_NOTIFICATIONS, value).apply()
+
+    var dismissedNotificationIds: Set<String>
+        get() = prefs.getStringSet(KEY_DISMISSED_NOTIFICATIONS, emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_DISMISSED_NOTIFICATIONS, value).apply()
+
+    var recentSearches: List<String>
+        get() {
+            val raw = prefs.getString("pref_recent_searches", null) ?: return emptyList()
+            return try {
+                val array = org.json.JSONArray(raw)
+                val list = mutableListOf<String>()
+                for (i in 0 until array.length()) {
+                    val item = array.optString(i, "")
+                    if (item.isNotBlank()) list.add(item)
+                }
+                list.take(5)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        set(value) {
+            val array = org.json.JSONArray()
+            value.take(5).forEach { array.put(it) }
+            prefs.edit().putString("pref_recent_searches", array.toString()).apply()
+        }
+
+    fun addRecentSearch(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.length < 2) return
+        val current = recentSearches.toMutableList()
+        current.remove(trimmed)
+        current.add(0, trimmed)
+        recentSearches = current.take(5)
+    }
+
+    fun removeRecentSearch(query: String) {
+        val current = recentSearches.toMutableList()
+        current.remove(query)
+        recentSearches = current
+    }
+
+    fun clearRecentSearches() {
+        recentSearches = emptyList()
+    }
+}
+
