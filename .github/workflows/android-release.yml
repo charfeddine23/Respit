@@ -153,10 +153,7 @@ jobs:
         with:
           name: MyApp-Release-v${{ steps.version_info.outputs.version_name }}
           path: |
-            release-apk/MyApp-v${{ steps.version_info.outputs.version_name }}.apk
-            release-apk/MyApp-v${{ steps.version_info.outputs.version_name }}-${{ steps.version_info.outputs.version_code }}.apk
             release-apk/MyApp-Release.apk
-            release-apk/Ck-v${{ steps.version_info.outputs.version_name }}.apk
           retention-days: 30
 
       - name: Publish Official GitHub Release
