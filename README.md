@@ -13,11 +13,6 @@
 - انتقل إلى صفحة **[Releases](../../releases)** في هذا المستودع على GitHub.
 - في أحدث إصدار (**Latest Release v1.40.2**)، ستجد الروابط المباشرة لملفات الـ APK:
   - **`MyAppv1.40.2.apk`** ⭐
-  - **`MyApp-v1.40.2.apk`**
-  - **`MyApp.apk`**
-  - **`Ck-v1.40.2.apk`**
-  - **`Ck.apk`**
-  - **`Permission-CK.apk`**
 - سيبدأ تنزيل ملف الـ APK فور النقر لتثبيته مباشرة على هاتفك.
 
 ### 2. عبر مخرجات مسار العمل (GitHub Actions Artifacts) 📦
