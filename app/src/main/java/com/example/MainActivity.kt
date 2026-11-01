@@ -161,6 +161,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val context = LocalContext.current
     val isLocked by viewModel.isLocked.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
+    val isFocusMode by viewModel.isFocusMode.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
     val isPinEnabled by viewModel.isPinEnabled.collectAsState()
     val currentPin by viewModel.pinCode.collectAsState()
@@ -836,6 +837,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             PersonnelCard(
                                 personnel = person,
                                 dutyThresholdDays = dutyThreshold,
+                                isFocusMode = isFocusMode,
                                 onConfirmDuty = {
                                     viewModel.confirmReturnToDuty(person.id)
                                     Toast.makeText(
@@ -961,6 +963,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         SettingsDialog(
             isDarkMode = isDarkMode,
             onToggleTheme = { viewModel.toggleTheme() },
+            isFocusMode = isFocusMode,
+            onToggleFocusMode = { viewModel.toggleFocusMode() },
             currentThreshold = dutyThreshold,
             onSaveThreshold = { viewModel.setDutyThreshold(it) },
             isPinEnabled = isPinEnabled,

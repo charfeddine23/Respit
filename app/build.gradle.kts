@@ -12,12 +12,25 @@ android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
+  val baseMajor = 1
+  val baseMinor = 42
+  val basePatch = 2
+  val baseCode = 142
+
+  val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+    ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
+
+  val dynamicVersionCode = if (runNumber != null) baseCode + runNumber else baseCode
+  val dynamicVersionName = System.getenv("APP_VERSION_NAME")
+    ?: (project.findProperty("versionName") as? String)
+    ?: if (runNumber != null) "$baseMajor.$baseMinor.${basePatch + runNumber}" else "$baseMajor.$baseMinor.$basePatch"
+
   defaultConfig {
     applicationId = "com.aistudio.leavetracker.kpqvbn"
     minSdk = 24
     targetSdk = 36
-    versionCode = 142
-    versionName = "1.42.2"
+    versionCode = dynamicVersionCode
+    versionName = dynamicVersionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -142,3 +155,11 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
 }
+
+tasks.register("printVersion") {
+  doLast {
+    println("VERSION_NAME=${android.defaultConfig.versionName}")
+    println("VERSION_CODE=${android.defaultConfig.versionCode}")
+  }
+}
+

@@ -60,7 +60,8 @@ fun PersonnelCard(
     onConfirmDuty: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isFocusMode: Boolean = false
 ) {
     val status = personnel.status
     val isEligible = personnel.isEligibleForLeave(dutyThresholdDays)
@@ -756,22 +757,36 @@ fun PersonnelCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Two-date metadata pill row
+            // Two-date metadata pill row (enhanced when isFocusMode is enabled)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isDark) Color(0x33334155) else Color.White.copy(alpha = 0.65f))
-                    .border(
-                        1.dp,
-                        if (isDark) {
-                            Brush.linearGradient(listOf(Color.White.copy(alpha = 0.2f), Color(0x3338BDF8)))
+                    .clip(RoundedCornerShape(if (isFocusMode) 12.dp else 10.dp))
+                    .background(
+                        if (isFocusMode) {
+                            if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
                         } else {
-                            Brush.linearGradient(listOf(Color.White.copy(alpha = 0.95f), Color(0x2638BDF8)))
-                        },
-                        RoundedCornerShape(10.dp)
+                            if (isDark) Color(0x33334155) else Color.White.copy(alpha = 0.65f)
+                        }
                     )
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .border(
+                        if (isFocusMode) 1.5.dp else 1.dp,
+                        if (isFocusMode) {
+                            if (isDark) {
+                                Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
+                            } else {
+                                Brush.linearGradient(listOf(Color(0xFF0284C7), Color(0xFF38BDF8)))
+                            }
+                        } else {
+                            if (isDark) {
+                                Brush.linearGradient(listOf(Color.White.copy(alpha = 0.2f), Color(0x3338BDF8)))
+                            } else {
+                                Brush.linearGradient(listOf(Color.White.copy(alpha = 0.95f), Color(0x2638BDF8)))
+                            }
+                        },
+                        RoundedCornerShape(if (isFocusMode) 12.dp else 10.dp)
+                    )
+                    .padding(horizontal = if (isFocusMode) 12.dp else 10.dp, vertical = if (isFocusMode) 8.dp else 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -780,19 +795,19 @@ fun PersonnelCard(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(if (isFocusMode) 16.dp else 14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "الإستفادة: ",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                         color = if (isDark) Color.White else Color(0xFF0A2540),
                         fontWeight = FontWeight.Bold
                     )
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Text(
                             text = personnel.formattedStartDate,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                             color = if (isDark) Color.White else Color(0xFF0A2540),
                             fontWeight = FontWeight.Bold
                         )
@@ -810,19 +825,19 @@ fun PersonnelCard(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
                         tint = Color(0xFF059669),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(if (isFocusMode) 16.dp else 14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "الدخول: ",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                         color = if (isDark) Color.White else Color(0xFF0A2540),
                         fontWeight = FontWeight.ExtraBold
                     )
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Text(
                             text = personnel.formattedReturnDate,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                             color = if (isDark) Color.White else Color(0xFF0A2540),
                             fontWeight = FontWeight.ExtraBold
                         )
@@ -831,7 +846,7 @@ fun PersonnelCard(
 
                 Text(
                     text = "(${personnel.totalLeaveDays} يوم)",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary
                 )

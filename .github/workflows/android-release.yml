@@ -34,31 +34,41 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Extract Version Info from build.gradle.kts
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
+
+      - name: Resolve Dynamic Version Info
         id: version_info
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
-          VERSION_NAME=$(grep -E 'versionName\s*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
-          VERSION_CODE=$(grep -E 'versionCode\s*=' app/build.gradle.kts | head -n 1 | tr -dc '0-9')
-          APP_ID=$(grep -E 'applicationId\s*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+          # Read dynamic version from Gradle
+          GRADLE_OUT=$(./gradlew :app:printVersion -q --no-daemon 2>/dev/null || true)
+          VERSION_NAME=$(echo "$GRADLE_OUT" | grep 'VERSION_NAME=' | cut -d'=' -f2)
+          VERSION_CODE=$(echo "$GRADLE_OUT" | grep 'VERSION_CODE=' | cut -d'=' -f2)
 
-          if [ -z "$VERSION_NAME" ]; then VERSION_NAME="1.42.2"; fi
-          if [ -z "$VERSION_CODE" ]; then VERSION_CODE="142"; fi
+          # Fallback to direct calculation if not found
+          if [ -z "$VERSION_NAME" ]; then
+            BASE_MAJOR=1
+            BASE_MINOR=42
+            BASE_PATCH=2
+            VERSION_NAME="$BASE_MAJOR.$BASE_MINOR.$((BASE_PATCH + GITHUB_RUN_NUMBER))"
+          fi
 
-          echo "Extracted Version Name: $VERSION_NAME"
-          echo "Extracted Version Code: $VERSION_CODE"
-          echo "Application ID: $APP_ID"
+          if [ -z "$VERSION_CODE" ]; then
+            VERSION_CODE=$((142 + GITHUB_RUN_NUMBER))
+          fi
+
+          APP_ID="com.aistudio.leavetracker.kpqvbn"
+          TAG="v${VERSION_NAME}"
+
+          echo "Computed Version Name: $VERSION_NAME"
+          echo "Computed Version Code: $VERSION_CODE"
+          echo "Target Release Tag: $TAG"
 
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "application_id=$APP_ID" >> "$GITHUB_OUTPUT"
-
-          # Determine Tag Name without collisions
-          BASE_TAG="v${VERSION_NAME}"
-          TAG="$BASE_TAG"
-          if git rev-parse "$TAG" >/dev/null 2>&1 || git ls-remote --tags origin "refs/tags/$TAG" | grep -q "$TAG"; then
-            TAG="v${VERSION_NAME}-build${GITHUB_RUN_NUMBER}"
-            echo "Tag $BASE_TAG already exists, using unique tag: $TAG"
-          fi
           echo "tag_name=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Configure Signing Keystore
@@ -70,15 +80,13 @@ jobs:
         run: |
           KEYSTORE_FILE="${GITHUB_WORKSPACE}/my-upload-key.jks"
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Using production signing keystore provided via GitHub Secrets (KEYSTORE_BASE64)..."
+            echo "Using production signing keystore provided via GitHub Secrets..."
             echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_FILE"
             echo "store_pass=$STORE_PASSWORD" >> "$GITHUB_OUTPUT"
             echo "key_pass=$KEY_PASSWORD" >> "$GITHUB_OUTPUT"
           elif [ -f "debug.keystore.base64" ]; then
-            echo "No KEYSTORE_BASE64 secret found. Using repository keystore for seamless update compatibility..."
+            echo "Using repository keystore for seamless update compatibility..."
             base64 -d debug.keystore.base64 > "$KEYSTORE_FILE"
-            # Note: app/build.gradle.kts release block uses alias 'upload'
-            # If debug.keystore has alias androiddebugkey, we ensure my-upload-key.jks has alias 'upload'
             keytool -changealias -keystore "$KEYSTORE_FILE" -storepass android -alias androiddebugkey -destalias upload 2>/dev/null || true
             echo "store_pass=android" >> "$GITHUB_OUTPUT"
             echo "key_pass=android" >> "$GITHUB_OUTPUT"
@@ -91,7 +99,6 @@ jobs:
             echo "store_pass=android" >> "$GITHUB_OUTPUT"
             echo "key_pass=android" >> "$GITHUB_OUTPUT"
           fi
-          test -f "$KEYSTORE_FILE" && echo "Keystore configured at: $KEYSTORE_FILE"
 
       - name: Setup Environment File (.env)
         run: |
@@ -101,29 +108,21 @@ jobs:
             touch .env
           fi
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x gradlew
-
       - name: Build Signed Release APK with Gradle
         env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: ${{ steps.keystore_setup.outputs.store_pass }}
           KEY_PASSWORD: ${{ steps.keystore_setup.outputs.key_pass }}
         run: |
-          echo "Building Release APK with Gradle..."
+          echo "Building Release APK with dynamic versioning (Build #${{ github.run_number }})..."
           ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
-      - name: Organize & Standardize Output APK Files
-        id: organize_apks
+      - name: Prepare Single Release APK
         run: |
           mkdir -p release-apk
-          V_NAME="${{ steps.version_info.outputs.version_name }}"
-          V_CODE="${{ steps.version_info.outputs.version_code }}"
-
-          # Locate generated APK
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
-            # Check debug fallback if assembleRelease output path differs
             APK_PATH=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
           fi
 
@@ -132,29 +131,29 @@ jobs:
             exit 1
           fi
 
-          echo "Found compiled APK at: $APK_PATH"
-
-          # Standardized naming according to requirement
-          MAIN_APK="MyApp-v${V_NAME}.apk"
-          VERSIONED_APK="MyApp-v${V_NAME}-${V_CODE}.apk"
-          SHORT_APK="MyApp-Release.apk"
-          CK_APK="Ck-v${V_NAME}.apk"
-
-          cp "$APK_PATH" "release-apk/${MAIN_APK}"
-          cp "$APK_PATH" "release-apk/${VERSIONED_APK}"
-          cp "$APK_PATH" "release-apk/${SHORT_APK}"
-          cp "$APK_PATH" "release-apk/${CK_APK}"
-
-          echo "main_apk_name=${MAIN_APK}" >> "$GITHUB_OUTPUT"
+          cp "$APK_PATH" release-apk/MyApp-Release.apk
+          echo "Release APK prepared at: release-apk/MyApp-Release.apk"
           ls -lh release-apk/
 
       - name: Upload Release APK as Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MyApp-Release-v${{ steps.version_info.outputs.version_name }}
-          path: |
-            release-apk/MyApp-Release.apk
+          path: release-apk/MyApp-Release.apk
           retention-days: 30
+
+      - name: Clean up Older Releases and Tags (Keep Only Latest)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking for previous releases and tags to keep only the latest release..."
+          PREV_RELEASES=$(gh release list --limit 100 --json tagName --jq '.[].tagName' 2>/dev/null || true)
+          for rel in $PREV_RELEASES; do
+            if [ -n "$rel" ]; then
+              echo "Deleting older release and tag: $rel"
+              gh release delete "$rel" --yes --cleanup-tag 2>/dev/null || true
+            fi
+          done
 
       - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v2
@@ -164,38 +163,35 @@ jobs:
           draft: false
           prerelease: false
           make_latest: true
-          files: |
-            release-apk/MyApp-v${{ steps.version_info.outputs.version_name }}.apk
-            release-apk/MyApp-v${{ steps.version_info.outputs.version_name }}-${{ steps.version_info.outputs.version_code }}.apk
-            release-apk/MyApp-Release.apk
-            release-apk/Ck-v${{ steps.version_info.outputs.version_name }}.apk
+          files: release-apk/MyApp-Release.apk
           body: |
             ## 📱 تطبيق Charfeddine Ka - نظام تسيير إجازات وعطل الأفراد
 
             ### 📋 معلومات الإصدار وحزمة التطبيق (Build & Release Info):
-            - **اسم ملف التثبيت المباشر:** `${{ steps.organize_apks.outputs.main_apk_name }}`
+            - **اسم ملف التثبيت المباشر:** `MyApp-Release.apk`
             - **رقم الإصدار (Version Name):** `${{ steps.version_info.outputs.version_name }}`
             - **كود الإصدار (Version Code):** `${{ steps.version_info.outputs.version_code }}`
             - **معرّف الحزمة (Application ID):** `${{ steps.version_info.outputs.application_id }}`
+            - **رقم عملية البناء (Run Number):** `${{ github.run_number }}`
             - **نوع الحزمة:** نسخة إطلاق رسمية موقعة (Signed Release APK)
             - **تاريخ ووقت البناء:** ${{ github.event.head_commit.timestamp || 'Latest' }}
             - **الالتزام (Git Commit SHA):** `${{ github.sha }}`
-            - **رسالة الالتزام:** `${{ github.event.head_commit.message }}`
 
             ---
 
-            ### 📥 روابط التحميل المباشر لملف الـ APK بنقرة واحدة:
-            - **[تحميل MyApp-v${{ steps.version_info.outputs.version_name }}.apk مباشرة (Direct Download)](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-v${{ steps.version_info.outputs.version_name }}.apk)**
+            ### 📥 رابط التحميل المباشر لملف الـ APK بنقرة واحدة:
+            - **[تحميل MyApp-Release.apk مباشرة (Direct Download)](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-Release.apk)**
 
             ---
 
             ### 🚀 أبرز ميزات وتحسينات هذا الإصدار:
-            - 🔔 **مركز التنبيهات المخصص داخل التطبيق**: إشعارات ذكية للدخول اليوم، المتأخرين، اقتراب موعد استئناف العمل، وانطلاق الإجازات مع دعم التثبيت في الأعلى والمسح.
+            - 🔄 **إصدار ديناميكي تصاعدي آلياً**: زيادة رقم الإصدار `versionCode` و `versionName` تلقائياً مع كل عملية بناء.
+            - 🧹 **تنظيف تلقائي للمستودع**: حذف الإصدارات والوسوم السابقة تلقائياً للاحتفاظ بآخر إصدار فقط ومنع التراكم.
+            - 📦 **ملف APK موحد ونظيف**: اعتماد ملف `MyApp-Release.apk` حصرياً بدون تكرار للأسماء.
+            - 🔔 **مركز التنبيهات المخصص**: استعراض التنبيهات الذكية مع دعم التثبيت في الأعلى ومسح الإشعارات.
             - 🎯 **زر التنبيهات ذو الحواف الدائرية الخفيفة**: مع شارة عداد حي للإشعارات النشطة.
-            - 🎨 **أيقونة التطبيق الموحدة**: مطابقة للشعار الداخلي للتطبيق بدقة عالية.
-            - 🕒 **سجل آخر عمليات البحث (Recent Searches)**: لحفظ آخر 5 عمليات بحث وسرعة الوصول.
+            - 🕒 **سجل آخر عمليات البحث (Recent Searches)**: حفظ آخر 5 عمليات بحث لسرعة الوصول.
             - 📅 **تنسيق التواريخ المحكم**: عرض التواريخ بصيغة اليوم-الشهر-السنة (`dd-MM-yyyy`).
-            - 🌓 **تبديل فوري بين الوضع الليلي والنهاري** عبر الضغط المباشر على العنوان.
-            - 🛡️ **تثبيت التحديث مباشرة (Over-the-Air Update Compatibility)**: يمكن تثبيت هذا الملف كـ Update فوق النسخة السابقة مباشرة دون فقدان البيانات.
+            - 🛡️ **تثبيت التحديث مباشرة (Update Compatibility)**: يمكن تثبيت هذا الملف كـ Update فوق النسخة السابقة مباشرة دون فقدان البيانات.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

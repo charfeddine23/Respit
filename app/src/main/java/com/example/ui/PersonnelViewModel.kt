@@ -69,6 +69,18 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val pinCode = MutableStateFlow(settingsManager.pinCode)
     val isLocked = MutableStateFlow(settingsManager.isPinEnabled && settingsManager.pinCode.length == 4)
     val currentLanguage = MutableStateFlow(AppLanguage.fromCode(settingsManager.language))
+    val isFocusMode = MutableStateFlow(settingsManager.isFocusMode)
+
+    fun toggleFocusMode() {
+        val next = !isFocusMode.value
+        isFocusMode.value = next
+        settingsManager.isFocusMode = next
+    }
+
+    fun setFocusMode(enabled: Boolean) {
+        isFocusMode.value = enabled
+        settingsManager.isFocusMode = enabled
+    }
 
     // Recent Searches state
     val recentSearches = MutableStateFlow<List<String>>(settingsManager.recentSearches)

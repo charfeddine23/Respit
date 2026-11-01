@@ -28,6 +28,7 @@ class SettingsManager(context: Context) {
         private const val KEY_LANGUAGE = "pref_language"
         private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
         private const val KEY_DISMISSED_NOTIFICATIONS = "pref_dismissed_notifications"
+        private const val KEY_FOCUS_MODE = "pref_focus_mode"
         const val DEFAULT_DUTY_THRESHOLD = 45
     }
 
@@ -81,6 +82,10 @@ class SettingsManager(context: Context) {
     var dismissedNotificationIds: Set<String>
         get() = prefs.getStringSet(KEY_DISMISSED_NOTIFICATIONS, emptySet()) ?: emptySet()
         set(value) = prefs.edit().putStringSet(KEY_DISMISSED_NOTIFICATIONS, value).apply()
+
+    var isFocusMode: Boolean
+        get() = prefs.getBoolean(KEY_FOCUS_MODE, false)
+        set(value) = prefs.edit().putBoolean(KEY_FOCUS_MODE, value).apply()
 
     var recentSearches: List<String>
         get() {
