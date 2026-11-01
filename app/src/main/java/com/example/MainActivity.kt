@@ -12,12 +12,14 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -64,6 +67,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -93,6 +97,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -105,6 +110,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.AppThemeMode
 import com.example.data.Personnel
 import com.example.ui.PersonnelViewModel
 import com.example.ui.SortOption
@@ -142,7 +148,18 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val isDarkTheme by viewModel.isDarkMode.collectAsState()
+            val themeMode by viewModel.currentThemeMode.collectAsState()
+            val systemInDark = isSystemInDarkTheme()
+            val isDarkTheme = when (themeMode) {
+                AppThemeMode.SYSTEM -> systemInDark
+                AppThemeMode.DARK -> true
+                AppThemeMode.LIGHT -> false
+            }
+
+            LaunchedEffect(isDarkTheme) {
+                viewModel.isDarkMode.value = isDarkTheme
+            }
+
             val currentLang by viewModel.currentLanguage.collectAsState()
             MyApplicationTheme(darkTheme = isDarkTheme) {
                 CompositionLocalProvider(
@@ -160,6 +177,7 @@ class MainActivity : ComponentActivity() {
 fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val context = LocalContext.current
     val isLocked by viewModel.isLocked.collectAsState()
+    val currentThemeMode by viewModel.currentThemeMode.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val isFocusMode by viewModel.isFocusMode.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
@@ -366,37 +384,21 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             .testTag("main_scaffold"),
                         containerColor = Color.Transparent,
                         topBar = {
-                            // Floating Liquid Glass TopAppBar matching reference image
-                            Surface(
-                                color = if (isDarkMode) Color(0xFC0F172A) else Color.Transparent,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                TopAppBar(
-                                    navigationIcon = {
-                                        Box(
-                                            modifier = Modifier
-                                                .padding(horizontal = 8.dp)
-                                                .liquidGlassInteractive(
-                                                shape = RoundedCornerShape(14.dp),
-                                                glowColor = MaterialTheme.colorScheme.primary
-                                            )
-                                        ) {
-                                            IconButton(
-                                                onClick = { scope.launch { drawerState.open() } },
-                                                modifier = Modifier
-                                                    .size(38.dp)
-                                                    .testTag("drawer_menu_button")
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Menu,
-                                                    contentDescription = AppStrings.get("menu", currentLang),
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(22.dp)
-                                                )
-                                            }
-                                        }
-                                    },
-                                    title = {
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                Surface(
+                                    color = if (isDarkMode) Color(0xFC0F172A) else Color.Transparent,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .statusBarsPadding()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Left Side (الجهة اليسرى تماماً): App Title Row with Logo & Version
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
@@ -404,7 +406,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 .clickable {
                                                     viewModel.toggleTheme()
                                                     val modeName = if (!isDarkMode) "الليلي" else "النهاري"
-                                                    Toast.makeText(context, "تم التبديل إلى الوضع $modeName", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, "تم التبديل إلى الوضع ", Toast.LENGTH_SHORT).show()
                                                 }
                                                 .padding(vertical = 4.dp, horizontal = 2.dp)
                                                 .testTag("app_title_row")
@@ -443,92 +445,203 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 )
                                             }
                                         }
-                                    },
-                                    actions = {
-                                        // Quick Notification Button with soft rounded corners & live badge
-                                        Box(
-                                            modifier = Modifier
-                                                .padding(horizontal = 6.dp)
-                                                .liquidGlassInteractive(
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    glowColor = MaterialTheme.colorScheme.primary
-                                                )
+
+                                        // Right Side (الجهة اليمنى): Quick Notifications & Drawer Menu Button
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            IconButton(
-                                                onClick = {
-                                                    showNotificationScreen = true
-                                                },
+                                            // Quick Notification Button with soft rounded corners & live badge
+                                            Box(
                                                 modifier = Modifier
-                                                    .size(38.dp)
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(
-                                                        color = if (isDarkMode) Color(0x3338BDF8) else Color(0x220284C7),
-                                                        shape = RoundedCornerShape(12.dp)
+                                                    .liquidGlassInteractive(
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        glowColor = MaterialTheme.colorScheme.primary
                                                     )
-                                                    .border(
-                                                        1.2.dp,
-                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                                        RoundedCornerShape(12.dp)
-                                                    )
-                                                    .testTag("header_notifications_button")
                                             ) {
-                                                BadgedBox(
-                                                    badge = {
-                                                        if (notificationsCount > 0) {
-                                                            Badge(
-                                                                containerColor = Color(0xFFEF4444),
-                                                                contentColor = Color.White
-                                                            ) {
-                                                                Text(
-                                                                    text = "$notificationsCount",
-                                                                    fontSize = 10.sp,
-                                                                    fontWeight = FontWeight.Bold
-                                                                )
+                                                IconButton(
+                                                    onClick = { showNotificationScreen = true },
+                                                    modifier = Modifier
+                                                        .size(38.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(
+                                                            color = if (isDarkMode) Color(0x3338BDF8) else Color(0x220284C7),
+                                                            shape = RoundedCornerShape(12.dp)
+                                                        )
+                                                        .border(
+                                                            1.2.dp,
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                                            RoundedCornerShape(12.dp)
+                                                        )
+                                                        .testTag("header_notifications_button")
+                                                ) {
+                                                    BadgedBox(
+                                                        badge = {
+                                                            if (notificationsCount > 0) {
+                                                                Badge(
+                                                                    containerColor = Color(0xFFEF4444),
+                                                                    contentColor = Color.White
+                                                                ) {
+                                                                    Text(
+                                                                        text = "",
+                                                                        fontSize = 10.sp,
+                                                                        fontWeight = FontWeight.Bold
+                                                                    )
+                                                                }
                                                             }
                                                         }
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Notifications,
+                                                            contentDescription = AppStrings.get("check_notifications", currentLang),
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
                                                     }
+                                                }
+                                            }
+
+                                            // Drawer Menu Button
+                                            Box(
+                                                modifier = Modifier
+                                                    .liquidGlassInteractive(
+                                                        shape = RoundedCornerShape(14.dp),
+                                                        glowColor = MaterialTheme.colorScheme.primary
+                                                    )
+                                            ) {
+                                                IconButton(
+                                                    onClick = { scope.launch { drawerState.open() } },
+                                                    modifier = Modifier
+                                                        .size(38.dp)
+                                                        .testTag("drawer_menu_button")
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Notifications,
-                                                        contentDescription = AppStrings.get("check_notifications", currentLang),
+                                                        imageVector = Icons.Default.Menu,
+                                                        contentDescription = AppStrings.get("menu", currentLang),
                                                         tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(20.dp)
+                                                        modifier = Modifier.size(22.dp)
                                                     )
                                                 }
                                             }
                                         }
-                                    },
-                                    colors = TopAppBarDefaults.topAppBarColors(
-                                        containerColor = Color.Transparent
-                                    )
-                                )
+                                    }
+                                }
                             }
                         },
                         floatingActionButton = {
-                            FloatingActionButton(
-                                onClick = {
-                                    personnelToEdit = null
-                                    showAddEditDialog = true
-                                },
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.White,
-                                shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier
-                                    .border(
-                                        1.5.dp,
-                                        Brush.linearGradient(
-                                            listOf(Color.White.copy(alpha = 0.8f), MaterialTheme.colorScheme.primary)
-                                        ),
-                                        RoundedCornerShape(18.dp)
-                                    )
-                                    .testTag("add_personnel_fab")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "إضافة فرد جديد"
-                                )
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Bottom Left (الجهة اليسرى تماماً): Settings Button (Liquid Glass)
+                                    Surface(
+                                        onClick = { showSettingsDialog = true },
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .shadow(
+                                                elevation = 8.dp,
+                                                shape = RoundedCornerShape(18.dp),
+                                                ambientColor = if (isDarkMode) Color(0x330284C7) else Color(0x220284C7),
+                                                spotColor = if (isDarkMode) Color(0x400369A1) else Color(0x3338BDF8)
+                                            )
+                                            .clip(RoundedCornerShape(18.dp))
+                                            .background(
+                                                if (isDarkMode) {
+                                                    Brush.verticalGradient(listOf(Color(0xEE1E293B), Color(0xDD0F172A)))
+                                                } else {
+                                                    Brush.verticalGradient(listOf(Color(0xEEFFFFFF), Color(0xD0E0F2FE)))
+                                                }
+                                            )
+                                            .border(
+                                                BorderStroke(
+                                                    1.5.dp,
+                                                    Brush.linearGradient(
+                                                        listOf(
+                                                            Color.White.copy(alpha = if (isDarkMode) 0.6f else 0.95f),
+                                                            Color(0xFF38BDF8).copy(alpha = 0.6f),
+                                                            Color.White.copy(alpha = 0.4f)
+                                                        )
+                                                    )
+                                                ),
+                                                RoundedCornerShape(18.dp)
+                                            )
+                                            .testTag("bottom_settings_button"),
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = Color.Transparent
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Settings,
+                                                contentDescription = AppStrings.get("settings", currentLang),
+                                                tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                                                modifier = Modifier.size(26.dp)
+                                            )
+                                        }
+                                    }
+
+                                    // Bottom Right (الجهة اليمنى تماماً): Add Personnel Button (Liquid Glass)
+                                    Surface(
+                                        onClick = {
+                                            personnelToEdit = null
+                                            showAddEditDialog = true
+                                        },
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .shadow(
+                                                elevation = 8.dp,
+                                                shape = RoundedCornerShape(18.dp),
+                                                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                            )
+                                            .clip(RoundedCornerShape(18.dp))
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.primary,
+                                                        Color(0xFF0284C7)
+                                                    )
+                                                )
+                                            )
+                                            .border(
+                                                BorderStroke(
+                                                    1.5.dp,
+                                                    Brush.linearGradient(
+                                                        listOf(
+                                                            Color.White.copy(alpha = 0.85f),
+                                                            Color(0xFFBAE6FD).copy(alpha = 0.6f),
+                                                            Color.White.copy(alpha = 0.4f)
+                                                        )
+                                                    )
+                                                ),
+                                                RoundedCornerShape(18.dp)
+                                            )
+                                            .testTag("add_personnel_fab"),
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = Color.Transparent
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "إضافة فرد جديد",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
-                        }
+                        },
+                        floatingActionButtonPosition = FabPosition.Center
                     ) { innerPadding ->
             Box(
                 modifier = Modifier
@@ -858,7 +971,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(60.dp))
+                        Spacer(modifier = Modifier.height(90.dp))
                     }
                 }
             }
@@ -962,6 +1075,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     if (showSettingsDialog) {
         SettingsDialog(
             isDarkMode = isDarkMode,
+            currentThemeMode = currentThemeMode,
+            onSelectThemeMode = { viewModel.setThemeMode(it) },
             onToggleTheme = { viewModel.toggleTheme() },
             isFocusMode = isFocusMode,
             onToggleFocusMode = { viewModel.toggleFocusMode() },

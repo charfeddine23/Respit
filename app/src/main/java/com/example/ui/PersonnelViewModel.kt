@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.AppDatabase
 import com.example.data.AppNotification
+import com.example.data.AppThemeMode
 import com.example.data.LeaveStatus
 import com.example.data.Personnel
 import com.example.data.PersonnelRepository
@@ -63,6 +64,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val sortOption = MutableStateFlow(SortOption.RETURN_SOON)
 
     // User preferences & settings state
+    val currentThemeMode = MutableStateFlow(settingsManager.themeMode)
     val isDarkMode = MutableStateFlow(settingsManager.isDarkMode)
     val dutyThresholdDays = MutableStateFlow(settingsManager.dutyThresholdDays)
     val isPinEnabled = MutableStateFlow(settingsManager.isPinEnabled)
@@ -245,8 +247,18 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun toggleTheme() {
         val next = !isDarkMode.value
-        isDarkMode.value = next
-        settingsManager.isDarkMode = next
+        val nextMode = if (next) AppThemeMode.DARK else AppThemeMode.LIGHT
+        setThemeMode(nextMode)
+    }
+
+    fun setThemeMode(mode: AppThemeMode) {
+        currentThemeMode.value = mode
+        settingsManager.themeMode = mode
+        if (mode == AppThemeMode.DARK) {
+            isDarkMode.value = true
+        } else if (mode == AppThemeMode.LIGHT) {
+            isDarkMode.value = false
+        }
     }
 
     fun setLanguage(lang: AppLanguage) {

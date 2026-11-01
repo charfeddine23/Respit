@@ -63,12 +63,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.data.AppThemeMode
 import com.example.util.AppLanguage
 
 @Composable
 fun SettingsDialog(
     isDarkMode: Boolean,
     onToggleTheme: () -> Unit,
+    currentThemeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    onSelectThemeMode: (AppThemeMode) -> Unit = {},
     currentThreshold: Int,
     onSaveThreshold: (Int) -> Unit,
     isPinEnabled: Boolean,
@@ -223,7 +226,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 1: Dark Mode Toggle
+                // Section 1: Theme Settings (إدارة المظهر مع خيار اتباع نظام الجهاز)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -236,14 +239,14 @@ fun SettingsDialog(
                         )
                         .padding(14.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                imageVector = when (currentThemeMode) {
+                                    AppThemeMode.SYSTEM -> Icons.Default.Settings
+                                    AppThemeMode.DARK -> Icons.Default.DarkMode
+                                    AppThemeMode.LIGHT -> Icons.Default.LightMode
+                                },
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp)
@@ -251,13 +254,17 @@ fun SettingsDialog(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "الوضع الليلي (Dark Mode)",
+                                    text = "مظهر التطبيق (Theme Settings)",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = if (isDarkMode) "المظهر الداكن مفعل" else "المظهر الفاتح مفعل",
+                                    text = when (currentThemeMode) {
+                                        AppThemeMode.SYSTEM -> "مفعل: اتباع نظام الجهاز تلقائياً"
+                                        AppThemeMode.DARK -> "مفعل: الوضع الليلي الدائم"
+                                        AppThemeMode.LIGHT -> "مفعل: الوضع النهاري الدائم"
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 11.sp
@@ -265,14 +272,46 @@ fun SettingsDialog(
                             }
                         }
 
-                        Switch(
-                            checked = isDarkMode,
-                            onCheckedChange = { onToggleTheme() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Chips for Theme Mode: System, Light, Dark
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            AppThemeMode.values().forEach { mode ->
+                                val selected = currentThemeMode == mode
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { onSelectThemeMode(mode) },
+                                    label = {
+                                        Text(
+                                            text = when (mode) {
+                                                AppThemeMode.SYSTEM -> "نظام الجهاز ⚙️"
+                                                AppThemeMode.LIGHT -> "النهاري ☀️"
+                                                AppThemeMode.DARK -> "الليلي 🌙"
+                                            },
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                            fontSize = 11.sp,
+                                            color = if (selected) Color.White else if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF0F172A)
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        containerColor = if (isDarkMode) Color(0x33334155) else Color.White.copy(alpha = 0.7f),
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        borderColor = if (selected) MaterialTheme.colorScheme.primary else (if (isDarkMode) Color(0x4D475569) else Color(0x3338BDF8)),
+                                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                                        enabled = true,
+                                        selected = selected
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
 
