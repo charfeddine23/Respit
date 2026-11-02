@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Respite Pelse"
+rootProject.name = "Respite Pulse"
 
 include(":app")

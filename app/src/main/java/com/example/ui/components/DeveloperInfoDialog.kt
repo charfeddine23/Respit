@@ -135,7 +135,7 @@ fun DeveloperInfoDialog(
 
                 // App Name
                 Text(
-                    text = "Respite Pelse",
+                    text = "Respite Pulse",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.primary

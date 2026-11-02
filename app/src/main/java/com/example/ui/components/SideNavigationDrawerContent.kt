@@ -440,7 +440,7 @@ fun SideNavigationDrawerContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Respite Pelse - v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
+            text = "Respite Pulse - v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
             style = MaterialTheme.typography.labelSmall,
             color = Color(0xFF94A3B8),
             fontSize = 10.sp,

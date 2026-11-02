@@ -22,7 +22,7 @@ object AppStrings {
     }
 
     private val stringsAr = mapOf(
-        "app_title" to "Respite Pelse",
+        "app_title" to "Respite Pulse",
         "app_subtitle" to "نظام تسيير إجازات وعطل الأفراد",
         "menu" to "القائمة الرئيسية",
         "drawer_nav_title" to "لوحة التحكم والتنقل",
@@ -74,7 +74,7 @@ object AppStrings {
     )
 
     private val stringsFr = mapOf(
-        "app_title" to "Respite Pelse",
+        "app_title" to "Respite Pulse",
         "app_subtitle" to "Système de Gestion des Congés & Permissions",
         "menu" to "Menu Principal",
         "drawer_nav_title" to "Panneau de Navigation",
@@ -126,7 +126,7 @@ object AppStrings {
     )
 
     private val stringsEn = mapOf(
-        "app_title" to "Respite Pelse",
+        "app_title" to "Respite Pulse",
         "app_subtitle" to "Personnel Leave & Duty Management System",
         "menu" to "Main Menu",
         "drawer_nav_title" to "Navigation Drawer",
