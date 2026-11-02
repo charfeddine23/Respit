@@ -147,23 +147,12 @@ fun SideNavigationDrawerContent(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Version 1.42.2 Badge
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(50.dp)
-                    ) {
-                        Text(
-                            text = "v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 3.dp)
-                        )
-                    }
-                }
+                Text(
+                    text = AppStrings.get("app_subtitle", currentLang),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFCBD5E1),
+                    fontSize = 11.sp
+                )
             }
         }
 
@@ -440,10 +429,10 @@ fun SideNavigationDrawerContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Respite Pulse - v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
+            text = "Respite Pulse",
             style = MaterialTheme.typography.labelSmall,
             color = Color(0xFF94A3B8),
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
     }

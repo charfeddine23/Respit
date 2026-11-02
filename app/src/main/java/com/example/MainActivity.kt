@@ -424,20 +424,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(10.dp))
-                                            Column {
-                                                Text(
-                                                    text = AppStrings.get("app_title", currentLang),
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = "v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontSize = 10.sp,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
+                                            Text(
+                                                text = AppStrings.get("app_title", currentLang),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
                                         }
 
                                         // Right Side (الجهة اليمنى): Quick Notifications & Drawer Menu Button

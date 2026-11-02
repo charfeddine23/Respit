@@ -286,7 +286,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     ) { list, pinned, dismissed, threshold, lang ->
         val result = mutableListOf<AppNotification>()
         val today = Personnel.toStartOfDay(System.currentTimeMillis())
-        val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.US)
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
         list.forEach { p ->
             val startDay = Personnel.toStartOfDay(p.startDateMillis)

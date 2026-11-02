@@ -160,13 +160,13 @@ data class Personnel(
 
     val formattedStartDate: String
         get() {
-            val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.US)
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(startDateMillis))}\u200E"
         }
 
     val formattedReturnDate: String
         get() {
-            val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.US)
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(returnDateMillis))}\u200E"
         }
 

@@ -131,7 +131,7 @@ fun AddEditPersonnelDialog(
     var typeDropdownExpanded by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val sdf = remember { SimpleDateFormat("dd-MM-yyyy", Locale.US) }
+    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
 
     // Start Date Picker
     val startCal = Calendar.getInstance().apply { timeInMillis = startDateMillis }
@@ -290,7 +290,7 @@ fun AddEditPersonnelDialog(
                         value = rank,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("الرتبة (15 رتبة) *") },
+                        placeholder = { Text("الرتبة") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = rankDropdownExpanded) },
                         colors = inputColors,
                         modifier = Modifier
@@ -327,7 +327,7 @@ fun AddEditPersonnelDialog(
                         value = wilaya,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("الولاية (69 ولاية جزائرية) *") },
+                        placeholder = { Text("الولاية") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = wilayaDropdownExpanded) },
                         colors = inputColors,
                         modifier = Modifier
@@ -653,7 +653,7 @@ fun AddEditPersonnelDialog(
                         value = leaveType,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("نوع الإجازة / العطلة (4 أنواع)") },
+                        placeholder = { Text("نوع الإجازة / العطلة") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded) },
                         colors = inputColors,
                         modifier = Modifier

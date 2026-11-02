@@ -14,8 +14,8 @@ android {
 
   val baseMajor = 1
   val baseMinor = 42
-  val basePatch = 2
-  val baseCode = 142
+  val basePatch = 3
+  val baseCode = 143
 
   val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
     ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
