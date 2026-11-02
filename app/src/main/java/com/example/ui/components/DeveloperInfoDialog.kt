@@ -122,11 +122,11 @@ fun DeveloperInfoDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_respite_logo),
+                        painter = painterResource(id = R.drawable.app_logo),
                         contentDescription = "شعار التطبيق",
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
-                            .size(62.dp)
+                            .size(68.dp)
                             .clip(RoundedCornerShape(14.dp))
                     )
                 }

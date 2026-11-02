@@ -117,11 +117,11 @@ fun SideNavigationDrawerContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_respite_logo),
+                            painter = painterResource(id = R.drawable.app_logo),
                             contentDescription = "Logo",
-                            contentScale = ContentScale.Crop,
+                            contentScale = ContentScale.Fit,
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(40.dp)
                                 .clip(RoundedCornerShape(10.dp))
                         )
                     }
