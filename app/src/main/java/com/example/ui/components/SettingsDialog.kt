@@ -70,7 +70,7 @@ import com.example.util.AppLanguage
 fun SettingsDialog(
     isDarkMode: Boolean,
     onToggleTheme: () -> Unit,
-    currentThemeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    currentThemeMode: AppThemeMode = AppThemeMode.LIGHT,
     onSelectThemeMode: (AppThemeMode) -> Unit = {},
     currentThreshold: Int,
     onSaveThreshold: (Int) -> Unit,
@@ -243,7 +243,6 @@ fun SettingsDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = when (currentThemeMode) {
-                                    AppThemeMode.SYSTEM -> Icons.Default.Settings
                                     AppThemeMode.DARK -> Icons.Default.DarkMode
                                     AppThemeMode.LIGHT -> Icons.Default.LightMode
                                 },
@@ -261,9 +260,8 @@ fun SettingsDialog(
                                 )
                                 Text(
                                     text = when (currentThemeMode) {
-                                        AppThemeMode.SYSTEM -> "مفعل: اتباع نظام الجهاز تلقائياً"
-                                        AppThemeMode.DARK -> "مفعل: الوضع الليلي الدائم"
-                                        AppThemeMode.LIGHT -> "مفعل: الوضع النهاري الدائم"
+                                        AppThemeMode.DARK -> "مفعل: الوضع الليلي اليدوي 🌙"
+                                        AppThemeMode.LIGHT -> "مفعل: الوضع النهاري (افتراضي) ☀️"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -274,12 +272,12 @@ fun SettingsDialog(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Chips for Theme Mode: System, Light, Dark
+                        // Chips for Theme Mode: Light (Default), Dark (Manual)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            AppThemeMode.values().forEach { mode ->
+                            AppThemeMode.entries.forEach { mode ->
                                 val selected = currentThemeMode == mode
                                 FilterChip(
                                     selected = selected,
@@ -287,8 +285,7 @@ fun SettingsDialog(
                                     label = {
                                         Text(
                                             text = when (mode) {
-                                                AppThemeMode.SYSTEM -> "نظام الجهاز ⚙️"
-                                                AppThemeMode.LIGHT -> "النهاري ☀️"
+                                                AppThemeMode.LIGHT -> "النهاري ☀️ (افتراضي)"
                                                 AppThemeMode.DARK -> "الليلي 🌙"
                                             },
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,

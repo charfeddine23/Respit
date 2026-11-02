@@ -122,7 +122,7 @@ fun DeveloperInfoDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_ck_logo),
+                        painter = painterResource(id = R.drawable.ic_respite_logo),
                         contentDescription = "شعار التطبيق",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -135,7 +135,7 @@ fun DeveloperInfoDialog(
 
                 // App Name
                 Text(
-                    text = "Charfeddine Ka",
+                    text = "Respite Pelse",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.primary
@@ -143,7 +143,7 @@ fun DeveloperInfoDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Version Badge (V1.42.2)
+                // Version Badge (Dynamic from BuildConfig)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(50.dp))
@@ -156,7 +156,7 @@ fun DeveloperInfoDialog(
                         .padding(horizontal = 14.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Version: V1.42.2",
+                        text = "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold,
                         fontFamily = FontFamily.Monospace,

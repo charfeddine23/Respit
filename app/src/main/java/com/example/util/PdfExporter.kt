@@ -110,7 +110,7 @@ object PdfExporter {
             val canvas: Canvas = page.canvas
 
             // Header Banner
-            canvas.drawText("Charfeddine Ka - نظام تتبع إجازات وعطل الأفراد", pageWidth / 2f, 38f, titlePaint)
+            canvas.drawText("Respite Pelse - نظام تتبع إجازات وعطل الأفراد", pageWidth / 2f, 38f, titlePaint)
             canvas.drawText("جدول متابعة تواريخ الاستفادة والدخول وحساب التواجد بالبيت - الجمهورية الجزائرية", pageWidth / 2f, 54f, subTitlePaint)
 
             canvas.drawText("تاريخ الاستخراج: $printDate", pageWidth - 25f, 75f, metaPaint)
@@ -178,14 +178,14 @@ object PdfExporter {
                 textSize = 8f
                 textAlign = Paint.Align.CENTER
             }
-            canvas.drawText("تم إنشاء هذا التقرير تلقائياً بواسطة تطبيق Charfeddine Ka لإدارة الإجازات ومتابعة تواريخ الدخول", pageWidth / 2f, pageHeight - 25f, footerPaint)
+            canvas.drawText("تم إنشاء هذا التقرير تلقائياً بواسطة تطبيق Respite Pelse لإدارة الإجازات ومتابعة تواريخ الدخول", pageWidth / 2f, pageHeight - 25f, footerPaint)
 
             pdfDocument.finishPage(page)
             pageNumber++
         }
 
         // Save PDF to cache
-        val pdfFile = File(context.cacheDir, "تقرير_إجازات_الأفراد_Charfeddine_Ka.pdf")
+        val pdfFile = File(context.cacheDir, "تقرير_إجازات_الأفراد_Respite_Pelse.pdf")
         FileOutputStream(pdfFile).use { out ->
             pdfDocument.writeTo(out)
         }
@@ -201,7 +201,7 @@ object PdfExporter {
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "application/pdf"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "تقرير إجازات وعطل الأفراد - Charfeddine Ka")
+            putExtra(Intent.EXTRA_SUBJECT, "تقرير إجازات وعطل الأفراد - Respite Pelse")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 

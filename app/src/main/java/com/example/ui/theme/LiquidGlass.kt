@@ -3,7 +3,6 @@ package com.example.ui.theme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,7 +26,7 @@ fun Modifier.liquidGlass(
     shape: Shape = LiquidGlassDefaults.CardShape,
     elevation: Dp = 4.dp,
     borderAlpha: Float = 0.85f,
-    isDark: Boolean = isSystemInDarkTheme()
+    isDark: Boolean = false
 ): Modifier {
     // Serene, eye-comfortable liquid glass with soft specular sheen and no dark borders
     val bgBrush = if (isDark) {
@@ -80,7 +79,7 @@ fun Modifier.liquidGlass(
 
 @Composable
 fun Modifier.liquidGlassPill(
-    isDark: Boolean = isSystemInDarkTheme(),
+    isDark: Boolean = false,
     elevation: Dp = 2.dp
 ): Modifier = this.liquidGlass(
     shape = LiquidGlassDefaults.PillShape,
@@ -92,7 +91,7 @@ fun Modifier.liquidGlassPill(
 @Composable
 fun Modifier.liquidGlassInteractive(
     shape: Shape = LiquidGlassDefaults.SmallShape,
-    isDark: Boolean = isSystemInDarkTheme(),
+    isDark: Boolean = false,
     glowColor: Color = Color(0xFF38BDF8)
 ): Modifier {
     val bg = if (isDark) Color(0xFC1E293B) else Color(0xEBFFFFFF)

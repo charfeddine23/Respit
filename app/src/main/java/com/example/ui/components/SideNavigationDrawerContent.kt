@@ -117,7 +117,7 @@ fun SideNavigationDrawerContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_ck_logo),
+                            painter = painterResource(id = R.drawable.ic_respite_logo),
                             contentDescription = "Logo",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -156,7 +156,7 @@ fun SideNavigationDrawerContent(
                         shape = RoundedCornerShape(50.dp)
                     ) {
                         Text(
-                            text = "v1.42.2",
+                            text = "v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -440,7 +440,7 @@ fun SideNavigationDrawerContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Charfeddine Ka - v1.42.2",
+            text = "Respite Pelse - v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
             style = MaterialTheme.typography.labelSmall,
             color = Color(0xFF94A3B8),
             fontSize = 10.sp,

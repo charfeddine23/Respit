@@ -4,13 +4,12 @@ import android.content.Context
 import android.content.SharedPreferences
 
 enum class AppThemeMode(val code: String, val titleAr: String) {
-    SYSTEM("system", "اتباع نظام الجهاز"),
-    LIGHT("light", "الوضع النهاري"),
+    LIGHT("light", "الوضع النهاري (افتراضي)"),
     DARK("dark", "الوضع الليلي");
 
     companion object {
         fun fromCode(code: String): AppThemeMode {
-            return entries.find { it.code == code } ?: SYSTEM
+            return entries.find { it.code == code } ?: LIGHT
         }
     }
 }
@@ -38,11 +37,11 @@ class SettingsManager(context: Context) {
             return if (code != null) {
                 AppThemeMode.fromCode(code)
             } else {
-                // Backward compatibility if only isDarkMode was set
+                // Default to LIGHT mode unless explicitly saved as dark mode
                 if (prefs.contains(KEY_DARK_MODE)) {
                     if (prefs.getBoolean(KEY_DARK_MODE, false)) AppThemeMode.DARK else AppThemeMode.LIGHT
                 } else {
-                    AppThemeMode.SYSTEM
+                    AppThemeMode.LIGHT
                 }
             }
         }

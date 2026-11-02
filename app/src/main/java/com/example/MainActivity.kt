@@ -19,7 +19,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -149,12 +148,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeMode by viewModel.currentThemeMode.collectAsState()
-            val systemInDark = isSystemInDarkTheme()
-            val isDarkTheme = when (themeMode) {
-                AppThemeMode.SYSTEM -> systemInDark
-                AppThemeMode.DARK -> true
-                AppThemeMode.LIGHT -> false
-            }
+            val isDarkTheme = themeMode == AppThemeMode.DARK
 
             LaunchedEffect(isDarkTheme) {
                 viewModel.isDarkMode.value = isDarkTheme
@@ -421,7 +415,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Image(
-                                                    painter = painterResource(id = R.drawable.ic_ck_logo),
+                                                    painter = painterResource(id = R.drawable.ic_respite_logo),
                                                     contentDescription = "أيقونة التطبيق",
                                                     contentScale = ContentScale.Crop,
                                                     modifier = Modifier
@@ -438,7 +432,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
-                                                    text = "v1.42.2",
+                                                    text = "v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontSize = 10.sp,
                                                     color = MaterialTheme.colorScheme.primary
@@ -498,29 +492,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
-                                                }
-                                            }
-
-                                            // Drawer Menu Button
-                                            Box(
-                                                modifier = Modifier
-                                                    .liquidGlassInteractive(
-                                                        shape = RoundedCornerShape(14.dp),
-                                                        glowColor = MaterialTheme.colorScheme.primary
-                                                    )
-                                            ) {
-                                                IconButton(
-                                                    onClick = { scope.launch { drawerState.open() } },
-                                                    modifier = Modifier
-                                                        .size(38.dp)
-                                                        .testTag("drawer_menu_button")
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Menu,
-                                                        contentDescription = AppStrings.get("menu", currentLang),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(22.dp)
-                                                    )
                                                 }
                                             }
                                         }
@@ -658,7 +629,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                 ) {
                     // Statistics KPI Cards (Liquid Glass)
                     item {
-                        StatisticsSection(stats = stats)
+                        StatisticsSection(stats = stats, isDarkMode = isDarkMode)
                     }
 
                     // Liquid Glass Search Container with Integrated Filter & Sort Button on the Left
@@ -951,6 +922,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                 personnel = person,
                                 dutyThresholdDays = dutyThreshold,
                                 isFocusMode = isFocusMode,
+                                isDarkMode = isDarkMode,
                                 onConfirmDuty = {
                                     viewModel.confirmReturnToDuty(person.id)
                                     Toast.makeText(
@@ -1009,7 +981,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                     if (id == 0L) "تمت إضافة الفرد بنجاح" else "تم تحديث البيانات بنجاح",
                     Toast.LENGTH_SHORT
                 ).show()
-            }
+            },
+            isDarkMode = isDarkMode
         )
     }
 
@@ -1060,7 +1033,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                 viewModel.selectedWilaya.value = "ALL"
                 viewModel.sortOption.value = SortOption.RETURN_SOON
             },
-            onDismiss = { showFilterSortDialog = false }
+            onDismiss = { showFilterSortDialog = false },
+            isDarkMode = isDarkMode
         )
     }
 

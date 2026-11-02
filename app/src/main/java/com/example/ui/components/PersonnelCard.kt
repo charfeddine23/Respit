@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,7 +60,8 @@ fun PersonnelCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
-    isFocusMode: Boolean = false
+    isFocusMode: Boolean = false,
+    isDarkMode: Boolean = false
 ) {
     val status = personnel.status
     val isEligible = personnel.isEligibleForLeave(dutyThresholdDays)
@@ -119,7 +119,7 @@ fun PersonnelCard(
         }
     }
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = isDarkMode
 
     // Liquid Glass Container
     Box(
@@ -128,7 +128,8 @@ fun PersonnelCard(
             .liquidGlass(
                 shape = LiquidGlassDefaults.CardShape,
                 elevation = 6.dp,
-                borderAlpha = 0.85f
+                borderAlpha = 0.85f,
+                isDark = isDark
             )
             .testTag("personnel_item_${personnel.id}")
     ) {
@@ -296,8 +297,6 @@ fun PersonnelCard(
             }
 
             Spacer(modifier = Modifier.height(14.dp))
-
-            val isDark = isSystemInDarkTheme()
 
             // HERO SECTION: "شحال بقالو فدار ويدخل" or "مستحق للإجازة"
             when {

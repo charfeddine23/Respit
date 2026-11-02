@@ -38,6 +38,7 @@ import com.example.ui.theme.liquidGlass
 @Composable
 fun StatisticsSection(
     stats: DashboardStats,
+    isDarkMode: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -57,6 +58,7 @@ fun StatisticsSection(
                 icon = Icons.Default.Group,
                 accentColor = Color(0xFF0284C7),
                 bgTint = Color(0xFFD4EDFD),
+                isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
 
@@ -67,6 +69,7 @@ fun StatisticsSection(
                 icon = Icons.Default.Home,
                 accentColor = Color(0xFF0284C7),
                 bgTint = Color(0xFFD4EDFD),
+                isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -82,6 +85,7 @@ fun StatisticsSection(
                 icon = Icons.Default.Warning,
                 accentColor = Color(0xFFE11D48),
                 bgTint = Color(0xFFFFE4E6),
+                isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
 
@@ -92,6 +96,7 @@ fun StatisticsSection(
                 icon = Icons.Default.CheckCircle,
                 accentColor = Color(0xFF059669),
                 bgTint = Color(0xFFD1FAE5),
+                isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -106,6 +111,7 @@ fun LiquidStatCard(
     icon: ImageVector,
     accentColor: Color,
     bgTint: Color,
+    isDark: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -113,12 +119,11 @@ fun LiquidStatCard(
             .liquidGlass(
                 shape = RoundedCornerShape(22.dp),
                 elevation = 6.dp,
-                borderAlpha = 0.9f
+                borderAlpha = 0.9f,
+                isDark = isDark
             )
             .padding(14.dp)
     ) {
-        val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),

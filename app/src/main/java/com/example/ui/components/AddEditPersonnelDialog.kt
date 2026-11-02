@@ -4,7 +4,6 @@ import android.app.DatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,7 +86,8 @@ fun AddEditPersonnelDialog(
         leaveType: String,
         wilaya: String,
         notes: String
-    ) -> Unit
+    ) -> Unit,
+    isDarkMode: Boolean = false
 ) {
     val context = LocalContext.current
     val isEdit = personnelToEdit != null
@@ -176,7 +176,7 @@ fun AddEditPersonnelDialog(
         Personnel.toStartOfDay(returnDateMillis) - today
     )
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = isDarkMode
 
     // Pure black text in dark mode for maximum contrast and readability
     val inputColors = OutlinedTextFieldDefaults.colors(

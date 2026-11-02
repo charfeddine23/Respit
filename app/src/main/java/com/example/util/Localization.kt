@@ -22,7 +22,7 @@ object AppStrings {
     }
 
     private val stringsAr = mapOf(
-        "app_title" to "Charfeddine Ka",
+        "app_title" to "Respite Pelse",
         "app_subtitle" to "نظام تسيير إجازات وعطل الأفراد",
         "menu" to "القائمة الرئيسية",
         "drawer_nav_title" to "لوحة التحكم والتنقل",
@@ -60,7 +60,7 @@ object AppStrings {
         "cancel" to "إلغاء",
         "save" to "حفظ",
         "input_text_dark_note" to "وضوح تام لخانة الإدخال",
-        "app_version" to "Version: V1.42.2",
+        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
         "notifications_page_title" to "قائمة التنبيهات والإشعارات",
         "notifications_empty_title" to "لا توجد تنبيهات حالياً",
         "notifications_empty_sub" to "جميع مواعيد الإجازات وتواريخ الدخول مستقرة ولا توجد تنبيهات معلقة.",
@@ -74,7 +74,7 @@ object AppStrings {
     )
 
     private val stringsFr = mapOf(
-        "app_title" to "Charfeddine Ka",
+        "app_title" to "Respite Pelse",
         "app_subtitle" to "Système de Gestion des Congés & Permissions",
         "menu" to "Menu Principal",
         "drawer_nav_title" to "Panneau de Navigation",
@@ -112,7 +112,7 @@ object AppStrings {
         "cancel" to "Annuler",
         "save" to "Enregistrer",
         "input_text_dark_note" to "Contraste texte noir optimisé",
-        "app_version" to "Version: V1.42.2",
+        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
         "notifications_page_title" to "Centre de Notifications",
         "notifications_empty_title" to "Aucune notification",
         "notifications_empty_sub" to "Tous les congés et retours sont réguliers et à jour.",
@@ -126,7 +126,7 @@ object AppStrings {
     )
 
     private val stringsEn = mapOf(
-        "app_title" to "Charfeddine Ka",
+        "app_title" to "Respite Pelse",
         "app_subtitle" to "Personnel Leave & Duty Management System",
         "menu" to "Main Menu",
         "drawer_nav_title" to "Navigation Drawer",
@@ -164,7 +164,7 @@ object AppStrings {
         "cancel" to "Cancel",
         "save" to "Save",
         "input_text_dark_note" to "Pure black input text optimized",
-        "app_version" to "Version: V1.42.2",
+        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
         "notifications_page_title" to "Notifications Center",
         "notifications_empty_title" to "No Notifications",
         "notifications_empty_sub" to "All leaves and duty return dates are on schedule.",

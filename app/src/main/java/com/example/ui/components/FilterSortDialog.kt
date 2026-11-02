@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,9 +60,10 @@ fun FilterSortDialog(
     uniqueRanks: List<String>,
     stats: DashboardStats,
     onResetFilters: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isDarkMode: Boolean = false
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isDarkMode
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
