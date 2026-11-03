@@ -51,12 +51,12 @@ jobs:
           if [ -z "$VERSION_NAME" ]; then
             BASE_MAJOR=1
             BASE_MINOR=42
-            BASE_PATCH=2
+            BASE_PATCH=3
             VERSION_NAME="$BASE_MAJOR.$BASE_MINOR.$((BASE_PATCH + GITHUB_RUN_NUMBER))"
           fi
 
           if [ -z "$VERSION_CODE" ]; then
-            VERSION_CODE=$((142 + GITHUB_RUN_NUMBER))
+            VERSION_CODE=$((143 + GITHUB_RUN_NUMBER))
           fi
 
           APP_ID="com.aistudio.leavetracker.kpqvbn"
@@ -132,7 +132,8 @@ jobs:
           fi
 
           cp "$APK_PATH" release-apk/MyApp-Release.apk
-          echo "Release APK prepared at: release-apk/MyApp-Release.apk"
+          cp "$APK_PATH" release-apk/RespitePulse-Release.apk
+          echo "Release APKs prepared at release-apk/"
           ls -lh release-apk/
 
       - name: Upload Release APK as Workflow Artifact
@@ -147,6 +148,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Checking for previous releases and tags to keep only the latest release..."
+          # 1. Delete all existing GitHub releases along with their tags
           PREV_RELEASES=$(gh release list --limit 100 --json tagName --jq '.[].tagName' 2>/dev/null || true)
           for rel in $PREV_RELEASES; do
             if [ -n "$rel" ]; then
@@ -155,20 +157,30 @@ jobs:
             fi
           done
 
+          # 2. Delete any lingering remote tags from git repository
+          git fetch --tags 2>/dev/null || true
+          for tag in $(git tag -l); do
+            echo "Deleting remote tag: $tag"
+            git push origin --delete "$tag" 2>/dev/null || true
+            git tag -d "$tag" 2>/dev/null || true
+          done
+
       - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version_info.outputs.tag_name }}
-          name: "Charfeddine Ka - الإصدار v${{ steps.version_info.outputs.version_name }} (Build ${{ steps.version_info.outputs.version_code }})"
+          name: "Respite Pulse - الإصدار v${{ steps.version_info.outputs.version_name }} (Build ${{ steps.version_info.outputs.version_code }})"
           draft: false
           prerelease: false
           make_latest: true
-          files: release-apk/MyApp-Release.apk
+          files: |
+            release-apk/MyApp-Release.apk
+            release-apk/RespitePulse-Release.apk
           body: |
-            ## 📱 تطبيق Charfeddine Ka - نظام تسيير إجازات وعطل الأفراد
+            ## 📱 تطبيق Respite Pulse - نظام تسيير إجازات وعطل الأفراد
 
             ### 📋 معلومات الإصدار وحزمة التطبيق (Build & Release Info):
-            - **اسم ملف التثبيت المباشر:** `MyApp-Release.apk`
+            - **اسم ملف التثبيت المباشر:** `RespitePulse-Release.apk` / `MyApp-Release.apk`
             - **رقم الإصدار (Version Name):** `${{ steps.version_info.outputs.version_name }}`
             - **كود الإصدار (Version Code):** `${{ steps.version_info.outputs.version_code }}`
             - **معرّف الحزمة (Application ID):** `${{ steps.version_info.outputs.application_id }}`
@@ -180,18 +192,16 @@ jobs:
             ---
 
             ### 📥 رابط التحميل المباشر لملف الـ APK بنقرة واحدة:
-            - **[تحميل MyApp-Release.apk مباشرة (Direct Download)](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-Release.apk)**
+            - **[تحميل RespitePulse-Release.apk مباشرة](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/RespitePulse-Release.apk)**
+            - **[تحميل MyApp-Release.apk مباشرة](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-Release.apk)**
 
             ---
 
             ### 🚀 أبرز ميزات وتحسينات هذا الإصدار:
-            - 🔄 **إصدار ديناميكي تصاعدي آلياً**: زيادة رقم الإصدار `versionCode` و `versionName` تلقائياً مع كل عملية بناء.
-            - 🧹 **تنظيف تلقائي للمستودع**: حذف الإصدارات والوسوم السابقة تلقائياً للاحتفاظ بآخر إصدار فقط ومنع التراكم.
-            - 📦 **ملف APK موحد ونظيف**: اعتماد ملف `MyApp-Release.apk` حصرياً بدون تكرار للأسماء.
-            - 🔔 **مركز التنبيهات المخصص**: استعراض التنبيهات الذكية مع دعم التثبيت في الأعلى ومسح الإشعارات.
-            - 🎯 **زر التنبيهات ذو الحواف الدائرية الخفيفة**: مع شارة عداد حي للإشعارات النشطة.
-            - 🕒 **سجل آخر عمليات البحث (Recent Searches)**: حفظ آخر 5 عمليات بحث لسرعة الوصول.
-            - 📅 **تنسيق التواريخ المحكم**: عرض التواريخ بصيغة اليوم-الشهر-السنة (`dd-MM-yyyy`).
-            - 🛡️ **تثبيت التحديث مباشرة (Update Compatibility)**: يمكن تثبيت هذا الملف كـ Update فوق النسخة السابقة مباشرة دون فقدان البيانات.
+            - 🔄 **إصدار ديناميكي تصاعدي آلياً**: زيادة رقم الإصدار `versionCode` و `versionName` تلقائياً مع كل عملية بناء لتثبيت التحديث مباشرة فوق النسخ السابقة.
+            - 🧹 **تنظيف تلقائي شامل للمستودع**: حذف جميع الإصدارات والوسوم السابقة تلقائياً للاحتفاظ بأحدث إصدار فقط بدون تراكم.
+            - 🎨 **أيقونة التطبيق الجديدة (Adaptive Icon)**: تقويم ونبض وورقة بنسبة ملء 70% وخلفية شفافة تتكيف بسلاسة مع واجهة One UI وثيمات Material You.
+            - 📅 **صيغة التواريخ الموحدة**: عرض كافة التواريخ بصيغة السنة-الشهر-اليوم (`yyyy-MM-dd`).
+            - 🛡️ **تثبيت التحديث مباشرة (In-Place Update)**: توحيد مفتاح التوقيع وتحديث أذونات التثبيت لتجنب أي تعارض في الحزم.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
