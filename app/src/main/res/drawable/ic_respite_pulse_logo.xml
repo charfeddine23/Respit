@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Calendar Main Body with clean white fill & dark slate border for contrast in light and dark modes -->
+    <path
+        android:pathData="M 132,80 L 380,80 A 36,36 0 0,1 416,116 L 416,384 A 36,36 0 0,1 380,420 L 132,420 A 36,36 0 0,1 96,384 L 96,116 A 36,36 0 0,1 132,80 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="14" />
+
+    <!-- Top Navy Header Banner -->
+    <path
+        android:pathData="M 96,150 L 96,116 A 36,36 0 0,1 132,80 L 380,80 A 36,36 0 0,1 416,116 L 416,150 Z"
+        android:fillColor="#1E293B" />
+
+    <!-- Folded Corner Bottom Right -->
+    <path
+        android:pathData="M 346,420 L 416,350 L 346,350 Z"
+        android:fillColor="#E2E8F0" />
+    <path
+        android:pathData="M 346,420 L 346,350 L 416,350"
+        android:fillColor="#00000000"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="10"
+        android:strokeLineJoin="round" />
+
+    <!-- Binder Rings at the Top (Left) -->
+    <path
+        android:pathData="M 169,52 A 13,13 0 0,1 182,65 L 182,97 A 13,13 0 0,1 156,97 L 156,65 A 13,13 0 0,1 169,52 Z"
+        android:fillColor="#CBD5E1"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="8" />
+    <path
+        android:pathData="M 169,89 A 5,5 0 1,0 169,99 A 5,5 0 1,0 169,89 Z"
+        android:fillColor="#1E293B" />
+
+    <!-- Binder Rings at the Top (Middle) -->
+    <path
+        android:pathData="M 256,52 A 13,13 0 0,1 269,65 L 269,97 A 13,13 0 0,1 243,97 L 243,65 A 13,13 0 0,1 256,52 Z"
+        android:fillColor="#CBD5E1"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="8" />
+    <path
+        android:pathData="M 256,89 A 5,5 0 1,0 256,99 A 5,5 0 1,0 256,89 Z"
+        android:fillColor="#1E293B" />
+
+    <!-- Binder Rings at the Top (Right) -->
+    <path
+        android:pathData="M 343,52 A 13,13 0 0,1 356,65 L 356,97 A 13,13 0 0,1 330,97 L 330,65 A 13,13 0 0,1 343,52 Z"
+        android:fillColor="#CBD5E1"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="8" />
+    <path
+        android:pathData="M 343,89 A 5,5 0 1,0 343,99 A 5,5 0 1,0 343,89 Z"
+        android:fillColor="#1E293B" />
+
+    <!-- Vacation & Respite Emerald Leaf (Rest, Nature, Vitality) -->
+    <path
+        android:pathData="M 276,290 C 265,240 286,202 332,184 C 352,224 340,268 300,296 C 290,302 282,300 276,290 Z"
+        android:fillColor="#10B981"
+        android:strokeColor="#059669"
+        android:strokeWidth="3" />
+    <path
+        android:pathData="M 278,288 Q 302,252 328,190"
+        android:fillColor="#00000000"
+        android:strokeColor="#D1FAE5"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M 292,268 Q 306,262 318,266"
+        android:fillColor="#00000000"
+        android:strokeColor="#D1FAE5"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M 302,248 Q 314,238 328,240"
+        android:fillColor="#00000000"
+        android:strokeColor="#D1FAE5"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M 288,276 Q 282,266 280,252"
+        android:fillColor="#00000000"
+        android:strokeColor="#D1FAE5"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+
+    <!-- Respite Pulse Wave (Heartbeat Vitality & Vacation Flow) -->
+    <path
+        android:pathData="M 46,285 L 160,285 L 188,285 L 208,318 L 228,206 L 256,386 L 286,266 L 312,302 L 328,285 L 466,285"
+        android:fillColor="#00000000"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="18"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -417,7 +417,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Image(
-                                                    painter = painterResource(id = R.drawable.app_logo),
+                                                    painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
                                                     contentDescription = "أيقونة التطبيق",
                                                     contentScale = ContentScale.Fit,
                                                     modifier = Modifier
