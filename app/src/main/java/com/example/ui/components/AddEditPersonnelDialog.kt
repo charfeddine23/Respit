@@ -178,36 +178,36 @@ fun AddEditPersonnelDialog(
 
     val isDark = isDarkMode
 
-    // Pure black text in dark mode for maximum contrast and readability
+    // Slate text (#0F172A) and vibrant cyan accents for high contrast and clear readability
     val inputColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = Color.Black,
-        unfocusedTextColor = Color.Black,
-        focusedContainerColor = if (isDark) Color(0xFFF8FAFC) else Color.White,
-        unfocusedContainerColor = if (isDark) Color(0xFFF1F5F9) else Color(0xF7FFFFFF),
-        focusedBorderColor = MaterialTheme.colorScheme.primary,
-        unfocusedBorderColor = if (isDark) Color(0xFF94A3B8) else Color(0x3338BDF8),
-        focusedLabelColor = if (isDark) Color(0xFF0F172A) else MaterialTheme.colorScheme.primary,
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedContainerColor = if (isDark) Color(0xFFF8FAFC) else Color(0xF7FFFFFF),
+        unfocusedContainerColor = if (isDark) Color(0xFFF1F5F9) else Color(0xD9FFFFFF),
+        focusedBorderColor = Color(0xFF00BCD4),
+        unfocusedBorderColor = if (isDark) Color(0xFF94A3B8) else Color(0x3300BCD4),
+        focusedLabelColor = Color(0xFF00BCD4),
         unfocusedLabelColor = if (isDark) Color(0xFF334155) else Color(0xFF64748B),
         focusedPlaceholderColor = Color(0xFF64748B),
         unfocusedPlaceholderColor = Color(0xFF94A3B8),
-        cursorColor = Color.Black
+        cursorColor = Color(0xFF00BCD4)
     )
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(26.dp),
-            color = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFFFF),
+            shape = RoundedCornerShape(24.dp),
+            color = if (isDark) Color(0xFF1E293B) else Color(0xD9FFFFFF), // rgba(255, 255, 255, 0.85)
             border = androidx.compose.foundation.BorderStroke(
                 1.2.dp,
                 Brush.linearGradient(
                     listOf(
-                        Color.White.copy(alpha = if (isDark) 0.3f else 0.9f),
-                        Color(0x8038BDF8),
-                        Color(0x400284C7)
+                        Color.White.copy(alpha = if (isDark) 0.4f else 0.95f),
+                        Color(0x8000BCD4),
+                        Color.White.copy(alpha = 0.6f)
                     )
                 )
             ),
-            tonalElevation = 8.dp,
+            shadowElevation = 10.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp)
@@ -507,10 +507,16 @@ fun AddEditPersonnelDialog(
                                     label = { Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
                                     shape = RoundedCornerShape(50.dp),
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFF0284C7),
+                                        selectedContainerColor = Color(0xFF00BCD4),
                                         selectedLabelColor = Color.White,
-                                        containerColor = Color.White,
-                                        labelColor = Color(0xFF0A2540)
+                                        containerColor = if (isDark) Color(0xFF334155) else Color(0xF2FFFFFF),
+                                        labelColor = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A)
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = totalDays == days.toLong(),
+                                        borderColor = if (isDark) Color(0x3300BCD4) else Color(0x3300BCD4),
+                                        selectedBorderColor = Color(0xFF00BCD4)
                                     )
                                 )
                             }
@@ -525,12 +531,12 @@ fun AddEditPersonnelDialog(
                                 .testTag("return_date_picker_button"),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.White,
-                                contentColor = Color(0xFF000000)
+                                containerColor = if (isDark) Color(0xFF1E293B) else Color(0xF5FFFFFF),
+                                contentColor = Color(0xFF0F172A)
                             ),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (isDark) Color(0xFF94A3B8) else Color(0x3338BDF8)
+                                if (isDark) Color(0xFF94A3B8) else Color(0x4000BCD4)
                             )
                         ) {
                             Row(
@@ -543,14 +549,14 @@ fun AddEditPersonnelDialog(
                                         text = sdf.format(Date(returnDateMillis)),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF000000)
+                                        color = if (isDark) Color.White else Color(0xFF0F172A)
                                     )
                                 }
                                 Icon(
                                     imageVector = Icons.Default.CalendarMonth,
                                     contentDescription = "اختر تاريخ الدخول",
                                     modifier = Modifier.size(20.dp),
-                                    tint = Color(0xFF000000)
+                                    tint = Color(0xFF00BCD4)
                                 )
                             }
                         }
@@ -701,9 +707,13 @@ fun AddEditPersonnelDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF64748B)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x3364748B))
                     ) {
-                        Text("إلغاء")
+                        Text("إلغاء", fontWeight = FontWeight.Bold)
                     }
 
                     Button(
@@ -736,9 +746,13 @@ fun AddEditPersonnelDialog(
                         modifier = Modifier
                             .weight(1f)
                             .testTag("save_personnel_button"),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF00BCD4),
+                            contentColor = Color.White
+                        )
                     ) {
-                        Text(if (isEdit) "حفظ التعديل" else "إضافة الفرد")
+                        Text(if (isEdit) "حفظ التعديل" else "إضافة الفرد", fontWeight = FontWeight.Bold)
                     }
                 }
             }

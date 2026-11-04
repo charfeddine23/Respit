@@ -33,6 +33,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.DashboardStats
+import com.example.ui.theme.AmberContainer
+import com.example.ui.theme.AmberWarning
+import com.example.ui.theme.CyanContainer
+import com.example.ui.theme.EmeraldContainer
+import com.example.ui.theme.EmeraldSuccess
+import com.example.ui.theme.PurpleContainer
+import com.example.ui.theme.PurpleAccent
+import com.example.ui.theme.RedContainer
+import com.example.ui.theme.RedDanger
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlass
 
 @Composable
@@ -56,8 +68,8 @@ fun StatisticsSection(
                 count = stats.total.toString(),
                 subtitle = "مسجلون بالنظام",
                 icon = Icons.Default.Group,
-                accentColor = Color(0xFF0284C7),
-                bgTint = Color(0xFFD4EDFD),
+                accentColor = VibrantCyan,
+                bgTint = CyanContainer,
                 isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
@@ -67,8 +79,8 @@ fun StatisticsSection(
                 count = stats.atHome.toString(),
                 subtitle = "جاري احتساب متبقي الدخول",
                 icon = Icons.Default.Home,
-                accentColor = Color(0xFF0284C7),
-                bgTint = Color(0xFFD4EDFD),
+                accentColor = AmberWarning,
+                bgTint = AmberContainer,
                 isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
@@ -83,8 +95,8 @@ fun StatisticsSection(
                 count = (stats.returningToday + stats.overdue).toString(),
                 subtitle = "${stats.returningToday} اليوم / ${stats.overdue} متأخر",
                 icon = Icons.Default.Warning,
-                accentColor = Color(0xFFE11D48),
-                bgTint = Color(0xFFFFE4E6),
+                accentColor = RedDanger,
+                bgTint = RedContainer,
                 isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
@@ -94,8 +106,8 @@ fun StatisticsSection(
                 count = stats.onDuty.toString(),
                 subtitle = if (stats.eligible > 0) "${stats.eligible} مستحق للإجازة 🌟" else "مستأنفون للعمل بالوحدة",
                 icon = Icons.Default.CheckCircle,
-                accentColor = Color(0xFF059669),
-                bgTint = Color(0xFFD1FAE5),
+                accentColor = EmeraldSuccess,
+                bgTint = EmeraldContainer,
                 isDark = isDarkMode,
                 modifier = Modifier.weight(1f)
             )
@@ -118,8 +130,8 @@ fun LiquidStatCard(
         modifier = modifier
             .liquidGlass(
                 shape = RoundedCornerShape(22.dp),
-                elevation = 6.dp,
-                borderAlpha = 0.9f,
+                elevation = 4.dp,
+                borderAlpha = 0.85f,
                 isDark = isDark
             )
             .padding(14.dp)
@@ -133,19 +145,20 @@ fun LiquidStatCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isDark) MaterialTheme.colorScheme.onSurface else Color(0xFF0A2540)
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) MaterialTheme.colorScheme.onSurface else SlateTextSecondary,
+                    fontSize = 12.sp
                 )
 
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(if (isDark) bgTint.copy(alpha = 0.25f) else bgTint)
                         .border(
                             1.dp,
                             Brush.linearGradient(
-                                if (isDark) listOf(Color.White.copy(alpha = 0.6f), accentColor.copy(alpha = 0.5f))
+                                if (isDark) listOf(Color.White.copy(alpha = 0.5f), accentColor.copy(alpha = 0.4f))
                                 else listOf(Color.White, accentColor.copy(alpha = 0.35f))
                             ),
                             CircleShape
@@ -156,7 +169,7 @@ fun LiquidStatCard(
                         imageVector = icon,
                         contentDescription = title,
                         tint = accentColor,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(19.dp)
                     )
                 }
             }
@@ -167,7 +180,7 @@ fun LiquidStatCard(
                 text = count,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Black,
-                color = accentColor
+                color = if (isDark) MaterialTheme.colorScheme.onSurface else SlateTextPrimary
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -175,7 +188,7 @@ fun LiquidStatCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF486581),
+                color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else SlateTextSecondary,
                 fontWeight = FontWeight.Medium,
                 fontSize = 11.sp
             )

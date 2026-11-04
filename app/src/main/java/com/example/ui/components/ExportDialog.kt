@@ -75,18 +75,19 @@ fun ExportDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(26.dp),
+            shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(
                 1.2.dp,
                 Brush.linearGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.8f),
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        Color.White.copy(alpha = 0.95f),
+                        Color(0x8000BCD4),
+                        Color.White.copy(alpha = 0.6f)
                     )
                 )
             ),
-            tonalElevation = 8.dp,
+            shadowElevation = 10.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp)

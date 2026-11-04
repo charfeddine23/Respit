@@ -158,21 +158,28 @@ fun NotificationScreen(
                     drawRect(
                         brush = Brush.verticalGradient(
                             listOf(
-                                Color(0xFFE4F0FB),
-                                Color(0xFFD6ECFA),
-                                Color(0xFFCAE3F7)
+                                Color(0xFFE0F7FA),
+                                Color(0xFFEBFBFC),
+                                Color(0xFFFFFFFF),
+                                Color(0xFFF9F2FB),
+                                Color(0xFFF3E5F5)
                             )
                         )
                     )
                     drawCircle(
-                        color = Color(0x38BAE6FD),
-                        radius = size.width * 0.5f,
-                        center = Offset(size.width * 0.1f, size.height * 0.2f)
+                        color = Color(0x3300E5FF),
+                        radius = size.width * 0.55f,
+                        center = Offset(size.width * 0.05f, size.height * 0.12f)
                     )
                     drawCircle(
-                        color = Color(0x3393C5FD),
+                        color = Color(0x2200BCD4),
+                        radius = size.width * 0.5f,
+                        center = Offset(size.width * 0.88f, size.height * 0.38f)
+                    )
+                    drawCircle(
+                        color = Color(0x248B5CF6),
                         radius = size.width * 0.6f,
-                        center = Offset(size.width * 0.85f, size.height * 0.45f)
+                        center = Offset(size.width * 0.95f, size.height * 0.82f)
                     )
                 }
             }
@@ -351,7 +358,7 @@ fun NotificationScreen(
                             isSelected = selectedFilter == "RETURNING_TODAY",
                             onClick = { selectedFilter = "RETURNING_TODAY" },
                             isDark = isDarkMode,
-                            accentColor = Color(0xFF0284C7)
+                            accentColor = Color(0xFF00BCD4)
                         )
                         NotificationFilterChip(
                             label = "⚠️ متأخرون",

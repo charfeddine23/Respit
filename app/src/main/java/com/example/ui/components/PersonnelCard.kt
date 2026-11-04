@@ -48,7 +48,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.LeaveStatus
 import com.example.data.Personnel
+import com.example.ui.theme.CyanContainer
+import com.example.ui.theme.CyanGlow
+import com.example.ui.theme.EmeraldSuccess
 import com.example.ui.theme.LiquidGlassDefaults
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlass
 import com.example.ui.theme.liquidGlassInteractive
 
@@ -71,8 +77,8 @@ fun PersonnelCard(
     val (statusColor, statusBgColor, statusIcon, statusTitle) = when {
         status == LeaveStatus.AT_HOME -> {
             Tuple4(
-                Color(0xFF0284C7),
-                Color(0xFFE0F2FE),
+                VibrantCyan,
+                CyanContainer,
                 Icons.Default.Home,
                 "في إجازة بالبيت 🏠"
             )
@@ -186,7 +192,7 @@ fun PersonnelCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF334E68)
+                                color = if (isDark) Color(0xFF94A3B8) else SlateTextSecondary
                             )
                         }
                     }
@@ -309,15 +315,15 @@ fun PersonnelCard(
                                 if (isDark) {
                                     Brush.horizontalGradient(
                                         listOf(
-                                            Color(0xFF0284C7).copy(alpha = 0.22f),
-                                            Color(0xFF38BDF8).copy(alpha = 0.12f)
+                                            VibrantCyan.copy(alpha = 0.22f),
+                                            CyanGlow.copy(alpha = 0.12f)
                                         )
                                     )
                                 } else {
                                     Brush.horizontalGradient(
                                         listOf(
-                                            Color(0xFFE0F2FE),
-                                            Color(0xFFF0F9FF)
+                                            CyanContainer,
+                                            Color.White
                                         )
                                     )
                                 }
@@ -326,11 +332,11 @@ fun PersonnelCard(
                                 1.dp,
                                 if (isDark) {
                                     Brush.linearGradient(
-                                        listOf(Color.White.copy(alpha = 0.6f), Color(0xFF38BDF8).copy(alpha = 0.5f))
+                                        listOf(Color.White.copy(alpha = 0.6f), VibrantCyan.copy(alpha = 0.5f))
                                     )
                                 } else {
                                     Brush.linearGradient(
-                                        listOf(Color.White, Color(0xFFBAE6FD))
+                                        listOf(Color.White, Color(0x66CBD5E1))
                                     )
                                 },
                                 RoundedCornerShape(16.dp)
@@ -348,11 +354,11 @@ fun PersonnelCard(
                                         modifier = Modifier
                                             .size(38.dp)
                                             .clip(CircleShape)
-                                            .background(if (isDark) Color(0xFF0284C7) else Color(0xFFD4EDFD))
+                                            .background(if (isDark) VibrantCyan else CyanContainer)
                                             .border(
                                                 1.dp,
                                                 Brush.linearGradient(
-                                                    listOf(Color.White, Color(0x66BAE6FD))
+                                                    listOf(Color.White, VibrantCyan.copy(alpha = 0.35f))
                                                 ),
                                                 CircleShape
                                             ),
@@ -361,7 +367,7 @@ fun PersonnelCard(
                                         Icon(
                                             imageVector = Icons.Default.Home,
                                             contentDescription = "بالبيت",
-                                            tint = if (isDark) Color.White else Color(0xFF0284C7),
+                                            tint = if (isDark) Color.White else VibrantCyan,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -371,12 +377,12 @@ fun PersonnelCard(
                                             text = "حالياً في إجازة بالبيت",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (isDark) Color.White else Color(0xFF0A2540)
+                                            color = if (isDark) Color.White else SlateTextPrimary
                                         )
                                         Text(
                                             text = "المدة: ${personnel.totalLeaveDays} يوماً (انقضى ${personnel.daysElapsedInLeave} يوماً)",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334E68),
+                                            color = if (isDark) Color(0xFFCBD5E1) else SlateTextSecondary,
                                             fontSize = 11.sp
                                         )
                                     }
@@ -387,14 +393,14 @@ fun PersonnelCard(
                                         text = personnel.countdownTextAr,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Black,
-                                        color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
+                                        color = if (isDark) CyanGlow else VibrantCyan
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             text = "تاريخ الدخول: ",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF334E68),
+                                            color = if (isDark) Color(0xFF94A3B8) else SlateTextSecondary,
                                             fontSize = 10.sp
                                         )
                                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -402,7 +408,7 @@ fun PersonnelCard(
                                                 text = personnel.formattedReturnDate,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF334E68),
+                                                color = if (isDark) Color(0xFF94A3B8) else SlateTextSecondary,
                                                 fontSize = 10.sp
                                             )
                                         }
@@ -417,8 +423,8 @@ fun PersonnelCard(
                                     .fillMaxWidth()
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp)),
-                                color = Color(0xFF0284C7),
-                                trackColor = Color(0xFF0284C7).copy(alpha = 0.2f)
+                                color = VibrantCyan,
+                                trackColor = VibrantCyan.copy(alpha = 0.2f)
                             )
                         }
                     }
@@ -800,14 +806,14 @@ fun PersonnelCard(
                     Text(
                         text = "الإستفادة: ",
                         style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
-                        color = if (isDark) Color.White else Color(0xFF0A2540),
+                        color = if (isDark) Color.White else SlateTextPrimary,
                         fontWeight = FontWeight.Bold
                     )
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Text(
                             text = personnel.formattedStartDate,
                             style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
-                            color = if (isDark) Color.White else Color(0xFF0A2540),
+                            color = if (isDark) Color.White else SlateTextPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -823,21 +829,21 @@ fun PersonnelCard(
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = Color(0xFF059669),
+                        tint = EmeraldSuccess,
                         modifier = Modifier.size(if (isFocusMode) 16.dp else 14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "الدخول: ",
                         style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
-                        color = if (isDark) Color.White else Color(0xFF0A2540),
+                        color = if (isDark) Color.White else SlateTextPrimary,
                         fontWeight = FontWeight.ExtraBold
                     )
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Text(
                             text = personnel.formattedReturnDate,
                             style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
-                            color = if (isDark) Color.White else Color(0xFF0A2540),
+                            color = if (isDark) Color.White else SlateTextPrimary,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
@@ -847,7 +853,7 @@ fun PersonnelCard(
                     text = "(${personnel.totalLeaveDays} يوم)",
                     style = if (isFocusMode) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = VibrantCyan
                 )
             }
 

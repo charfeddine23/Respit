@@ -67,16 +67,16 @@ fun FilterSortDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(26.dp),
-            color = if (isDark) Color(0xFF1E293B) else Color(0xFFF9FBFF),
+            shape = RoundedCornerShape(24.dp),
+            color = if (isDark) Color(0xFF1E293B) else Color(0xD9FFFFFF),
             border = BorderStroke(
-                1.5.dp,
+                1.2.dp,
                 Brush.linearGradient(
-                    if (isDark) listOf(Color.White.copy(alpha = 0.5f), Color(0xFF38BDF8).copy(alpha = 0.4f))
-                    else listOf(Color.White, Color(0xFFBAE6FD))
+                    if (isDark) listOf(Color.White.copy(alpha = 0.5f), Color(0xFF00E5FF).copy(alpha = 0.4f))
+                    else listOf(Color.White.copy(alpha = 0.95f), Color(0x8000BCD4), Color.White.copy(alpha = 0.6f))
                 )
             ),
-            shadowElevation = 12.dp,
+            shadowElevation = 10.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
@@ -167,17 +167,17 @@ fun FilterSortDialog(
                                             text = option.titleAr,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (isSelected) Color(0xFF0284C7) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0A2540)
+                                            color = if (isSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = if (isDark) Color(0x33334155) else Color(0xCCFFFFFF),
-                                        selectedContainerColor = if (isDark) Color(0xFF0369A1).copy(alpha = 0.45f) else Color(0xFFBAE6FD).copy(alpha = 0.7f),
-                                        selectedLabelColor = Color(0xFF0284C7)
+                                        containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
+                                        selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
+                                        selectedLabelColor = Color(0xFF00BCD4)
                                     ),
                                     border = FilterChipDefaults.filterChipBorder(
-                                        borderColor = if (isSelected) Color(0xFF0284C7) else (if (isDark) Color(0x4D475569) else Color(0x6638BDF8)),
-                                        selectedBorderColor = Color(0xFF0284C7),
+                                        borderColor = if (isSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x4D475569) else Color(0x40CBD5E1)),
+                                        selectedBorderColor = Color(0xFF00BCD4),
                                         enabled = true,
                                         selected = isSelected
                                     ),
@@ -223,17 +223,17 @@ fun FilterSortDialog(
                                             text = label,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (isSelected) Color(0xFF0284C7) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0A2540)
+                                            color = if (isSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = if (isDark) Color(0x33334155) else Color(0xCCFFFFFF),
-                                        selectedContainerColor = if (isDark) Color(0xFF0369A1).copy(alpha = 0.45f) else Color(0xFFBAE6FD).copy(alpha = 0.7f),
-                                        selectedLabelColor = Color(0xFF0284C7)
+                                        containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
+                                        selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
+                                        selectedLabelColor = Color(0xFF00BCD4)
                                     ),
                                     border = FilterChipDefaults.filterChipBorder(
-                                        borderColor = if (isSelected) Color(0xFF0284C7) else (if (isDark) Color(0x4D475569) else Color(0x6638BDF8)),
-                                        selectedBorderColor = Color(0xFF0284C7),
+                                        borderColor = if (isSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x4D475569) else Color(0x40CBD5E1)),
+                                        selectedBorderColor = Color(0xFF00BCD4),
                                         enabled = true,
                                         selected = isSelected
                                     ),
@@ -268,17 +268,17 @@ fun FilterSortDialog(
                                         text = "كل الرتب",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = if (isAllRankSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                        color = if (isAllRankSelected) Color(0xFF0284C7) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0A2540)
+                                        color = if (isAllRankSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = if (isDark) Color(0x33334155) else Color(0xCCFFFFFF),
-                                    selectedContainerColor = if (isDark) Color(0xFF0369A1).copy(alpha = 0.45f) else Color(0xFFBAE6FD).copy(alpha = 0.7f),
-                                    selectedLabelColor = Color(0xFF0284C7)
+                                    containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
+                                    selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
+                                    selectedLabelColor = Color(0xFF00BCD4)
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
-                                    borderColor = if (isAllRankSelected) Color(0xFF0284C7) else (if (isDark) Color(0x4D475569) else Color(0x6638BDF8)),
-                                    selectedBorderColor = Color(0xFF0284C7),
+                                    borderColor = if (isAllRankSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x4D475569) else Color(0x40CBD5E1)),
+                                    selectedBorderColor = Color(0xFF00BCD4),
                                     enabled = true,
                                     selected = isAllRankSelected
                                 ),
@@ -295,17 +295,17 @@ fun FilterSortDialog(
                                             text = rank,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (isRankSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (isRankSelected) Color(0xFF0284C7) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0A2540)
+                                            color = if (isRankSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = if (isDark) Color(0x33334155) else Color(0xCCFFFFFF),
-                                        selectedContainerColor = if (isDark) Color(0xFF0369A1).copy(alpha = 0.45f) else Color(0xFFBAE6FD).copy(alpha = 0.7f),
-                                        selectedLabelColor = Color(0xFF0284C7)
+                                        containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
+                                        selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
+                                        selectedLabelColor = Color(0xFF00BCD4)
                                     ),
                                     border = FilterChipDefaults.filterChipBorder(
-                                        borderColor = if (isRankSelected) Color(0xFF0284C7) else (if (isDark) Color(0x4D475569) else Color(0x6638BDF8)),
-                                        selectedBorderColor = Color(0xFF0284C7),
+                                        borderColor = if (isRankSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x4D475569) else Color(0x40CBD5E1)),
+                                        selectedBorderColor = Color(0xFF00BCD4),
                                         enabled = true,
                                         selected = isRankSelected
                                     ),
