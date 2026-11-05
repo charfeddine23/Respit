@@ -15,30 +15,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
@@ -47,7 +47,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -61,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -68,7 +68,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.AppThemeMode
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.VibrantCyan
 import com.example.util.AppLanguage
+import com.example.util.AppStrings
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SettingsDialog(
@@ -86,6 +93,11 @@ fun SettingsDialog(
     onSelectLanguage: (AppLanguage) -> Unit = {},
     isFocusMode: Boolean = false,
     onToggleFocusMode: () -> Unit = {},
+    isDriveSyncEnabled: Boolean = false,
+    onToggleDriveSync: (Boolean) -> Unit = {},
+    lastDriveBackupTime: Long = 0L,
+    onBackupToDrive: () -> Unit = {},
+    onRestoreFromDrive: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -93,6 +105,9 @@ fun SettingsDialog(
     var pinEnabledState by remember { mutableStateOf(isPinEnabled) }
     var enteredPin by remember { mutableStateOf(if (isPinEnabled) currentPin else "") }
     var pinError by remember { mutableStateOf<String?>(null) }
+    var driveSyncState by remember { mutableStateOf(isDriveSyncEnabled) }
+
+    val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -120,7 +135,7 @@ fun SettingsDialog(
                     .padding(20.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Header (Exact StrikePulse style)
+                // Header (App Title Respite Pulse preserved)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -145,10 +160,10 @@ fun SettingsDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Settings",
+                                text = AppStrings.get("settings_title", currentLanguage),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                color = if (isDarkMode) Color.White else SlateTextPrimary
                             )
                             Text(
                                 text = "Respite Pulse",
@@ -162,7 +177,7 @@ fun SettingsDialog(
                     IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
+                            contentDescription = AppStrings.get("close", currentLanguage),
                             tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
                         )
                     }
@@ -170,7 +185,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Section 0: Language Selection (AR, FR, EN buttons matching StrikePulse)
+                // Section 1: Language Selection (AR, FR, EN)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -193,10 +208,10 @@ fun SettingsDialog(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Language",
+                                text = AppStrings.get("language", currentLanguage),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                color = if (isDarkMode) Color.White else SlateTextPrimary
                             )
                         }
 
@@ -207,9 +222,9 @@ fun SettingsDialog(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             val langItems = listOf(
-                                AppLanguage.ARABIC to "AR",
-                                AppLanguage.FRENCH to "FR",
-                                AppLanguage.ENGLISH to "EN"
+                                AppLanguage.ARABIC to "العربية (AR)",
+                                AppLanguage.FRENCH to "Français (FR)",
+                                AppLanguage.ENGLISH to "English (EN)"
                             )
                             langItems.forEach { (lang, label) ->
                                 val selected = currentLanguage == lang
@@ -233,8 +248,8 @@ fun SettingsDialog(
                                         Text(
                                             text = label,
                                             fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            fontSize = 14.sp,
-                                            color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A))
+                                            fontSize = 12.sp,
+                                            color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
                                         )
                                     }
                                 }
@@ -245,7 +260,168 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 1: Theme Settings (Auto Theme / Light / Dark)
+                // Section 2: Dedicated Google Drive Backup & Restore Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isDarkMode) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.85f))
+                        .border(
+                            1.dp,
+                            if (isDarkMode) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) else Color(0x60CBD5E1),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .padding(16.dp)
+                        .testTag("google_drive_backup_card")
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Title Row with Google Drive Sync Icon and Toggle Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isDarkMode) Color(0x334285F4) else Color(0xFFE8F0FE)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4285F4),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = AppStrings.get("drive_backup_title", currentLanguage),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDarkMode) Color.White else SlateTextPrimary
+                                    )
+                                    Text(
+                                        text = AppStrings.get("drive_backup_sub", currentLanguage),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = driveSyncState,
+                                onCheckedChange = {
+                                    driveSyncState = it
+                                    onToggleDriveSync(it)
+                                    Toast.makeText(
+                                        context,
+                                        if (it) AppStrings.get("drive_sync_toggle", currentLanguage) + " ✓"
+                                        else AppStrings.get("focus_mode_inactive", currentLanguage),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFF4285F4)
+                                )
+                            )
+                        }
+
+                        // Last Backup Info Inset
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isDarkMode) Color(0x221E293B) else Color(0x66F1F5F9))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = AppStrings.get("drive_last_backup", currentLanguage),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+                            )
+
+                            Text(
+                                text = if (lastDriveBackupTime > 0L) sdf.format(Date(lastDriveBackupTime))
+                                else AppStrings.get("drive_never", currentLanguage),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (lastDriveBackupTime > 0L) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF94A3B8))
+                            )
+                        }
+
+                        // Action Buttons: Backup to Drive and Restore from Drive
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Backup Button (Primary Action)
+                            Button(
+                                onClick = onBackupToDrive,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("backup_to_drive_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF4285F4),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudUpload,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("drive_backup_btn", currentLanguage),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+
+                            // Restore Button
+                            OutlinedButton(
+                                onClick = onRestoreFromDrive,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("restore_from_drive_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.2.dp, Color(0xFF4285F4).copy(alpha = 0.7f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4285F4),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("drive_restore_btn", currentLanguage),
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color(0xFF8AB4F8) else Color(0xFF1967D2),
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Section 3: Theme Settings (Light / Dark)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -272,15 +448,15 @@ fun SettingsDialog(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "Auto Theme",
+                                    text = AppStrings.get("theme_title", currentLanguage),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                    color = if (isDarkMode) Color.White else SlateTextPrimary
                                 )
                                 Text(
-                                    text = "Theme follows system automatically (Light / Dark)",
+                                    text = AppStrings.get("theme_desc", currentLanguage),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                                     fontSize = 11.sp
                                 )
                             }
@@ -288,7 +464,6 @@ fun SettingsDialog(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Chips for Theme Mode: Light (Default), Dark (Manual)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -314,12 +489,12 @@ fun SettingsDialog(
                                     Box(contentAlignment = Alignment.Center) {
                                         Text(
                                             text = when (mode) {
-                                                AppThemeMode.LIGHT -> "Light (النهاري) ☀️"
-                                                AppThemeMode.DARK -> "Dark (الليلي) 🌙"
+                                                AppThemeMode.LIGHT -> AppStrings.get("theme_light_btn", currentLanguage)
+                                                AppThemeMode.DARK -> AppStrings.get("theme_dark_btn", currentLanguage)
                                             },
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                            fontSize = 11.sp,
-                                            color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A))
+                                            fontSize = 12.sp,
+                                            color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
                                         )
                                     }
                                 }
@@ -330,7 +505,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section: Focus Mode Toggle (نمط التركيز لقراءة السجلات)
+                // Section 4: Focus Mode Toggle
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -361,15 +536,16 @@ fun SettingsDialog(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "نمط التركيز لقراءة السجلات",
+                                    text = AppStrings.get("focus_mode_title", currentLanguage),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                    color = if (isDarkMode) Color.White else SlateTextPrimary
                                 )
                                 Text(
-                                    text = if (isFocusMode) "مفعل (وضوح عالي وإبراز تواريخ الإجازة)" else "معطل (العرض القياسي)",
+                                    text = if (isFocusMode) AppStrings.get("focus_mode_active", currentLanguage)
+                                    else AppStrings.get("focus_mode_inactive", currentLanguage),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                                     fontSize = 11.sp
                                 )
                             }
@@ -388,7 +564,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 2: Duty Eligibility Threshold (عتبة مستحق للإجازة)
+                // Section 5: Duty Eligibility Threshold
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -411,19 +587,19 @@ fun SettingsDialog(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "عتبة الاستحقاق للإجازة (بالأيام)",
+                                text = AppStrings.get("duty_threshold_title", currentLanguage),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                color = if (isDarkMode) Color.White else SlateTextPrimary
                             )
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "عدد الأيام المتواصلة بالخدمة التي يعتبر بعدها الفرد 'مستحقاً للإجازة'.",
+                            text = AppStrings.get("duty_threshold_desc", currentLanguage),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                             fontSize = 11.sp
                         )
 
@@ -435,12 +611,12 @@ fun SettingsDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "القيمة المحددة:",
+                                text = AppStrings.get("selected_value", currentLanguage),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                color = if (isDarkMode) Color.White else SlateTextPrimary
                             )
                             Text(
-                                text = "${thresholdValue.toInt()} يوماً",
+                                text = "${thresholdValue.toInt()} ${AppStrings.get("days", currentLanguage)}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                                 color = Color(0xFF00BCD4)
@@ -462,16 +638,16 @@ fun SettingsDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("10 أيام", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
-                            Text("45 يوماً (الافتراضي)", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
-                            Text("180 يوماً", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
+                            Text("10 ${AppStrings.get("days", currentLanguage)}", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
+                            Text("45 ${AppStrings.get("days", currentLanguage)}", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
+                            Text("180 ${AppStrings.get("days", currentLanguage)}", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 3: PIN Lock Card (Matching StrikePulse Pattern Lock card)
+                // Section 6: PIN Lock Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -503,15 +679,15 @@ fun SettingsDialog(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "PIN Lock (رمز الحماية)",
+                                        text = AppStrings.get("pin_security_title", currentLanguage),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                        color = if (isDarkMode) Color.White else SlateTextPrimary
                                     )
                                     Text(
-                                        text = "تأمين التطبيق برمز سرّي عند الفتح",
+                                        text = AppStrings.get("pin_security_desc", currentLanguage),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -537,8 +713,8 @@ fun SettingsDialog(
                                         pinError = null
                                     }
                                 },
-                                label = { Text("رمز PIN (4 أرقام)") },
-                                placeholder = { Text("مثال: 1234") },
+                                label = { Text("PIN (4 Digits)") },
+                                placeholder = { Text("1234") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                                 visualTransformation = PasswordVisualTransformation(),
@@ -554,13 +730,6 @@ fun SettingsDialog(
                                     unfocusedLabelColor = if (isDarkMode) Color(0xFF334155) else Color(0xFF64748B),
                                     cursorColor = Color(0xFF00BCD4)
                                 ),
-                                supportingText = {
-                                    if (pinError != null) {
-                                        Text(pinError!!, color = MaterialTheme.colorScheme.error)
-                                    } else {
-                                        Text("أدخل 4 أرقام لتأمين التطبيق")
-                                    }
-                                },
                                 modifier = Modifier.fillMaxWidth()
                             )
 
@@ -574,9 +743,9 @@ fun SettingsDialog(
                                     onClick = {
                                         if (enteredPin.length == 4) {
                                             onSavePin(enteredPin, true)
-                                            Toast.makeText(context, "تم تحديث رمز PIN", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "PIN Saved", Toast.LENGTH_SHORT).show()
                                         } else {
-                                            pinError = "يجب أن يتكون رمز PIN من 4 أرقام"
+                                            pinError = "PIN must be 4 digits"
                                         }
                                     },
                                     modifier = Modifier.weight(1f),
@@ -584,9 +753,9 @@ fun SettingsDialog(
                                     border = BorderStroke(1.2.dp, Color(0x60CBD5E1))
                                 ) {
                                     Text(
-                                        text = "Change PIN",
+                                        text = AppStrings.get("change_pin_btn", currentLanguage),
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                        color = if (isDarkMode) Color.White else SlateTextPrimary,
                                         fontSize = 12.sp
                                     )
                                 }
@@ -610,7 +779,7 @@ fun SettingsDialog(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Lock App Now",
+                                        text = AppStrings.get("lock_now_btn", currentLanguage),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
                                     )
@@ -622,7 +791,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 4: Version Information (Exact StrikePulse replica)
+                // Section 7: Version Information & Developer Card (Developed by Charfeddine Kahlessenane STRICTLY PRESERVED)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -658,10 +827,10 @@ fun SettingsDialog(
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = "Version Information",
+                                    text = AppStrings.get("version_info_title", currentLanguage),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                    color = if (isDarkMode) Color.White else SlateTextPrimary
                                 )
                             }
 
@@ -688,15 +857,15 @@ fun SettingsDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "App Version",
+                                text = AppStrings.get("app_version_label", currentLanguage),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
                             )
                             Text(
                                 text = "v${com.example.BuildConfig.VERSION_NAME}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                color = if (isDarkMode) Color.White else SlateTextPrimary
                             )
                         }
 
@@ -706,9 +875,9 @@ fun SettingsDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Build Code",
+                                text = AppStrings.get("build_code_label", currentLanguage),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
                             )
                             Text(
                                 text = "#${com.example.BuildConfig.VERSION_CODE}",
@@ -718,7 +887,7 @@ fun SettingsDialog(
                             )
                         }
 
-                        // Designer Banner Pill (Exact StrikePulse replica)
+                        // Designer Banner Pill (Strictly unchanged across all languages)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -767,7 +936,7 @@ fun SettingsDialog(
                         onClick = {
                             if (pinEnabledState) {
                                 if (enteredPin.length != 4) {
-                                    pinError = "يجب أن يتكون رمز PIN من 4 أرقام بالضبط"
+                                    pinError = "PIN must be 4 digits"
                                     return@Button
                                 }
                                 onSavePin(enteredPin, true)
@@ -776,7 +945,7 @@ fun SettingsDialog(
                             }
 
                             onSaveThreshold(thresholdValue.toInt())
-                            Toast.makeText(context, "تم حفظ الإعدادات بنجاح", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, AppStrings.get("save_changes", currentLanguage), Toast.LENGTH_SHORT).show()
                             onDismiss()
                         },
                         modifier = Modifier.weight(1f),
@@ -786,7 +955,7 @@ fun SettingsDialog(
                             contentColor = Color.White
                         )
                     ) {
-                        Text("حفظ التغييرات", fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get("save_changes", currentLanguage), fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
@@ -794,7 +963,7 @@ fun SettingsDialog(
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, Color(0x3364748B))
                     ) {
-                        Text("إلغاء", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get("cancel", currentLanguage), color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                     }
                 }
             }

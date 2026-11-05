@@ -47,9 +47,12 @@ import androidx.compose.ui.window.Dialog
 import com.example.R
 import com.example.ui.theme.liquidGlass
 import com.example.ui.theme.liquidGlassInteractive
+import com.example.util.AppLanguage
+import com.example.util.AppStrings
 
 @Composable
 fun DeveloperInfoDialog(
+    currentLang: AppLanguage = AppLanguage.ARABIC,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -210,7 +213,7 @@ fun DeveloperInfoDialog(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "Developed By: Kahlessenane Charfeddine",
+                            text = "Developed by Charfeddine Kahlessenane",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -220,7 +223,7 @@ fun DeveloperInfoDialog(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = "نظام متقدم لتسيير الإجازات والعطل",
+                            text = AppStrings.get("app_system_desc", currentLang),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -241,7 +244,7 @@ fun DeveloperInfoDialog(
                     )
                 ) {
                     Text(
-                        text = "إغلاق",
+                        text = AppStrings.get("close", currentLang),
                         fontWeight = FontWeight.Bold
                     )
                 }

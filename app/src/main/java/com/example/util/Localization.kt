@@ -7,7 +7,7 @@ enum class AppLanguage(val code: String, val displayName: String, val isRtl: Boo
 
     companion object {
         fun fromCode(code: String): AppLanguage {
-            return values().firstOrNull { it.code.equals(code, ignoreCase = true) } ?: ARABIC
+            return entries.firstOrNull { it.code.equals(code, ignoreCase = true) } ?: ARABIC
         }
     }
 }
@@ -22,11 +22,20 @@ object AppStrings {
     }
 
     private val stringsAr = mapOf(
+        // Invariant App Title & Developer Info
         "app_title" to "Respite Pulse",
+        "developer_name" to "Developed by Charfeddine Kahlessenane",
         "app_subtitle" to "نظام تسيير إجازات وعطل الأفراد",
+        "developer_role" to "المطور المعتمد",
+        "app_system_desc" to "نظام متقدم لتسيير الإجازات والعطل",
+
+        // Main Navigation & Header
         "menu" to "القائمة الرئيسية",
         "drawer_nav_title" to "لوحة التحكم والتنقل",
         "search_placeholder" to "بحث بالاسم، رقم التسجيل، الرتبة...",
+        "search_label" to "بحث",
+        "clear_search" to "مسح البحث",
+        "filter_sort_btn" to "تصفية وترتيب",
         "undo_btn" to "تراجع عن آخر خطوة",
         "undo_success" to "تم التراجع عن آخر خطوة بنجاح",
         "theme_light" to "المظهر النهاري",
@@ -40,11 +49,29 @@ object AppStrings {
         "records_count" to "سجلات الأفراد",
         "duty_threshold_label" to "عتبة الاستحقاق",
         "days" to "يوم",
+        "day_single" to "يوم",
         "add_personnel" to "إضافة فرد جديد",
         "no_results" to "لا توجد نتائج مطابقة",
         "no_results_desc" to "جرب تغيير معايير البحث والفلترة أو إضافة فرد جديد.",
         "language" to "لغة التطبيق",
         "select_language" to "اختر لغة الواجهة",
+
+        // Dashboard & Real-Time Metrics
+        "dashboard_title" to "لوحة المؤشرات التفاعلية",
+        "total_personnel" to "إجمالي الأفراد",
+        "registered_system" to "مسجلون بالنظام",
+        "on_leave_home" to "في إجازة (بالبيت)",
+        "tracking_countdown" to "جاري احتساب متبقي الدخول",
+        "on_duty_present" to "حاضر بالخدمة",
+        "ready_duty" to "مستأنفون للعمل",
+        "delayed_overdue" to "الدخول اليوم أو متأخر",
+        "overdue_alert" to "تنبيه تجاوز الموعد",
+        "eligible_leave" to "مستحق للإجازة",
+        "threshold_met" to "تجاوز عتبة الخدمة",
+        "scheduled_leave" to "إجازة مبرمجة",
+        "overview_status_ring" to "التوزيع الميداني",
+
+        // Status Badges & Filters
         "status_all" to "جميع الحالات",
         "status_eligible" to "🌟 مستحق للإجازة",
         "status_at_home" to "🏠 في إجازة (بالبيت)",
@@ -52,15 +79,90 @@ object AppStrings {
         "status_overdue" to "⚠️ متأخر عن الدخول",
         "status_on_duty" to "🎖️ حاضر بالخدمة",
         "status_upcoming" to "⏳ إجازة مبرمجة",
+
+        // Personnel Card Details
+        "benefit_date" to "تاريخ الاستفادة:",
+        "return_date" to "تاريخ الدخول:",
+        "leave_duration" to "مدة الإجازة:",
+        "days_remaining" to "متبقي",
+        "days_overdue_label" to "متأخر بـ",
+        "days_served" to "قضى بالخدمة",
+        "confirm_duty_btn" to "استئناف العمل",
+        "edit" to "تعديل",
+        "delete" to "حذف",
+        "wilaya_label" to "الولاية:",
+        "notes_label" to "ملاحظات:",
+
+        // Filter & Sort
         "all_ranks" to "كل الرتب",
         "all_wilayas" to "جميع الولايات",
         "sort" to "ترتيب",
-        "confirm_delete_title" to "تأكيد حذف الفرد",
-        "delete" to "حذف",
+        "sort_return_soon" to "الأقرب موعد دخول",
+        "sort_overdue_first" to "المتأخرون أولاً",
+        "sort_start_desc" to "الأحدث استفادة",
+        "sort_name_asc" to "الاسم (أ - ي)",
+        "sort_reg_asc" to "رقم التسجيل",
+        "reset_filters" to "إعادة ضبط التصفية",
+        "apply" to "تطبيق",
+
+        // Add / Edit Personnel Dialog
+        "add_personnel_title" to "إضافة فرد جديد",
+        "edit_personnel_title" to "تعديل بيانات الفرد",
+        "full_name_label" to "الاسم واللقب",
+        "rank_label" to "الرتبة العسكرية",
+        "reg_number_label" to "رقم التسجيل",
+        "leave_type_label" to "نوع الإجازة",
+        "start_date_label" to "تاريخ بداية الإجازة",
+        "return_date_label" to "تاريخ انتهاء الإجازة / الدخول",
+        "quick_duration_add" to "إضافة سريعة للمدة",
+        "ten_days" to "+10 أيام",
+        "fifteen_days" to "+15 يوم",
+        "twenty_days" to "+20 يوم",
+        "thirty_days" to "+30 يوم",
+        "on_duty_switch_label" to "حاضر بالخدمة (مستأنف للعمل)",
+        "save_changes" to "حفظ التغييرات",
         "cancel" to "إلغاء",
         "save" to "حفظ",
-        "input_text_dark_note" to "وضوح تام لخانة الإدخال",
-        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
+        "fill_required" to "يرجى ملء الاسم ورقم التسجيل",
+        "personnel_saved_success" to "تم حفظ بيانات الفرد بنجاح",
+        "confirm_delete_title" to "تأكيد حذف الفرد",
+        "confirm_delete_message" to "هل أنت متأكد من رغبتك في حذف السجل الخاص بـ",
+
+        // Google Drive Backup & Restore
+        "drive_backup_title" to "النسخ الاحتياطي Google Drive",
+        "drive_backup_sub" to "مزامنة وحفظ واستعادة قاعدة البيانات بأمان",
+        "drive_sync_toggle" to "تفعيل المزامنة السحابية",
+        "drive_backup_btn" to "نسخ احتياطي (Backup)",
+        "drive_restore_btn" to "استعادة (Restore)",
+        "drive_last_backup" to "آخر نسخ احتياطي:",
+        "drive_never" to "لم يتم بعد",
+        "drive_backup_success" to "تم حفظ النسخة الاحتياطية بنجاح على Google Drive",
+        "drive_restore_success" to "تمت استعادة البيانات بنجاح من Google Drive",
+        "drive_backup_failed" to "فشل حفظ النسخة الاحتياطية",
+        "drive_restore_failed" to "فشل استعادة البيانات من الملف المحدد",
+
+        // Settings Dialog
+        "settings_title" to "الإعدادات",
+        "theme_title" to "المظهر العام",
+        "theme_desc" to "المظهر النهاري أو الليلي (افتراضي النهاري)",
+        "theme_light_btn" to "النهاري ☀️",
+        "theme_dark_btn" to "الليلي 🌙",
+        "focus_mode_title" to "نمط التركيز لقراءة السجلات",
+        "focus_mode_active" to "مفعل (وضوح عالي وإبراز تواريخ الإجازة)",
+        "focus_mode_inactive" to "معطل (العرض القياسي)",
+        "duty_threshold_title" to "عتبة الاستحقاق للإجازة (بالأيام)",
+        "duty_threshold_desc" to "عدد الأيام المتواصلة بالخدمة التي يعتبر بعدها الفرد 'مستحقاً للإجازة'.",
+        "selected_value" to "القيمة المحددة:",
+        "pin_security_title" to "قفل الحماية PIN",
+        "pin_security_desc" to "تأمين التطبيق برمز سرّي عند الفتح",
+        "change_pin_btn" to "تغيير الرمز",
+        "lock_now_btn" to "قفل التطبيق الآن",
+        "version_info_title" to "معلومات الإصدار",
+        "app_version_label" to "إصدار التطبيق",
+        "build_code_label" to "رمز البناء",
+        "close" to "إغلاق",
+
+        // Notifications Screen
         "notifications_page_title" to "قائمة التنبيهات والإشعارات",
         "notifications_empty_title" to "لا توجد تنبيهات حالياً",
         "notifications_empty_sub" to "جميع مواعيد الإجازات وتواريخ الدخول مستقرة ولا توجد تنبيهات معلقة.",
@@ -70,15 +172,28 @@ object AppStrings {
         "unpin_action" to "إلغاء التثبيت",
         "dismiss_action" to "مسح الإشعار",
         "clear_all" to "مسح الكل",
-        "back" to "رجوع"
+        "back" to "رجوع",
+
+        // Miscellaneous
+        "input_text_dark_note" to "وضوح تام لخانة الإدخال",
+        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})"
     )
 
     private val stringsFr = mapOf(
+        // Invariant App Title & Developer Info (EXACTLY preserved)
         "app_title" to "Respite Pulse",
+        "developer_name" to "Developed by Charfeddine Kahlessenane",
         "app_subtitle" to "Système de Gestion des Congés & Permissions",
+        "developer_role" to "Développeur Officiel",
+        "app_system_desc" to "Système avancé de gestion des congés et permissions",
+
+        // Main Navigation & Header
         "menu" to "Menu Principal",
-        "drawer_nav_title" to "Panneau de Navigation",
-        "search_placeholder" to "Recherche par nom, matricule, grade...",
+        "drawer_nav_title" to "Panneau de Contrôle & Navigation",
+        "search_placeholder" to "Rechercher par nom, matricule, grade...",
+        "search_label" to "Recherche",
+        "clear_search" to "Effacer",
+        "filter_sort_btn" to "Filtrer & Trier",
         "undo_btn" to "Annuler la dernière action",
         "undo_success" to "Dernière action annulée avec succès",
         "theme_light" to "Mode Clair",
@@ -92,11 +207,29 @@ object AppStrings {
         "records_count" to "Registres du Personnel",
         "duty_threshold_label" to "Seuil d'éligibilité",
         "days" to "jours",
+        "day_single" to "jour",
         "add_personnel" to "Ajouter un personnel",
         "no_results" to "Aucun résultat trouvé",
         "no_results_desc" to "Essayez de modifier vos filtres ou d'ajouter un nouveau dossier.",
         "language" to "Langue de l'application",
         "select_language" to "Sélectionner la langue",
+
+        // Dashboard & Real-Time Metrics
+        "dashboard_title" to "Tableau de Bord Interactif",
+        "total_personnel" to "Effectif Total",
+        "registered_system" to "Enregistrés dans le système",
+        "on_leave_home" to "En Congé (Foyer)",
+        "tracking_countdown" to "Décompte des jours en cours",
+        "on_duty_present" to "Présent au Service",
+        "ready_duty" to "Actifs au service",
+        "delayed_overdue" to "Reprise Aujourd'hui / Retard",
+        "overdue_alert" to "Alerte dépassement de délai",
+        "eligible_leave" to "Éligible au Congé",
+        "threshold_met" to "Seuil de service atteint",
+        "scheduled_leave" to "Congé Programmé",
+        "overview_status_ring" to "Répartition Opérationnelle",
+
+        // Status Badges & Filters
         "status_all" to "Tous les statuts",
         "status_eligible" to "🌟 Éligible au congé",
         "status_at_home" to "🏠 En congé (au foyer)",
@@ -104,15 +237,90 @@ object AppStrings {
         "status_overdue" to "⚠️ En retard de reprise",
         "status_on_duty" to "🎖️ Présent au service",
         "status_upcoming" to "⏳ Congé programmé",
+
+        // Personnel Card Details
+        "benefit_date" to "Date de départ :",
+        "return_date" to "Date de reprise :",
+        "leave_duration" to "Durée du congé :",
+        "days_remaining" to "Restant",
+        "days_overdue_label" to "Retard de",
+        "days_served" to "Jours de service",
+        "confirm_duty_btn" to "Reprendre Service",
+        "edit" to "Modifier",
+        "delete" to "Supprimer",
+        "wilaya_label" to "Wilaya :",
+        "notes_label" to "Remarques :",
+
+        // Filter & Sort
         "all_ranks" to "Tous les grades",
         "all_wilayas" to "Toutes les wilayas",
         "sort" to "Trier par",
-        "confirm_delete_title" to "Confirmer la suppression",
-        "delete" to "Supprimer",
+        "sort_return_soon" to "Reprise la plus proche",
+        "sort_overdue_first" to "Retardataires en premier",
+        "sort_start_desc" to "Départs récents",
+        "sort_name_asc" to "Nom alphabétique (A - Z)",
+        "sort_reg_asc" to "Numéro matricule",
+        "reset_filters" to "Réinitialiser les filtres",
+        "apply" to "Appliquer",
+
+        // Add / Edit Personnel Dialog
+        "add_personnel_title" to "Ajouter un personnel",
+        "edit_personnel_title" to "Modifier le personnel",
+        "full_name_label" to "Nom et Prénom",
+        "rank_label" to "Grade Militaire",
+        "reg_number_label" to "Numéro Matricule",
+        "leave_type_label" to "Type de Congé",
+        "start_date_label" to "Date de Début",
+        "return_date_label" to "Date de Fin / Reprise",
+        "quick_duration_add" to "Ajout rapide de durée",
+        "ten_days" to "+10 jours",
+        "fifteen_days" to "+15 jours",
+        "twenty_days" to "+20 jours",
+        "thirty_days" to "+30 jours",
+        "on_duty_switch_label" to "Présent au service (Actif)",
+        "save_changes" to "Enregistrer les modifications",
         "cancel" to "Annuler",
         "save" to "Enregistrer",
-        "input_text_dark_note" to "Contraste texte noir optimisé",
-        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
+        "fill_required" to "Veuillez saisir le nom et le numéro matricule",
+        "personnel_saved_success" to "Données du personnel enregistrées avec succès",
+        "confirm_delete_title" to "Confirmer la suppression",
+        "confirm_delete_message" to "Êtes-vous sûr de vouloir supprimer le dossier de",
+
+        // Google Drive Backup & Restore
+        "drive_backup_title" to "Sauvegarde Google Drive",
+        "drive_backup_sub" to "Sauvegardez et restaurez vos données en toute sécurité",
+        "drive_sync_toggle" to "Activer la sauvegarde Cloud",
+        "drive_backup_btn" to "Sauvegarder (Backup)",
+        "drive_restore_btn" to "Restaurer (Restore)",
+        "drive_last_backup" to "Dernière sauvegarde :",
+        "drive_never" to "Jamais",
+        "drive_backup_success" to "Sauvegarde Google Drive effectuée avec succès",
+        "drive_restore_success" to "Données restaurées depuis Google Drive avec succès",
+        "drive_backup_failed" to "Échec de la sauvegarde Google Drive",
+        "drive_restore_failed" to "Échec de la restauration des données du fichier",
+
+        // Settings Dialog
+        "settings_title" to "Paramètres",
+        "theme_title" to "Thème d'affichage",
+        "theme_desc" to "Mode Clair ou Mode Sombre (Clair par défaut)",
+        "theme_light_btn" to "Clair ☀️",
+        "theme_dark_btn" to "Sombre 🌙",
+        "focus_mode_title" to "Mode Concentration",
+        "focus_mode_active" to "Activé (Contraste élevé et dates mises en valeur)",
+        "focus_mode_inactive" to "Désactivé (Affichage standard)",
+        "duty_threshold_title" to "Seuil d'éligibilité au congé (Jours)",
+        "duty_threshold_desc" to "Nombre de jours consécutifs requis pour être éligible au congé.",
+        "selected_value" to "Valeur sélectionnée :",
+        "pin_security_title" to "Verrouillage de sécurité PIN",
+        "pin_security_desc" to "Sécuriser l'application par code PIN à l'ouverture",
+        "change_pin_btn" to "Changer le code",
+        "lock_now_btn" to "Verrouiller maintenant",
+        "version_info_title" to "Informations sur la version",
+        "app_version_label" to "Version de l'application",
+        "build_code_label" to "Code de build",
+        "close" to "Fermer",
+
+        // Notifications Screen
         "notifications_page_title" to "Centre de Notifications",
         "notifications_empty_title" to "Aucune notification",
         "notifications_empty_sub" to "Tous les congés et retours sont réguliers et à jour.",
@@ -122,15 +330,28 @@ object AppStrings {
         "unpin_action" to "Désépingler",
         "dismiss_action" to "Supprimer",
         "clear_all" to "Tout effacer",
-        "back" to "Retour"
+        "back" to "Retour",
+
+        // Miscellaneous
+        "input_text_dark_note" to "Contraste texte noir optimisé",
+        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})"
     )
 
     private val stringsEn = mapOf(
+        // Invariant App Title & Developer Info (EXACTLY preserved)
         "app_title" to "Respite Pulse",
+        "developer_name" to "Developed by Charfeddine Kahlessenane",
         "app_subtitle" to "Personnel Leave & Duty Management System",
+        "developer_role" to "Official Developer",
+        "app_system_desc" to "Advanced leave and vacation management system",
+
+        // Main Navigation & Header
         "menu" to "Main Menu",
-        "drawer_nav_title" to "Navigation Drawer",
+        "drawer_nav_title" to "Navigation & Control Panel",
         "search_placeholder" to "Search by name, ID number, rank...",
+        "search_label" to "Search",
+        "clear_search" to "Clear",
+        "filter_sort_btn" to "Filter & Sort",
         "undo_btn" to "Undo Last Action",
         "undo_success" to "Action undone successfully",
         "theme_light" to "Light Mode",
@@ -144,11 +365,29 @@ object AppStrings {
         "records_count" to "Personnel Records",
         "duty_threshold_label" to "Eligibility Threshold",
         "days" to "days",
+        "day_single" to "day",
         "add_personnel" to "Add New Personnel",
         "no_results" to "No matching records found",
         "no_results_desc" to "Try modifying your filters or adding a new employee record.",
         "language" to "Application Language",
         "select_language" to "Select Language",
+
+        // Dashboard & Real-Time Metrics
+        "dashboard_title" to "Interactive Overview Dashboard",
+        "total_personnel" to "Total Personnel",
+        "registered_system" to "Registered in system",
+        "on_leave_home" to "On Leave (Home)",
+        "tracking_countdown" to "Calculating remaining return days",
+        "on_duty_present" to "On Active Duty",
+        "ready_duty" to "Active at post",
+        "delayed_overdue" to "Return Today / Overdue",
+        "overdue_alert" to "Deadline overdue alert",
+        "eligible_leave" to "Eligible for Leave",
+        "threshold_met" to "Duty threshold completed",
+        "scheduled_leave" to "Scheduled Leave",
+        "overview_status_ring" to "Operational Distribution",
+
+        // Status Badges & Filters
         "status_all" to "All Statuses",
         "status_eligible" to "🌟 Eligible for Leave",
         "status_at_home" to "🏠 On Leave (Home)",
@@ -156,15 +395,90 @@ object AppStrings {
         "status_overdue" to "⚠️ Overdue Return",
         "status_on_duty" to "🎖️ On Active Duty",
         "status_upcoming" to "⏳ Scheduled Leave",
+
+        // Personnel Card Details
+        "benefit_date" to "Start Date:",
+        "return_date" to "Return Date:",
+        "leave_duration" to "Leave Duration:",
+        "days_remaining" to "Remaining",
+        "days_overdue_label" to "Overdue by",
+        "days_served" to "Days Served",
+        "confirm_duty_btn" to "Resume Duty",
+        "edit" to "Edit",
+        "delete" to "Delete",
+        "wilaya_label" to "Wilaya:",
+        "notes_label" to "Notes:",
+
+        // Filter & Sort
         "all_ranks" to "All Ranks",
         "all_wilayas" to "All Wilayas",
         "sort" to "Sort by",
-        "confirm_delete_title" to "Confirm Deletion",
-        "delete" to "Delete",
+        "sort_return_soon" to "Return Date (Soonest)",
+        "sort_overdue_first" to "Overdue First",
+        "sort_start_desc" to "Recent Starts",
+        "sort_name_asc" to "Name (A - Z)",
+        "sort_reg_asc" to "Registration Number",
+        "reset_filters" to "Reset Filters",
+        "apply" to "Apply",
+
+        // Add / Edit Personnel Dialog
+        "add_personnel_title" to "Add Personnel",
+        "edit_personnel_title" to "Edit Personnel",
+        "full_name_label" to "Full Name",
+        "rank_label" to "Military Rank",
+        "reg_number_label" to "Registration Number",
+        "leave_type_label" to "Leave Type",
+        "start_date_label" to "Leave Start Date",
+        "return_date_label" to "Leave Return Date",
+        "quick_duration_add" to "Quick Duration Add",
+        "ten_days" to "+10 days",
+        "fifteen_days" to "+15 days",
+        "twenty_days" to "+20 days",
+        "thirty_days" to "+30 days",
+        "on_duty_switch_label" to "On Active Duty (Resumed)",
+        "save_changes" to "Save Changes",
         "cancel" to "Cancel",
         "save" to "Save",
-        "input_text_dark_note" to "Pure black input text optimized",
-        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})",
+        "fill_required" to "Please enter full name and registration number",
+        "personnel_saved_success" to "Personnel record saved successfully",
+        "confirm_delete_title" to "Confirm Deletion",
+        "confirm_delete_message" to "Are you sure you want to delete the record of",
+
+        // Google Drive Backup & Restore
+        "drive_backup_title" to "Google Drive Backup",
+        "drive_backup_sub" to "Safely backup and restore your database with Google Drive",
+        "drive_sync_toggle" to "Enable Cloud Backup",
+        "drive_backup_btn" to "Backup to Drive",
+        "drive_restore_btn" to "Restore from Drive",
+        "drive_last_backup" to "Last backup:",
+        "drive_never" to "Never",
+        "drive_backup_success" to "Backup saved successfully to Google Drive",
+        "drive_restore_success" to "Data restored successfully from Google Drive",
+        "drive_backup_failed" to "Failed to save backup to Google Drive",
+        "drive_restore_failed" to "Failed to restore data from selected file",
+
+        // Settings Dialog
+        "settings_title" to "Settings",
+        "theme_title" to "Display Theme",
+        "theme_desc" to "Light Mode or Dark Mode (Default Light)",
+        "theme_light_btn" to "Light ☀️",
+        "theme_dark_btn" to "Dark 🌙",
+        "focus_mode_title" to "Focus Mode",
+        "focus_mode_active" to "Active (High contrast focus)",
+        "focus_mode_inactive" to "Disabled (Standard view)",
+        "duty_threshold_title" to "Leave Eligibility Threshold (Days)",
+        "duty_threshold_desc" to "Number of consecutive duty days after which personnel is eligible for leave.",
+        "selected_value" to "Selected value:",
+        "pin_security_title" to "PIN Passcode Lock",
+        "pin_security_desc" to "Secure application with 4-digit PIN upon opening",
+        "change_pin_btn" to "Change PIN",
+        "lock_now_btn" to "Lock App Now",
+        "version_info_title" to "Version Information",
+        "app_version_label" to "App Version",
+        "build_code_label" to "Build Code",
+        "close" to "Close",
+
+        // Notifications Screen
         "notifications_page_title" to "Notifications Center",
         "notifications_empty_title" to "No Notifications",
         "notifications_empty_sub" to "All leaves and duty return dates are on schedule.",
@@ -174,6 +488,10 @@ object AppStrings {
         "unpin_action" to "Unpin",
         "dismiss_action" to "Dismiss",
         "clear_all" to "Clear All",
-        "back" to "Back"
+        "back" to "Back",
+
+        // Miscellaneous
+        "input_text_dark_note" to "Pure black input text optimized",
+        "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})"
     )
 }

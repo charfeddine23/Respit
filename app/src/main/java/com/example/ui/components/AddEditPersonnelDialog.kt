@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -23,8 +24,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -38,8 +37,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -64,6 +64,11 @@ import com.example.data.Personnel
 import com.example.data.algerianLeaveTypes
 import com.example.data.algerianRanks
 import com.example.data.algerianWilayas
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.VibrantCyan
+import com.example.util.AppLanguage
+import com.example.util.AppStrings
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -87,12 +92,12 @@ fun AddEditPersonnelDialog(
         wilaya: String,
         notes: String
     ) -> Unit,
-    isDarkMode: Boolean = false
+    isDarkMode: Boolean = false,
+    currentLang: AppLanguage = AppLanguage.ARABIC
 ) {
     val context = LocalContext.current
     val isEdit = personnelToEdit != null
 
-    // Default dates
     val now = System.currentTimeMillis()
     fun getOffsetMillis(baseMillis: Long, days: Int): Long {
         val c = Calendar.getInstance().apply {
@@ -166,38 +171,29 @@ fun AddEditPersonnelDialog(
         returnCal.get(Calendar.DAY_OF_MONTH)
     )
 
-    // Calculate duration in days
     val totalDays = TimeUnit.MILLISECONDS.toDays(
         Personnel.toStartOfDay(returnDateMillis) - Personnel.toStartOfDay(startDateMillis)
     ).coerceAtLeast(0)
 
-    val today = Personnel.toStartOfDay(System.currentTimeMillis())
-    val daysRemaining = TimeUnit.MILLISECONDS.toDays(
-        Personnel.toStartOfDay(returnDateMillis) - today
-    )
-
     val isDark = isDarkMode
 
-    // Slate text (#0F172A) and vibrant cyan accents for high contrast and clear readability
     val inputColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = Color(0xFF0F172A),
-        unfocusedTextColor = Color(0xFF0F172A),
-        focusedContainerColor = if (isDark) Color(0xFFF8FAFC) else Color(0xF7FFFFFF),
-        unfocusedContainerColor = if (isDark) Color(0xFFF1F5F9) else Color(0xD9FFFFFF),
+        focusedTextColor = if (isDark) Color.White else SlateTextPrimary,
+        unfocusedTextColor = if (isDark) Color.White else SlateTextPrimary,
+        focusedContainerColor = if (isDark) Color(0x331E293B) else Color(0x80FFFFFF),
+        unfocusedContainerColor = if (isDark) Color(0x221E293B) else Color(0x60FFFFFF),
         focusedBorderColor = Color(0xFF00BCD4),
-        unfocusedBorderColor = if (isDark) Color(0xFF94A3B8) else Color(0x3300BCD4),
+        unfocusedBorderColor = if (isDark) Color(0x40CBD5E1) else Color(0x4000BCD4),
         focusedLabelColor = Color(0xFF00BCD4),
-        unfocusedLabelColor = if (isDark) Color(0xFF334155) else Color(0xFF64748B),
-        focusedPlaceholderColor = Color(0xFF64748B),
-        unfocusedPlaceholderColor = Color(0xFF94A3B8),
+        unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else SlateTextSecondary,
         cursorColor = Color(0xFF00BCD4)
     )
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = if (isDark) Color(0xFF1E293B) else Color(0xD9FFFFFF), // rgba(255, 255, 255, 0.85)
-            border = androidx.compose.foundation.BorderStroke(
+            color = if (isDark) Color(0xFF1E293B) else Color(0xF2FFFFFF),
+            border = BorderStroke(
                 1.2.dp,
                 Brush.linearGradient(
                     listOf(
@@ -219,31 +215,31 @@ fun AddEditPersonnelDialog(
                     .padding(20.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Header
+                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isEdit) "تعديل بيانات الفرد والإجازة" else "إضافة فرد وإجازة جديدة",
+                        text = AppStrings.get(if (isEdit) "edit_personnel_title" else "add_personnel_title", currentLang),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                        color = if (isDark) Color.White else SlateTextPrimary
                     )
 
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
-                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                            contentDescription = AppStrings.get("cancel", currentLang),
+                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Error message
+                // Error Banner
                 if (errorMessage != null) {
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
@@ -253,34 +249,34 @@ fun AddEditPersonnelDialog(
                             .padding(bottom = 12.dp)
                     ) {
                         Text(
-                            text = errorMessage ?: "",
+                            text = errorMessage!!,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(10.dp)
+                            modifier = Modifier.padding(10.dp),
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                // Full Name
+                // 1. Full Name Input
                 OutlinedTextField(
                     value = fullName,
                     onValueChange = {
                         fullName = it
                         errorMessage = null
                     },
-                    label = { Text("الاسم واللقب *") },
-                    placeholder = { Text("مثال: عبد الرحمن بلقاسمي") },
+                    label = { Text(AppStrings.get("full_name_label", currentLang)) },
                     singleLine = true,
                     colors = inputColors,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("full_name_input"),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(14.dp)
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Rank Selection Dropdown
+                // 2. Military Rank Dropdown
                 ExposedDropdownMenuBox(
                     expanded = rankDropdownExpanded,
                     onExpandedChange = { rankDropdownExpanded = !rankDropdownExpanded },
@@ -290,14 +286,13 @@ fun AddEditPersonnelDialog(
                         value = rank,
                         onValueChange = {},
                         readOnly = true,
-                        placeholder = { Text("الرتبة") },
+                        label = { Text(AppStrings.get("rank_label", currentLang)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = rankDropdownExpanded) },
                         colors = inputColors,
                         modifier = Modifier
-                            .fillMaxWidth()
                             .menuAnchor()
-                            .testTag("rank_input"),
-                        shape = RoundedCornerShape(12.dp)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = rankDropdownExpanded,
@@ -317,7 +312,26 @@ fun AddEditPersonnelDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Wilaya Dropdown (All 69 Algerian Wilayas)
+                // 3. Registration Number Input
+                OutlinedTextField(
+                    value = regNumber,
+                    onValueChange = {
+                        regNumber = it
+                        errorMessage = null
+                    },
+                    label = { Text(AppStrings.get("reg_number_label", currentLang)) },
+                    placeholder = { Text("DZ-123456") },
+                    singleLine = true,
+                    colors = inputColors,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("reg_number_input"),
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 4. Wilaya Dropdown
                 ExposedDropdownMenuBox(
                     expanded = wilayaDropdownExpanded,
                     onExpandedChange = { wilayaDropdownExpanded = !wilayaDropdownExpanded },
@@ -327,14 +341,13 @@ fun AddEditPersonnelDialog(
                         value = wilaya,
                         onValueChange = {},
                         readOnly = true,
-                        placeholder = { Text("الولاية") },
+                        label = { Text(AppStrings.get("wilaya_label", currentLang)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = wilayaDropdownExpanded) },
                         colors = inputColors,
                         modifier = Modifier
-                            .fillMaxWidth()
                             .menuAnchor()
-                            .testTag("wilaya_input"),
-                        shape = RoundedCornerShape(12.dp)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = wilayaDropdownExpanded,
@@ -354,302 +367,7 @@ fun AddEditPersonnelDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Registration Number
-                OutlinedTextField(
-                    value = regNumber,
-                    onValueChange = {
-                        regNumber = it
-                        errorMessage = null
-                    },
-                    label = { Text("رقم التسجيل *") },
-                    placeholder = { Text("مثال: DZ-45892/2026") },
-                    singleLine = true,
-                    colors = inputColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("reg_number_input"),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Section Title: إعدادات الإجازة وتواريخ الاستفادة والدخول
-                Text(
-                    text = "تواريخ الإجازة ومتابعة الدخول",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF0284C7)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 1. تاريخ الإستفادة (Start Date - لون أسود #000000 في الوضع الليلي والنهاري)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isDark) Color(0xFFF1F5F9) else Color(0xFFF8FAFC))
-                        .border(1.dp, if (isDark) Color(0xFFCBD5E1) else Color(0x3338BDF8), RoundedCornerShape(14.dp))
-                        .padding(12.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "🛫 تاريخ الإستفادة (بداية الإجازة) *",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF000000)
-                            )
-
-                            TextButton(onClick = {
-                                startDateMillis = Personnel.toStartOfDay(System.currentTimeMillis())
-                                if (returnDateMillis < startDateMillis) {
-                                    returnDateMillis = getOffsetMillis(startDateMillis, 10)
-                                }
-                            }) {
-                                Text("اليوم", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        OutlinedButton(
-                            onClick = { startDatePickerDialog.show() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("start_date_picker_button"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.White,
-                                contentColor = Color(0xFF000000)
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isDark) Color(0xFF94A3B8) else Color(0x3338BDF8)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                    Text(
-                                        text = sdf.format(Date(startDateMillis)),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF000000)
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
-                                    contentDescription = "اختر تاريخ الاستفادة",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color(0xFF000000)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 2. تاريخ الدخول (Return Date - لون أسود #000000 في الوضع الليلي والنهاري)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isDark) Color(0xFFF1F5F9) else Color(0xFFF8FAFC))
-                        .border(1.dp, if (isDark) Color(0xFFCBD5E1) else Color(0x3338BDF8), RoundedCornerShape(14.dp))
-                        .padding(12.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "🛬 تاريخ الدخول (العودة للعمل) *",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF000000)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Quick duration addition chips
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val durationChips = listOf(
-                                3 to "+3 أيام",
-                                5 to "+5 أيام",
-                                10 to "+10 أيام",
-                                15 to "+15 يوماً",
-                                30 to "+30 يوماً (شهر)"
-                            )
-                            durationChips.forEach { (days, label) ->
-                                FilterChip(
-                                    selected = totalDays == days.toLong(),
-                                    onClick = {
-                                        returnDateMillis = getOffsetMillis(startDateMillis, days)
-                                    },
-                                    label = { Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
-                                    shape = RoundedCornerShape(50.dp),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFF00BCD4),
-                                        selectedLabelColor = Color.White,
-                                        containerColor = if (isDark) Color(0xFF334155) else Color(0xF2FFFFFF),
-                                        labelColor = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A)
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = totalDays == days.toLong(),
-                                        borderColor = if (isDark) Color(0x3300BCD4) else Color(0x3300BCD4),
-                                        selectedBorderColor = Color(0xFF00BCD4)
-                                    )
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        OutlinedButton(
-                            onClick = { returnDatePickerDialog.show() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("return_date_picker_button"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isDark) Color(0xFF1E293B) else Color(0xF5FFFFFF),
-                                contentColor = Color(0xFF0F172A)
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isDark) Color(0xFF94A3B8) else Color(0x4000BCD4)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                    Text(
-                                        text = sdf.format(Date(returnDateMillis)),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDark) Color.White else Color(0xFF0F172A)
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
-                                    contentDescription = "اختر تاريخ الدخول",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color(0xFF00BCD4)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Live dynamic countdown & duration preview card
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isDark) Color(0x330284C7) else Color(0xFFF0F9FF))
-                        .border(1.dp, if (isDark) Color(0x6638BDF8) else Color(0xFFBAE6FD), RoundedCornerShape(14.dp))
-                        .padding(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = Color(0xFF0284C7),
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = "مدة الإجازة الإجمالية: $totalDays يوماً",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color.White else Color(0xFF0F172A)
-                            )
-                            val statusNote = when {
-                                isReturnedToDuty -> "الوضعية: حاضر بالخدمة (مستأنف للعمل)"
-                                today in Personnel.toStartOfDay(startDateMillis) until Personnel.toStartOfDay(returnDateMillis) ->
-                                    "🏠 في البيت حالياً: باقي $daysRemaining أيام على الدخول"
-                                today == Personnel.toStartOfDay(returnDateMillis) ->
-                                    "🔔 تاريخ الدخول هو اليوم!"
-                                today > Personnel.toStartOfDay(returnDateMillis) ->
-                                    "⚠️ متأخر بـ ${today - Personnel.toStartOfDay(returnDateMillis) / (1000 * 60 * 60 * 24)} يوم عن الدخول"
-                                else -> "⏳ إجازة مبرمجة قادمة"
-                            }
-                            Text(
-                                text = statusNote,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0369A1)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Is Returned to Duty Checkbox
-                Surface(
-                    color = if (isDark) Color(0xFF334155).copy(alpha = 0.5f) else Color.White.copy(alpha = 0.75f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0x4D475569) else Color(0x3338BDF8)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = isReturnedToDuty,
-                            onCheckedChange = { isReturnedToDuty = it },
-                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFF059669))
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Column {
-                            Text(
-                                text = "حاضر بالخدمة (التحق بالوحدة)",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color.White else Color(0xFF0F172A)
-                            )
-                            Text(
-                                text = "حدد هذا الخيار إذا كان الفرد قد استأنف عمله بالفعل بعد الإجازة",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Leave Type Dropdown
+                // 5. Leave Type Dropdown
                 ExposedDropdownMenuBox(
                     expanded = typeDropdownExpanded,
                     onExpandedChange = { typeDropdownExpanded = !typeDropdownExpanded },
@@ -659,23 +377,23 @@ fun AddEditPersonnelDialog(
                         value = leaveType,
                         onValueChange = {},
                         readOnly = true,
-                        placeholder = { Text("نوع الإجازة / العطلة") },
+                        label = { Text(AppStrings.get("leave_type_label", currentLang)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded) },
                         colors = inputColors,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        shape = RoundedCornerShape(12.dp)
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = typeDropdownExpanded,
                         onDismissRequest = { typeDropdownExpanded = false }
                     ) {
-                        algerianLeaveTypes.forEach { t ->
+                        algerianLeaveTypes.forEach { lt ->
                             DropdownMenuItem(
-                                text = { Text(t, fontWeight = if (t == leaveType) FontWeight.Bold else FontWeight.Normal) },
+                                text = { Text(lt, fontWeight = if (lt == leaveType) FontWeight.Bold else FontWeight.Normal) },
                                 onClick = {
-                                    leaveType = t
+                                    leaveType = lt
                                     typeDropdownExpanded = false
                                 }
                             )
@@ -683,76 +401,266 @@ fun AddEditPersonnelDialog(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Dates Section Header
+                Text(
+                    text = AppStrings.get("benefit_date", currentLang).replace(":", "") + " & " + AppStrings.get("return_date", currentLang).replace(":", ""),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF00BCD4)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Start Date Field Button
+                OutlinedButton(
+                    onClick = { startDatePickerDialog.show() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, if (isDark) Color(0x40CBD5E1) else Color(0x4000BCD4))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                text = AppStrings.get("start_date_label", currentLang),
+                                fontSize = 10.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else SlateTextSecondary
+                            )
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                Text(
+                                    text = sdf.format(Date(startDateMillis)),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = if (isDark) Color.White else SlateTextPrimary
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = Color(0xFF00BCD4)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Interactive Quick Duration Add Chips (+10, +15, +20, +30 days)
+                Text(
+                    text = AppStrings.get("quick_duration_add", currentLang),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) Color(0xFFCBD5E1) else SlateTextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val durationPills = listOf(
+                        10 to AppStrings.get("ten_days", currentLang),
+                        15 to AppStrings.get("fifteen_days", currentLang),
+                        20 to AppStrings.get("twenty_days", currentLang),
+                        30 to AppStrings.get("thirty_days", currentLang)
+                    )
+
+                    durationPills.forEach { (days, label) ->
+                        val isSelected = totalDays == days.toLong()
+                        Surface(
+                            onClick = {
+                                returnDateMillis = getOffsetMillis(startDateMillis, days)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) {
+                                if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA)
+                            } else {
+                                if (isDark) Color(0x221E293B) else Color(0x80FFFFFF)
+                            },
+                            border = BorderStroke(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x33475569) else Color(0x33CBD5E1))
+                            ),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                    color = if (isSelected) Color(0xFF00BCD4) else (if (isDark) Color(0xFFE2E8F0) else SlateTextPrimary)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Return Date Field Button
+                OutlinedButton(
+                    onClick = { returnDatePickerDialog.show() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, if (isDark) Color(0x40CBD5E1) else Color(0x4000BCD4))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                text = AppStrings.get("return_date_label", currentLang),
+                                fontSize = 10.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else SlateTextSecondary
+                            )
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                Text(
+                                    text = sdf.format(Date(returnDateMillis)),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = if (isDark) Color.White else SlateTextPrimary
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = Color(0xFF00BCD4)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Total Days Summary Badge
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
+                    border = BorderStroke(1.dp, Color(0xFF00BCD4).copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color(0xFF00838F),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${AppStrings.get("leave_duration", currentLang)} $totalDays ${AppStrings.get("days", currentLang)}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF00838F)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // On Duty / Active Duty Switch Card
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = if (isDark) Color(0x221E293B) else Color(0x80FFFFFF),
+                    border = BorderStroke(1.dp, if (isDark) Color(0x33475569) else Color(0x33CBD5E1)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = AppStrings.get("on_duty_switch_label", currentLang),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color.White else SlateTextPrimary
+                        )
+                        Switch(
+                            checked = isReturnedToDuty,
+                            onCheckedChange = { isReturnedToDuty = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF10B981)
+                            )
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Notes / Unit
+                // Notes Field
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("ملاحظات / الوحدة (اختياري)") },
-                    placeholder = { Text("الكتيبة، السرية، ملاحظات خاصة...") },
+                    label = { Text(AppStrings.get("notes_label", currentLang).replace(":", "")) },
                     colors = inputColors,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    maxLines = 2
+                    shape = RoundedCornerShape(14.dp),
+                    maxLines = 3
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Buttons: Cancel & Save
+                // Save & Cancel Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF64748B)
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x3364748B))
-                    ) {
-                        Text("إلغاء", fontWeight = FontWeight.Bold)
-                    }
-
                     Button(
                         onClick = {
-                            if (fullName.isBlank()) {
-                                errorMessage = "يرجى إدخال الاسم واللقب"
+                            if (fullName.isBlank() || regNumber.isBlank()) {
+                                errorMessage = AppStrings.get("fill_required", currentLang)
                                 return@Button
                             }
-                            if (regNumber.isBlank()) {
-                                errorMessage = "يرجى إدخال رقم التسجيل"
-                                return@Button
-                            }
-                            if (returnDateMillis < startDateMillis) {
-                                errorMessage = "تاريخ الدخول يجب أن يكون بعد تاريخ الإستفادة"
-                                return@Button
-                            }
+
                             onSave(
                                 personnelToEdit?.id ?: 0L,
                                 fullName.trim(),
-                                rank.trim(),
+                                rank,
                                 regNumber.trim(),
                                 startDateMillis,
                                 returnDateMillis,
                                 isReturnedToDuty,
-                                leaveType.trim(),
-                                wilaya.trim(),
+                                leaveType,
+                                wilaya,
                                 notes.trim()
                             )
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("save_personnel_button"),
+                        modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF00BCD4),
                             contentColor = Color.White
                         )
                     ) {
-                        Text(if (isEdit) "حفظ التعديل" else "إضافة الفرد", fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get("save_changes", currentLang), fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, Color(0x3364748B))
+                    ) {
+                        Text(AppStrings.get("cancel", currentLang), color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -194,6 +194,46 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val currentSort by viewModel.sortOption.collectAsState()
 
     val notificationsCount by viewModel.unreadNotificationsCount.collectAsState()
+    val isDriveSyncEnabled by viewModel.isDriveSyncEnabled.collectAsState()
+    val lastDriveBackupTime by viewModel.lastDriveBackupTime.collectAsState()
+
+    // Google Drive SAF Document Launchers
+    val driveBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.use { stream ->
+                    stream.write(viewModel.generateJsonContent().toByteArray(Charsets.UTF_8))
+                }
+                viewModel.updateLastDriveBackup()
+                Toast.makeText(context, AppStrings.get("drive_backup_success", currentLang), Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "${AppStrings.get("drive_backup_failed", currentLang)}: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val driveRestoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val json = stream.bufferedReader(Charsets.UTF_8).readText()
+                    val result = viewModel.importPersonnelFromJson(json, replaceAll = false)
+                    if (result.first) {
+                        viewModel.updateLastDriveBackup()
+                        Toast.makeText(context, AppStrings.get("drive_restore_success", currentLang), Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, "${AppStrings.get("drive_restore_failed", currentLang)}: ${result.second}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "${AppStrings.get("drive_restore_failed", currentLang)}: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     var showAddEditDialog by remember { mutableStateOf(false) }
     var personnelToEdit by remember { mutableStateOf<Personnel?>(null) }
@@ -621,12 +661,18 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Statistics KPI Cards (Liquid Glass)
+                    // Statistics KPI Cards (Interactive Unified Dashboard)
                     item {
-                        StatisticsSection(stats = stats, isDarkMode = isDarkMode)
+                        StatisticsSection(
+                            stats = stats,
+                            currentLang = currentLang,
+                            selectedStatus = selectedStatus,
+                            onSelectStatus = { viewModel.selectedStatus.value = it },
+                            isDarkMode = isDarkMode
+                        )
                     }
 
-                    // Liquid Glass Search Container with Integrated Filter & Sort Button on the Left
+                    // Liquid Glass Search Container with Integrated Filter & Sort Button
                     item {
                         val activeFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
                                 (if (selectedRank != "ALL") 1 else 0) +
@@ -638,7 +684,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                 .liquidGlass(
                                     shape = LiquidGlassDefaults.CardShape,
                                     elevation = 5.dp,
-                                    borderAlpha = 0.85f
+                                    borderAlpha = 0.85f,
+                                    isDark = isDarkMode
                                 )
                                 .padding(12.dp)
                         ) {
@@ -665,7 +712,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             .testTag("search_field"),
                                         placeholder = {
                                             Text(
-                                                "بحث بالاسم، رقم التسجيل، الرتبة...",
+                                                AppStrings.get("search_placeholder", currentLang),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = Color(0xFF64748B)
                                             )
@@ -673,7 +720,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                         leadingIcon = {
                                             Icon(
                                                 imageVector = Icons.Default.Search,
-                                                contentDescription = "بحث",
+                                                contentDescription = AppStrings.get("search_label", currentLang),
                                                 tint = Color(0xFF00BCD4)
                                             )
                                         },
@@ -682,7 +729,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 IconButton(onClick = { viewModel.searchQuery.value = "" }) {
                                                     Icon(
                                                         imageVector = Icons.Default.Clear,
-                                                        contentDescription = "مسح",
+                                                        contentDescription = AppStrings.get("clear_search", currentLang),
                                                         tint = Color(0xFF64748B)
                                                     )
                                                 }
@@ -917,6 +964,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                 dutyThresholdDays = dutyThreshold,
                                 isFocusMode = isFocusMode,
                                 isDarkMode = isDarkMode,
+                                currentLang = currentLang,
                                 onConfirmDuty = {
                                     viewModel.confirmReturnToDuty(person.id)
                                     Toast.makeText(
@@ -972,11 +1020,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                 personnelToEdit = null
                 Toast.makeText(
                     context,
-                    if (id == 0L) "تمت إضافة الفرد بنجاح" else "تم تحديث البيانات بنجاح",
+                    AppStrings.get("personnel_saved_success", currentLang),
                     Toast.LENGTH_SHORT
                 ).show()
             },
-            isDarkMode = isDarkMode
+            isDarkMode = isDarkMode,
+            currentLang = currentLang
         )
     }
 
@@ -986,10 +1035,10 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         AlertDialog(
             onDismissRequest = { personnelToDelete = null },
             title = {
-                Text("تأكيد حذف الفرد", fontWeight = FontWeight.Bold)
+                Text(AppStrings.get("confirm_delete_title", currentLang), fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("هل أنت متأكد من رغبتك في حذف السجل الخاص بـ ${target.rank} / ${target.fullName} (رقم: ${target.registrationNumber})؟")
+                Text("${AppStrings.get("confirm_delete_message", currentLang)} ${target.rank} / ${target.fullName} (${target.registrationNumber})؟")
             },
             confirmButton = {
                 TextButton(
@@ -999,18 +1048,18 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                         Toast.makeText(context, "تم حذف السجل بنجاح", Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Text("حذف", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get("delete", currentLang), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { personnelToDelete = null }) {
-                    Text("إلغاء")
+                    Text(AppStrings.get("cancel", currentLang))
                 }
             }
         )
     }
 
-    // Unified Filter & Sort Dialog (Consolidating Status, Rank, and Sort options)
+    // Unified Filter & Sort Dialog
     if (showFilterSortDialog) {
         FilterSortDialog(
             selectedSort = currentSort,
@@ -1028,18 +1077,20 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                 viewModel.sortOption.value = SortOption.RETURN_SOON
             },
             onDismiss = { showFilterSortDialog = false },
-            isDarkMode = isDarkMode
+            isDarkMode = isDarkMode,
+            currentLang = currentLang
         )
     }
 
     // Developer Info Dialog (From Drawer)
     if (showDeveloperDialog) {
         DeveloperInfoDialog(
+            currentLang = currentLang,
             onDismiss = { showDeveloperDialog = false }
         )
     }
 
-    // Settings Dialog
+    // Settings Dialog with Google Drive Backup & Restore wired
     if (showSettingsDialog) {
         SettingsDialog(
             isDarkMode = isDarkMode,
@@ -1056,6 +1107,15 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             onLockNow = { viewModel.lockApp() },
             currentLanguage = currentLang,
             onSelectLanguage = { viewModel.setLanguage(it) },
+            isDriveSyncEnabled = isDriveSyncEnabled,
+            onToggleDriveSync = { viewModel.setDriveSyncEnabled(it) },
+            lastDriveBackupTime = lastDriveBackupTime,
+            onBackupToDrive = {
+                driveBackupLauncher.launch("respite_pulse_backup_${System.currentTimeMillis()}.json")
+            },
+            onRestoreFromDrive = {
+                driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
+            },
             onDismiss = { showSettingsDialog = false }
         )
     }

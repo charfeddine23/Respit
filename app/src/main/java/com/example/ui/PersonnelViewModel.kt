@@ -84,6 +84,20 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         settingsManager.isFocusMode = enabled
     }
 
+    // Google Drive Sync state
+    val isDriveSyncEnabled = MutableStateFlow(settingsManager.isGoogleDriveSyncEnabled)
+    val lastDriveBackupTime = MutableStateFlow(settingsManager.lastGoogleDriveBackupTime)
+
+    fun setDriveSyncEnabled(enabled: Boolean) {
+        isDriveSyncEnabled.value = enabled
+        settingsManager.isGoogleDriveSyncEnabled = enabled
+    }
+
+    fun updateLastDriveBackup(time: Long = System.currentTimeMillis()) {
+        lastDriveBackupTime.value = time
+        settingsManager.lastGoogleDriveBackupTime = time
+    }
+
     // Recent Searches state
     val recentSearches = MutableStateFlow<List<String>>(settingsManager.recentSearches)
 
@@ -779,7 +793,15 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     fun importPersonnelFromJson(jsonString: String, replaceAll: Boolean = false): Pair<Boolean, String> {
         return try {
             val trimmed = jsonString.trim()
-            val array = JSONArray(trimmed)
+            val array = if (trimmed.startsWith("{")) {
+                val rootObj = JSONObject(trimmed)
+                rootObj.optJSONArray("records") 
+                    ?: rootObj.optJSONArray("personnel") 
+                    ?: rootObj.optJSONArray("data") 
+                    ?: JSONArray()
+            } else {
+                JSONArray(trimmed)
+            }
             if (array.length() == 0) {
                 return Pair(false, "الملف أو النص لا يحتوي على أي سجلات.")
             }

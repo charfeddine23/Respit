@@ -123,6 +123,9 @@ data class Personnel(
             }
         }
 
+    val isOverdue: Boolean
+        get() = status == LeaveStatus.OVERDUE
+
     // نص العداد التوضيحي باللغة العربية
     val countdownTextAr: String
         get() {

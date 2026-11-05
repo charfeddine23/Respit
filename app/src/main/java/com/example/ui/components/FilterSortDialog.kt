@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tune
@@ -45,8 +44,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.ui.DashboardStats
 import com.example.ui.SortOption
-import com.example.ui.theme.LiquidGlassDefaults
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
+import com.example.util.AppLanguage
+import com.example.util.AppStrings
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -61,14 +62,15 @@ fun FilterSortDialog(
     stats: DashboardStats,
     onResetFilters: () -> Unit,
     onDismiss: () -> Unit,
-    isDarkMode: Boolean = false
+    isDarkMode: Boolean = false,
+    currentLang: AppLanguage = AppLanguage.ARABIC
 ) {
     val isDark = isDarkMode
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = if (isDark) Color(0xFF1E293B) else Color(0xD9FFFFFF),
+            color = if (isDark) Color(0xFF1E293B) else Color(0xF2FFFFFF),
             border = BorderStroke(
                 1.2.dp,
                 Brush.linearGradient(
@@ -97,43 +99,36 @@ fun FilterSortDialog(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
+                                .background(if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA), RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Tune,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = Color(0xFF00BCD4),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "الفلترة والترتيب المتقدم",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "تخصيص عرض وفرز سجلات الأفراد",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = AppStrings.get("filter_sort_btn", currentLang),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = if (isDark) Color.White else SlateTextPrimary
+                        )
                     }
 
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            contentDescription = AppStrings.get("close", currentLang),
+                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                HorizontalDivider(color = if (isDark) Color(0x33475569) else Color(0x33CBD5E1))
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Scrollable Content
@@ -146,10 +141,10 @@ fun FilterSortDialog(
                     // 1. Sort Section
                     Column {
                         Text(
-                            text = "ترتيب السجلات حسب:",
+                            text = AppStrings.get("sort", currentLang) + ":",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color(0xFF00BCD4)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -157,21 +152,29 @@ fun FilterSortDialog(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            SortOption.values().forEach { option ->
+                            SortOption.entries.forEach { option ->
                                 val isSelected = selectedSort == option
+                                val label = when (option) {
+                                    SortOption.RETURN_SOON -> AppStrings.get("sort_return_soon", currentLang)
+                                    SortOption.OVERDUE_FIRST -> AppStrings.get("sort_overdue_first", currentLang)
+                                    SortOption.START_DESC -> AppStrings.get("sort_start_desc", currentLang)
+                                    SortOption.NAME_ASC -> AppStrings.get("sort_name_asc", currentLang)
+                                    SortOption.REG_ASC -> AppStrings.get("sort_reg_asc", currentLang)
+                                }
+
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { onSelectSort(option) },
                                     label = {
                                         Text(
-                                            text = option.titleAr,
+                                            text = label,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (isSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
+                                            color = if (isSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else SlateTextPrimary
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
+                                        containerColor = if (isDark) Color(0x22334155) else Color(0xF2FFFFFF),
                                         selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
                                         selectedLabelColor = Color(0xFF00BCD4)
                                     ),
@@ -187,33 +190,32 @@ fun FilterSortDialog(
                         }
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    HorizontalDivider(color = if (isDark) Color(0x33475569) else Color(0x33CBD5E1))
 
                     // 2. Leave Status Filter Section
                     Column {
                         Text(
-                            text = "تصفية حسب حالة الإجازة:",
+                            text = AppStrings.get("status_all", currentLang) + ":",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color(0xFF00BCD4)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        val statusOptions = listOf(
-                            "ALL" to "جميع الحالات",
-                            "ELIGIBLE" to "🌟 مستحق للإجازة (${stats.eligible})",
-                            "AT_HOME" to "🏠 في إجازة (بالبيت) (${stats.atHome})",
-                            "RETURNING_TODAY" to "🔔 الدخول اليوم (${stats.returningToday})",
-                            "OVERDUE" to "⚠️ متأخر عن الدخول (${stats.overdue})",
-                            "ON_DUTY" to "🎖️ حاضر بالخدمة (${stats.onDuty})",
-                            "UPCOMING" to "⏳ إجازة مبرمجة (${stats.upcoming})"
+                        val statuses = listOf(
+                            "ALL" to AppStrings.get("status_all", currentLang),
+                            "AT_HOME" to "${AppStrings.get("status_at_home", currentLang)} (${stats.atHome})",
+                            "RETURNING_TODAY" to "${AppStrings.get("status_returning_today", currentLang)} (${stats.returningToday})",
+                            "OVERDUE" to "${AppStrings.get("status_overdue", currentLang)} (${stats.overdue})",
+                            "ON_DUTY" to "${AppStrings.get("status_on_duty", currentLang)} (${stats.onDuty})",
+                            "ELIGIBLE" to "${AppStrings.get("status_eligible", currentLang)} (${stats.eligible})"
                         )
 
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            statusOptions.forEach { (code, label) ->
+                            statuses.forEach { (code, label) ->
                                 val isSelected = selectedStatus == code
                                 FilterChip(
                                     selected = isSelected,
@@ -223,11 +225,11 @@ fun FilterSortDialog(
                                             text = label,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (isSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
+                                            color = if (isSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else SlateTextPrimary
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
+                                        containerColor = if (isDark) Color(0x22334155) else Color(0xF2FFFFFF),
                                         selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
                                         selectedLabelColor = Color(0xFF00BCD4)
                                     ),
@@ -243,71 +245,48 @@ fun FilterSortDialog(
                         }
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    HorizontalDivider(color = if (isDark) Color(0x33475569) else Color(0x33CBD5E1))
 
-                    // 3. Military Rank Filter Section
+                    // 3. Rank Filter Section
                     Column {
                         Text(
-                            text = "تصفية حسب الرتبة العسكرية:",
+                            text = AppStrings.get("all_ranks", currentLang) + ":",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color(0xFF00BCD4)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
+
+                        val rankOptions = listOf("ALL" to AppStrings.get("all_ranks", currentLang)) +
+                                uniqueRanks.map { it to it }
 
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            val isAllRankSelected = selectedRank == "ALL"
-                            FilterChip(
-                                selected = isAllRankSelected,
-                                onClick = { onSelectRank("ALL") },
-                                label = {
-                                    Text(
-                                        text = "كل الرتب",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (isAllRankSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                        color = if (isAllRankSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
-                                    selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
-                                    selectedLabelColor = Color(0xFF00BCD4)
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    borderColor = if (isAllRankSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x4D475569) else Color(0x40CBD5E1)),
-                                    selectedBorderColor = Color(0xFF00BCD4),
-                                    enabled = true,
-                                    selected = isAllRankSelected
-                                ),
-                                shape = RoundedCornerShape(50.dp)
-                            )
-
-                            uniqueRanks.forEach { rank ->
-                                val isRankSelected = selectedRank == rank
+                            rankOptions.forEach { (code, label) ->
+                                val isSelected = selectedRank == code
                                 FilterChip(
-                                    selected = isRankSelected,
-                                    onClick = { onSelectRank(if (isRankSelected) "ALL" else rank) },
+                                    selected = isSelected,
+                                    onClick = { onSelectRank(code) },
                                     label = {
                                         Text(
-                                            text = rank,
+                                            text = label,
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = if (isRankSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (isRankSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
+                                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                                            color = if (isSelected) Color(0xFF00BCD4) else if (isDark) Color(0xFFE2E8F0) else SlateTextPrimary
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = if (isDark) Color(0x33334155) else Color(0xF2FFFFFF),
+                                        containerColor = if (isDark) Color(0x22334155) else Color(0xF2FFFFFF),
                                         selectedContainerColor = if (isDark) Color(0x3300BCD4) else Color(0xFFE0F7FA),
                                         selectedLabelColor = Color(0xFF00BCD4)
                                     ),
                                     border = FilterChipDefaults.filterChipBorder(
-                                        borderColor = if (isRankSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x4D475569) else Color(0x40CBD5E1)),
+                                        borderColor = if (isSelected) Color(0xFF00BCD4) else (if (isDark) Color(0x4D475569) else Color(0x40CBD5E1)),
                                         selectedBorderColor = Color(0xFF00BCD4),
                                         enabled = true,
-                                        selected = isRankSelected
+                                        selected = isSelected
                                     ),
                                     shape = RoundedCornerShape(50.dp)
                                 )
@@ -317,8 +296,6 @@ fun FilterSortDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                Spacer(modifier = Modifier.height(14.dp))
 
                 // Bottom Action Buttons
                 Row(
@@ -326,43 +303,35 @@ fun FilterSortDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedButton(
-                        onClick = {
-                            onResetFilters()
-                        },
+                        onClick = onResetFilters,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, Color(0x40CBD5E1))
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = null,
+                            tint = if (isDark) Color(0xFFCBD5E1) else SlateTextSecondary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "إعادة ضبط",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
+                            text = AppStrings.get("reset_filters", currentLang),
+                            fontSize = 12.sp,
+                            color = if (isDark) Color(0xFFCBD5E1) else SlateTextSecondary
                         )
                     }
 
                     Button(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF00BCD4),
+                            contentColor = Color.White
+                        )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "تطبيق",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(AppStrings.get("apply", currentLang), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }

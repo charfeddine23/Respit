@@ -28,6 +28,8 @@ class SettingsManager(context: Context) {
         private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
         private const val KEY_DISMISSED_NOTIFICATIONS = "pref_dismissed_notifications"
         private const val KEY_FOCUS_MODE = "pref_focus_mode"
+        private const val KEY_DRIVE_SYNC_ENABLED = "pref_drive_sync_enabled"
+        private const val KEY_LAST_DRIVE_BACKUP = "pref_last_drive_backup_time"
         const val DEFAULT_DUTY_THRESHOLD = 45
     }
 
@@ -85,6 +87,14 @@ class SettingsManager(context: Context) {
     var isFocusMode: Boolean
         get() = prefs.getBoolean(KEY_FOCUS_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_FOCUS_MODE, value).apply()
+
+    var isGoogleDriveSyncEnabled: Boolean
+        get() = prefs.getBoolean(KEY_DRIVE_SYNC_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_DRIVE_SYNC_ENABLED, value).apply()
+
+    var lastGoogleDriveBackupTime: Long
+        get() = prefs.getLong(KEY_LAST_DRIVE_BACKUP, 0L)
+        set(value) = prefs.edit().putLong(KEY_LAST_DRIVE_BACKUP, value).apply()
 
     var recentSearches: List<String>
         get() {
