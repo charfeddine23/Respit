@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tablet / sw600dp dimensions -->
+    <dimen name="screen_horizontal_padding">32dp</dimen>
+    <dimen name="screen_vertical_padding">20dp</dimen>
+    <dimen name="card_corner_radius">24dp</dimen>
+    <dimen name="card_content_padding">20dp</dimen>
+    <dimen name="button_height_standard">52dp</dimen>
+    <dimen name="button_height_compact">48dp</dimen>
+    <dimen name="content_max_width">840dp</dimen>
+    <dimen name="dialog_max_width">600dp</dimen>
+    <dimen name="icon_size_standard">28dp</dimen>
+    <dimen name="icon_size_large">38dp</dimen>
+    <dimen name="dashboard_ring_size">140dp</dimen>
+</resources>

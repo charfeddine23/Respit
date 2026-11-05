@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -88,6 +89,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.AppNotification
 import com.example.data.Personnel
 import com.example.ui.PersonnelViewModel
+import com.example.ui.theme.DynamicAuroraBackground
 import com.example.ui.theme.LiquidGlassDefaults
 import com.example.ui.theme.liquidGlass
 import com.example.ui.theme.liquidGlassInteractive
@@ -132,57 +134,8 @@ fun NotificationScreen(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Ambient Liquid Gradient Background Canvas
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                if (isDarkMode) {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color(0xFF0B1120),
-                                Color(0xFF0F172A),
-                                Color(0xFF1E293B)
-                            )
-                        )
-                    )
-                    drawCircle(
-                        color = Color(0x330284C7),
-                        radius = size.width * 0.45f,
-                        center = Offset(size.width * 0.85f, size.height * 0.15f)
-                    )
-                    drawCircle(
-                        color = Color(0x266366F1),
-                        radius = size.width * 0.5f,
-                        center = Offset(size.width * 0.15f, size.height * 0.55f)
-                    )
-                } else {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color(0xFFE0F7FA),
-                                Color(0xFFEBFBFC),
-                                Color(0xFFFFFFFF),
-                                Color(0xFFF9F2FB),
-                                Color(0xFFF3E5F5)
-                            )
-                        )
-                    )
-                    drawCircle(
-                        color = Color(0x3300E5FF),
-                        radius = size.width * 0.55f,
-                        center = Offset(size.width * 0.05f, size.height * 0.12f)
-                    )
-                    drawCircle(
-                        color = Color(0x2200BCD4),
-                        radius = size.width * 0.5f,
-                        center = Offset(size.width * 0.88f, size.height * 0.38f)
-                    )
-                    drawCircle(
-                        color = Color(0x248B5CF6),
-                        radius = size.width * 0.6f,
-                        center = Offset(size.width * 0.95f, size.height * 0.82f)
-                    )
-                }
-            }
+            // Ambient Liquid Dynamic Aurora Mesh Background (Smooth 60fps drifting orbs)
+            DynamicAuroraBackground(isDark = isDarkMode)
 
             Scaffold(
                 modifier = Modifier
@@ -325,11 +278,17 @@ fun NotificationScreen(
                     }
                 }
             ) { innerPadding ->
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.TopCenter
                 ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 840.dp)
+                    ) {
                     // Filter Chips Row
                     Row(
                         modifier = Modifier
@@ -399,7 +358,8 @@ fun NotificationScreen(
                                     .fillMaxWidth()
                                     .liquidGlass(
                                         shape = LiquidGlassDefaults.CardShape,
-                                        elevation = 6.dp
+                                        elevation = 6.dp,
+                                        isDark = isDarkMode
                                     )
                                     .padding(28.dp)
                             ) {
@@ -490,6 +450,7 @@ fun NotificationScreen(
                         }
                     }
                 }
+            }
             }
         }
     }

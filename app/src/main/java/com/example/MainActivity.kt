@@ -123,6 +123,7 @@ import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
 import com.example.ui.screens.NotificationScreen
+import com.example.ui.theme.DynamicAuroraBackground
 import com.example.ui.theme.LiquidGlassDefaults
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.liquidGlass
@@ -356,63 +357,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                 LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Ambient Liquid Gradient Background Canvas (Theme Adaptive)
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        if (isDarkMode) {
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    listOf(
-                                        Color(0xFF0B1120),
-                                        Color(0xFF0F172A),
-                                        Color(0xFF1E293B)
-                                    )
-                                )
-                            )
-                            // Luminous Deep Neon orbs in dark mode
-                            drawCircle(
-                                color = Color(0x330284C7),
-                                radius = size.width * 0.45f,
-                                center = Offset(size.width * 0.85f, size.height * 0.15f)
-                            )
-                            drawCircle(
-                                color = Color(0x266366F1),
-                                radius = size.width * 0.5f,
-                                center = Offset(size.width * 0.15f, size.height * 0.55f)
-                            )
-                            drawCircle(
-                                color = Color(0x2610B981),
-                                radius = size.width * 0.4f,
-                                center = Offset(size.width * 0.9f, size.height * 0.85f)
-                            )
-                        } else {
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    listOf(
-                                        Color(0xFFE0F7FA), // Soft cyan/blue at top
-                                        Color(0xFFEBFBFC),
-                                        Color(0xFFFFFFFF), // Clean white in the middle
-                                        Color(0xFFF9F2FB),
-                                        Color(0xFFF3E5F5)  // Gentle muted purple/blue at bottom
-                                    )
-                                )
-                            )
-                            drawCircle(
-                                color = Color(0x3300E5FF),
-                                radius = size.width * 0.55f,
-                                center = Offset(size.width * 0.05f, size.height * 0.12f)
-                            )
-                            drawCircle(
-                                color = Color(0x2400BCD4),
-                                radius = size.width * 0.5f,
-                                center = Offset(size.width * 0.88f, size.height * 0.38f)
-                            )
-                            drawCircle(
-                                color = Color(0x248B5CF6),
-                                radius = size.width * 0.6f,
-                                center = Offset(size.width * 0.95f, size.height * 0.82f)
-                            )
-                        }
-                    }
+                    // Ambient Liquid Dynamic Aurora Mesh Background (Smooth 60fps drifting orbs)
+                    DynamicAuroraBackground(isDark = isDarkMode)
 
                     Scaffold(
                         modifier = Modifier
@@ -452,7 +398,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                     .size(36.dp)
                                                     .liquidGlassInteractive(
                                                         shape = RoundedCornerShape(10.dp),
-                                                        glowColor = MaterialTheme.colorScheme.primary
+                                                        glowColor = MaterialTheme.colorScheme.primary,
+                                                        isDark = isDarkMode
                                                     ),
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -484,7 +431,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 modifier = Modifier
                                                     .liquidGlassInteractive(
                                                         shape = RoundedCornerShape(12.dp),
-                                                        glowColor = MaterialTheme.colorScheme.primary
+                                                        glowColor = MaterialTheme.colorScheme.primary,
+                                                        isDark = isDarkMode
                                                     )
                                             ) {
                                                 IconButton(
@@ -651,12 +599,14 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // Native Compose Liquid Glass Dashboard
+                // Native Compose Liquid Glass Dashboard (Adaptive responsive width for tablets)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
+                        .widthIn(max = 840.dp)
                         .testTag("personnel_lazy_column"),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -714,14 +664,14 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             Text(
                                                 AppStrings.get("search_placeholder", currentLang),
                                                 style = MaterialTheme.typography.bodyMedium,
-                                                color = Color(0xFF64748B)
+                                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
                                             )
                                         },
                                         leadingIcon = {
                                             Icon(
                                                 imageVector = Icons.Default.Search,
                                                 contentDescription = AppStrings.get("search_label", currentLang),
-                                                tint = Color(0xFF00BCD4)
+                                                tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
                                             )
                                         },
                                         trailingIcon = {
@@ -730,7 +680,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                     Icon(
                                                         imageVector = Icons.Default.Clear,
                                                         contentDescription = AppStrings.get("clear_search", currentLang),
-                                                        tint = Color(0xFF64748B)
+                                                        tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
                                                     )
                                                 }
                                             }
@@ -744,15 +694,15 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             }
                                         ),
                                         colors = OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = Color(0xFF0F172A),
-                                            unfocusedTextColor = Color(0xFF0F172A),
-                                            focusedContainerColor = if (isDarkMode) Color(0xFFF1F5F9) else Color(0xF5FFFFFF),
-                                            unfocusedContainerColor = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xD9FFFFFF),
-                                            unfocusedBorderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0x4000BCD4),
-                                            focusedBorderColor = Color(0xFF00BCD4),
-                                            focusedPlaceholderColor = Color(0xFF64748B),
-                                            unfocusedPlaceholderColor = Color(0xFF64748B),
-                                            cursorColor = Color(0xFF00BCD4)
+                                            focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                            unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                            focusedContainerColor = if (isDarkMode) Color(0x331E293B) else Color(0xF5FFFFFF),
+                                            unfocusedContainerColor = if (isDarkMode) Color(0x221E293B) else Color(0xD9FFFFFF),
+                                            unfocusedBorderColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x4000BCD4),
+                                            focusedBorderColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
+                                            focusedPlaceholderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                            unfocusedPlaceholderColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                            cursorColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
                                         ),
                                         singleLine = true,
                                         shape = RoundedCornerShape(14.dp)
@@ -762,7 +712,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                     Box(
                                         modifier = Modifier.liquidGlassInteractive(
                                             shape = RoundedCornerShape(14.dp),
-                                            glowColor = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary
+                                            glowColor = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
+                                            isDark = isDarkMode
                                         )
                                     ) {
                                         BadgedBox(
@@ -929,7 +880,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                     .fillMaxWidth()
                                     .liquidGlass(
                                         shape = LiquidGlassDefaults.CardShape,
-                                        elevation = 4.dp
+                                        elevation = 4.dp,
+                                        isDark = isDarkMode
                                     )
                                     .padding(32.dp),
                                 contentAlignment = Alignment.Center
@@ -938,19 +890,19 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                     Icon(
                                         imageVector = Icons.Default.FilterList,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                        tint = if (isDarkMode) Color(0xFF00E5FF).copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                         modifier = Modifier.size(48.dp)
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = "لا توجد نتائج مطابقة",
+                                        text = AppStrings.get("no_results", currentLang),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "جرب تغيير معايير البحث والفلترة أو إضافة فرد جديد.",
+                                        text = AppStrings.get("no_results_desc", currentLang),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

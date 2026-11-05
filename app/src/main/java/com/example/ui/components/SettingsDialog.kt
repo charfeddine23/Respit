@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,7 +72,6 @@ import androidx.compose.ui.window.Dialog
 import com.example.data.AppThemeMode
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
-import com.example.ui.theme.VibrantCyan
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import java.text.SimpleDateFormat
@@ -112,7 +113,7 @@ fun SettingsDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = if (isDarkMode) Color(0xFF1E293B) else Color(0xD9FFFFFF), // rgba(255, 255, 255, 0.85)
+            color = if (isDarkMode) Color(0xFF1E293B) else Color(0xF2FFFFFF), // rgba(255, 255, 255, 0.95)
             border = BorderStroke(
                 1.2.dp,
                 Brush.linearGradient(
@@ -126,7 +127,8 @@ fun SettingsDialog(
             shadowElevation = 10.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .widthIn(max = 560.dp) // Responsive tablet/large-screen cap
+                .padding(vertical = 12.dp)
                 .testTag("settings_dialog")
         ) {
             Column(
@@ -219,12 +221,12 @@ fun SettingsDialog(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val langItems = listOf(
-                                AppLanguage.ARABIC to "العربية (AR)",
-                                AppLanguage.FRENCH to "Français (FR)",
-                                AppLanguage.ENGLISH to "English (EN)"
+                                AppLanguage.ARABIC to "العربية",
+                                AppLanguage.FRENCH to "Français",
+                                AppLanguage.ENGLISH to "English"
                             )
                             langItems.forEach { (lang, label) ->
                                 val selected = currentLanguage == lang
@@ -233,7 +235,7 @@ fun SettingsDialog(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(44.dp),
-                                    shape = RoundedCornerShape(14.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     color = if (selected) {
                                         if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
                                     } else {
@@ -247,8 +249,8 @@ fun SettingsDialog(
                                     Box(contentAlignment = Alignment.Center) {
                                         Text(
                                             text = label,
-                                            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            fontSize = 12.sp,
+                                            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                            fontSize = 13.sp,
                                             color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
                                         )
                                     }
@@ -275,7 +277,6 @@ fun SettingsDialog(
                         .testTag("google_drive_backup_card")
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Title Row with Google Drive Sync Icon and Toggle Switch
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -360,23 +361,24 @@ fun SettingsDialog(
                             )
                         }
 
-                        // Action Buttons: Backup to Drive and Restore from Drive
+                        // Action Buttons: Backup to Drive & Restore from Drive (Well balanced)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // Backup Button (Primary Action)
+                            // Backup Button
                             Button(
                                 onClick = onBackupToDrive,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp)
+                                    .height(46.dp)
                                     .testTag("backup_to_drive_button"),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF4285F4),
                                     contentColor = Color.White
-                                )
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CloudUpload,
@@ -387,7 +389,7 @@ fun SettingsDialog(
                                 Text(
                                     text = AppStrings.get("drive_backup_btn", currentLanguage),
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    fontSize = 13.sp
                                 )
                             }
 
@@ -396,10 +398,11 @@ fun SettingsDialog(
                                 onClick = onRestoreFromDrive,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp)
+                                    .height(46.dp)
                                     .testTag("restore_from_drive_button"),
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.2.dp, Color(0xFF4285F4).copy(alpha = 0.7f))
+                                border = BorderStroke(1.2.dp, Color(0xFF4285F4).copy(alpha = 0.7f)),
+                                contentPadding = PaddingValues(horizontal = 12.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CloudDownload,
@@ -412,7 +415,7 @@ fun SettingsDialog(
                                     text = AppStrings.get("drive_restore_btn", currentLanguage),
                                     fontWeight = FontWeight.Bold,
                                     color = if (isDarkMode) Color(0xFF8AB4F8) else Color(0xFF1967D2),
-                                    fontSize = 12.sp
+                                    fontSize = 13.sp
                                 )
                             }
                         }
@@ -474,7 +477,7 @@ fun SettingsDialog(
                                     onClick = { onSelectThemeMode(mode) },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(42.dp),
+                                        .height(44.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     color = if (selected) {
                                         if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
@@ -493,7 +496,7 @@ fun SettingsDialog(
                                                 AppThemeMode.DARK -> AppStrings.get("theme_dark_btn", currentLanguage)
                                             },
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                            fontSize = 12.sp,
+                                            fontSize = 13.sp,
                                             color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
                                         )
                                     }
@@ -720,14 +723,14 @@ fun SettingsDialog(
                                 visualTransformation = PasswordVisualTransformation(),
                                 isError = pinError != null,
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color(0xFF0F172A),
-                                    unfocusedTextColor = Color(0xFF0F172A),
-                                    focusedContainerColor = if (isDarkMode) Color(0xFFF8FAFC) else Color(0xF7FFFFFF),
-                                    unfocusedContainerColor = if (isDarkMode) Color(0xFFF1F5F9) else Color(0xD9FFFFFF),
-                                    unfocusedBorderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0x3300BCD4),
+                                    focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                    unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                    focusedContainerColor = if (isDarkMode) Color(0xFF243044) else Color(0xF7FFFFFF),
+                                    unfocusedContainerColor = if (isDarkMode) Color(0xFF1E293B) else Color(0xD9FFFFFF),
+                                    unfocusedBorderColor = if (isDarkMode) Color(0xFF475569) else Color(0x3300BCD4),
                                     focusedBorderColor = Color(0xFF00BCD4),
                                     focusedLabelColor = Color(0xFF00BCD4),
-                                    unfocusedLabelColor = if (isDarkMode) Color(0xFF334155) else Color(0xFF64748B),
+                                    unfocusedLabelColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
                                     cursorColor = Color(0xFF00BCD4)
                                 ),
                                 modifier = Modifier.fillMaxWidth()
@@ -748,7 +751,9 @@ fun SettingsDialog(
                                             pinError = "PIN must be 4 digits"
                                         }
                                     },
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(46.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     border = BorderStroke(1.2.dp, Color(0x60CBD5E1))
                                 ) {
@@ -765,7 +770,9 @@ fun SettingsDialog(
                                         onLockNow()
                                         onDismiss()
                                     },
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(46.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFFEF4444),
@@ -927,7 +934,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Actions: Save & Cancel
+                // Actions: Save & Cancel (Well-proportioned 48dp height buttons with 14sp text)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -948,22 +955,37 @@ fun SettingsDialog(
                             Toast.makeText(context, AppStrings.get("save_changes", currentLanguage), Toast.LENGTH_SHORT).show()
                             onDismiss()
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF00BCD4),
                             contentColor = Color.White
-                        )
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                     ) {
-                        Text(AppStrings.get("save_changes", currentLanguage), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = AppStrings.get("save_changes", currentLanguage),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
                     }
 
                     OutlinedButton(
                         onClick = onDismiss,
+                        modifier = Modifier
+                            .height(48.dp),
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, Color(0x3364748B))
+                        border = BorderStroke(1.dp, Color(0x3364748B)),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
                     ) {
-                        Text(AppStrings.get("cancel", currentLanguage), color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = AppStrings.get("cancel", currentLanguage),
+                            color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF64748B),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
                     }
                 }
             }
