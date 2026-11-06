@@ -42,8 +42,55 @@ object LiquidGlassDefaults {
 @Composable
 fun DynamicAuroraBackground(
     isDark: Boolean = false,
+    isNeumorphic: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    if (isNeumorphic) {
+        // Soft Minimalist Tactile Neumorphism Canvas
+        Canvas(modifier = modifier.fillMaxSize()) {
+            if (isDark) {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF0F172A),
+                            Color(0xFF131D31),
+                            Color(0xFF1E293B)
+                        )
+                    )
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0x1838BDF8), Color.Transparent),
+                        center = Offset(0f, 0f),
+                        radius = size.width * 0.7f
+                    ),
+                    center = Offset(0f, 0f),
+                    radius = size.width * 0.7f
+                )
+            } else {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color(0xFFF1F5F9),
+                            Color(0xFFE2E8F0),
+                            Color(0xFFE6EDF5)
+                        )
+                    )
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0x40FFFFFF), Color.Transparent),
+                        center = Offset(0f, 0f),
+                        radius = size.width * 0.8f
+                    ),
+                    center = Offset(0f, 0f),
+                    radius = size.width * 0.8f
+                )
+            }
+        }
+        return
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "auroraTransition")
 
     val t1 by infiniteTransition.animateFloat(
@@ -234,8 +281,42 @@ fun Modifier.liquidGlass(
     shape: Shape = LiquidGlassDefaults.CardShape,
     elevation: Dp = 4.dp,
     borderAlpha: Float = 0.85f,
-    isDark: Boolean = false
+    isDark: Boolean = false,
+    isNeumorphic: Boolean = false
 ): Modifier {
+    if (isNeumorphic) {
+        val surfaceColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+        val borderBrush = Brush.linearGradient(
+            if (isDark) {
+                listOf(
+                    Color(0x4038BDF8),
+                    Color(0x1500E5FF),
+                    Color(0x400B1120)
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.95f),
+                    Color(0x2200BCD4),
+                    Color(0x3394A3B8)
+                )
+            }
+        )
+        val shadowAmbient = if (isDark) Color(0x66000000) else Color(0x2E64748B)
+        val shadowSpot = if (isDark) Color(0x3300E5FF) else Color(0x1A0F172A)
+
+        return this
+            .shadow(
+                elevation = elevation + 2.dp,
+                shape = shape,
+                clip = false,
+                ambientColor = shadowAmbient,
+                spotColor = shadowSpot
+            )
+            .clip(shape)
+            .background(surfaceColor)
+            .border(BorderStroke(1.4.dp, borderBrush), shape)
+    }
+
     val bgBrush = if (isDark) {
         Brush.verticalGradient(
             listOf(
@@ -292,31 +373,57 @@ fun Modifier.liquidGlass(
 fun Modifier.glassCard(
     shape: Shape = LiquidGlassDefaults.CardShape,
     elevation: Dp = 4.dp,
-    isDark: Boolean = false
+    isDark: Boolean = false,
+    isNeumorphic: Boolean = false
 ): Modifier = this.liquidGlass(
     shape = shape,
     elevation = elevation,
     borderAlpha = 0.85f,
-    isDark = isDark
+    isDark = isDark,
+    isNeumorphic = isNeumorphic
 )
 
 @Composable
 fun Modifier.liquidGlassPill(
     isDark: Boolean = false,
-    elevation: Dp = 2.dp
+    elevation: Dp = 2.dp,
+    isNeumorphic: Boolean = false
 ): Modifier = this.liquidGlass(
     shape = LiquidGlassDefaults.PillShape,
     elevation = elevation,
     borderAlpha = 0.85f,
-    isDark = isDark
+    isDark = isDark,
+    isNeumorphic = isNeumorphic
 )
 
 @Composable
 fun Modifier.liquidGlassInteractive(
     shape: Shape = LiquidGlassDefaults.SmallShape,
     isDark: Boolean = false,
-    glowColor: Color = VibrantCyan
+    glowColor: Color = VibrantCyan,
+    isNeumorphic: Boolean = false
 ): Modifier {
+    if (isNeumorphic) {
+        val surfaceColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+        val borderBrush = Brush.linearGradient(
+            if (isDark) {
+                listOf(Color(0x6638BDF8), Color(0x2200E5FF), Color(0x660B1120))
+            } else {
+                listOf(Color.White, Color(0x3300BCD4), Color(0x3394A3B8))
+            }
+        )
+        return this
+            .shadow(
+                elevation = 3.dp,
+                shape = shape,
+                ambientColor = if (isDark) Color(0x66000000) else Color(0x2464748B),
+                spotColor = if (isDark) Color(0x2600E5FF) else Color(0x1A00BCD4)
+            )
+            .clip(shape)
+            .background(surfaceColor)
+            .border(BorderStroke(1.2.dp, borderBrush), shape)
+    }
+
     val bg = if (isDark) Color(0xEE1E293B) else Color(0xEBFFFFFF)
     val borderBrush = Brush.linearGradient(
         listOf(

@@ -259,7 +259,7 @@ fun SideNavigationDrawerContent(
             icon = Icons.Default.NotificationsActive,
             iconTint = Color(0xFF0284C7),
             title = AppStrings.get("check_notifications", currentLang),
-            subtitle = "تنبيهات الإجازات واقتراب العودة",
+            subtitle = AppStrings.get("drawer_notif_sub", currentLang),
             isDarkMode = isDarkMode,
             onClick = onCheckNotifications,
             testTag = "drawer_notifications_item"
@@ -272,7 +272,7 @@ fun SideNavigationDrawerContent(
             icon = Icons.Default.PictureAsPdf,
             iconTint = Color(0xFFDC2626),
             title = AppStrings.get("export_pdf", currentLang),
-            subtitle = "مستند رسمي مفصل وجاهز للطباعة",
+            subtitle = AppStrings.get("drawer_pdf_sub", currentLang),
             isDarkMode = isDarkMode,
             onClick = onExportPdf,
             testTag = "drawer_pdf_item"
@@ -285,7 +285,7 @@ fun SideNavigationDrawerContent(
             icon = Icons.Default.Share,
             iconTint = Color(0xFF7C3AED),
             title = AppStrings.get("export_data", currentLang),
-            subtitle = "تصدير واستيراد بصيغة JSON",
+            subtitle = AppStrings.get("drawer_data_sub", currentLang),
             isDarkMode = isDarkMode,
             onClick = onOpenBackup,
             testTag = "drawer_backup_item"
@@ -342,7 +342,7 @@ fun SideNavigationDrawerContent(
                             color = if (isDarkMode) Color.White else Color(0xFF0F172A)
                         )
                         Text(
-                            text = if (isDarkMode) "المظهر الداكن مفعل" else "المظهر الفاتح مفعل",
+                            text = if (isDarkMode) AppStrings.get("drawer_dark_active", currentLang) else AppStrings.get("drawer_light_active", currentLang),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF64748B),
                             fontSize = 11.sp
@@ -368,7 +368,7 @@ fun SideNavigationDrawerContent(
             icon = Icons.Default.Settings,
             iconTint = Color(0xFF059669),
             title = AppStrings.get("settings", currentLang),
-            subtitle = "عتبة الاستحقاق وتأمين رمز PIN",
+            subtitle = AppStrings.get("drawer_settings_sub", currentLang),
             isDarkMode = isDarkMode,
             onClick = onOpenSettings,
             testTag = "drawer_settings_item"
@@ -381,7 +381,7 @@ fun SideNavigationDrawerContent(
             icon = Icons.Default.Info,
             iconTint = Color(0xFF0284C7),
             title = AppStrings.get("developer_info", currentLang),
-            subtitle = "حول التطبيق والمطور",
+            subtitle = AppStrings.get("drawer_developer_sub", currentLang),
             isDarkMode = isDarkMode,
             onClick = onOpenDeveloper,
             testTag = "drawer_developer_item"
@@ -393,8 +393,8 @@ fun SideNavigationDrawerContent(
         DrawerNavigationItem(
             icon = Icons.Default.Refresh,
             iconTint = Color(0xFF94A3B8),
-            title = "استعادة البيانات النموذجية",
-            subtitle = "تهيئة بيانات أولية تجريبية",
+            title = AppStrings.get("drawer_reset_title", currentLang),
+            subtitle = AppStrings.get("drawer_reset_sub", currentLang),
             isDarkMode = isDarkMode,
             onClick = onResetSampleData,
             testTag = "drawer_reset_item"
@@ -408,7 +408,7 @@ fun SideNavigationDrawerContent(
 
         // Quick Stats Overview in Sidebar
         Text(
-            text = "إحصائيات سريعة للوحدة",
+            text = AppStrings.get("drawer_quick_stats", currentLang),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF64748B)
@@ -420,10 +420,10 @@ fun SideNavigationDrawerContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            SidebarStatBadge("العدد الكلي", "${stats.total}", MaterialTheme.colorScheme.primary, isDarkMode, Modifier.weight(1f))
-            SidebarStatBadge("في إجازة", "${stats.atHome}", Color(0xFF0284C7), isDarkMode, Modifier.weight(1f))
-            SidebarStatBadge("الدخول اليوم", "${stats.returningToday}", Color(0xFFD97706), isDarkMode, Modifier.weight(1f))
-            SidebarStatBadge("متأخر", "${stats.overdue}", Color(0xFFDC2626), isDarkMode, Modifier.weight(1f))
+            SidebarStatBadge(AppStrings.get("stat_total", currentLang), "${stats.total}", MaterialTheme.colorScheme.primary, isDarkMode, Modifier.weight(1f))
+            SidebarStatBadge(AppStrings.get("stat_on_leave", currentLang), "${stats.atHome}", Color(0xFF0284C7), isDarkMode, Modifier.weight(1f))
+            SidebarStatBadge(AppStrings.get("stat_returning_today", currentLang), "${stats.returningToday}", Color(0xFFD97706), isDarkMode, Modifier.weight(1f))
+            SidebarStatBadge(AppStrings.get("stat_overdue", currentLang), "${stats.overdue}", Color(0xFFDC2626), isDarkMode, Modifier.weight(1f))
         }
 
         Spacer(modifier = Modifier.height(16.dp))

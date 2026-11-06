@@ -51,12 +51,12 @@ jobs:
           if [ -z "$VERSION_NAME" ]; then
             BASE_MAJOR=1
             BASE_MINOR=42
-            BASE_PATCH=3
+            BASE_PATCH=4
             VERSION_NAME="$BASE_MAJOR.$BASE_MINOR.$((BASE_PATCH + GITHUB_RUN_NUMBER))"
           fi
 
           if [ -z "$VERSION_CODE" ]; then
-            VERSION_CODE=$((143 + GITHUB_RUN_NUMBER))
+            VERSION_CODE=$((144 + GITHUB_RUN_NUMBER))
           fi
 
           APP_ID="com.aistudio.leavetracker.kpqvbn"
@@ -84,8 +84,17 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_FILE"
             echo "store_pass=$STORE_PASSWORD" >> "$GITHUB_OUTPUT"
             echo "key_pass=$KEY_PASSWORD" >> "$GITHUB_OUTPUT"
+          elif [ -f "my-upload-key.jks.base64" ]; then
+            echo "Restoring permanent repository release signing keystore..."
+            base64 -d my-upload-key.jks.base64 > "$KEYSTORE_FILE"
+            echo "store_pass=android" >> "$GITHUB_OUTPUT"
+            echo "key_pass=android" >> "$GITHUB_OUTPUT"
+          elif [ -f "my-upload-key.jks" ]; then
+            echo "Using existing repository release signing keystore..."
+            echo "store_pass=android" >> "$GITHUB_OUTPUT"
+            echo "key_pass=android" >> "$GITHUB_OUTPUT"
           elif [ -f "debug.keystore.base64" ]; then
-            echo "Using repository keystore for seamless update compatibility..."
+            echo "Using repository debug keystore for update compatibility..."
             base64 -d debug.keystore.base64 > "$KEYSTORE_FILE"
             keytool -changealias -keystore "$KEYSTORE_FILE" -storepass android -alias androiddebugkey -destalias upload 2>/dev/null || true
             echo "store_pass=android" >> "$GITHUB_OUTPUT"
@@ -95,7 +104,7 @@ jobs:
             keytool -genkey -v -keystore "$KEYSTORE_FILE" \
               -storepass android -alias upload -keypass android \
               -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Android Release,O=AI Studio,C=US"
+              -dname "CN=Respite Pulse,O=AI Studio,C=US"
             echo "store_pass=android" >> "$GITHUB_OUTPUT"
             echo "key_pass=android" >> "$GITHUB_OUTPUT"
           fi
@@ -131,16 +140,17 @@ jobs:
             exit 1
           fi
 
-          cp "$APK_PATH" release-apk/MyApp-Release.apk
-          cp "$APK_PATH" release-apk/RespitePulse-Release.apk
-          echo "Release APKs prepared at release-apk/"
+          VER="${{ steps.version_info.outputs.version_name }}"
+          cp "$APK_PATH" "release-apk/RespitePulse-v${VER}.apk"
+          cp "$APK_PATH" "release-apk/RespitePulse-Release.apk"
+          echo "Release APKs prepared at release-apk/:"
           ls -lh release-apk/
 
       - name: Upload Release APK as Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-Release-v${{ steps.version_info.outputs.version_name }}
-          path: release-apk/MyApp-Release.apk
+          name: RespitePulse-v${{ steps.version_info.outputs.version_name }}
+          path: release-apk/RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk
           retention-days: 30
 
       - name: Clean up Older Releases and Tags (Keep Only Latest)
@@ -169,39 +179,38 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version_info.outputs.tag_name }}
-          name: "Respite Pulse - الإصدار v${{ steps.version_info.outputs.version_name }} (Build ${{ steps.version_info.outputs.version_code }})"
+          name: "Respite Pulse v${{ steps.version_info.outputs.version_name }}"
           draft: false
           prerelease: false
           make_latest: true
           files: |
-            release-apk/MyApp-Release.apk
+            release-apk/RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk
             release-apk/RespitePulse-Release.apk
           body: |
-            ## 📱 تطبيق Respite Pulse - نظام تسيير إجازات وعطل الأفراد
+            ## 📱 تطبيق Respite Pulse v${{ steps.version_info.outputs.version_name }}
 
             ### 📋 معلومات الإصدار وحزمة التطبيق (Build & Release Info):
-            - **اسم ملف التثبيت المباشر:** `RespitePulse-Release.apk` / `MyApp-Release.apk`
+            - **اسم ملف التثبيت المباشر:** `RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk`
             - **رقم الإصدار (Version Name):** `${{ steps.version_info.outputs.version_name }}`
             - **كود الإصدار (Version Code):** `${{ steps.version_info.outputs.version_code }}`
             - **معرّف الحزمة (Application ID):** `${{ steps.version_info.outputs.application_id }}`
-            - **رقم عملية البناء (Run Number):** `${{ github.run_number }}`
-            - **نوع الحزمة:** نسخة إطلاق رسمية موقعة (Signed Release APK)
-            - **تاريخ ووقت البناء:** ${{ github.event.head_commit.timestamp || 'Latest' }}
-            - **الالتزام (Git Commit SHA):** `${{ github.sha }}`
+            - **نوع الحزمة:** نسخة إطلاق رسمية موقعة بمفتاح دائم موحد (Compatible In-Place Updates)
+            - **التاريخ:** ${{ github.event.head_commit.timestamp || 'Latest' }}
 
             ---
 
-            ### 📥 رابط التحميل المباشر لملف الـ APK بنقرة واحدة:
-            - **[تحميل RespitePulse-Release.apk مباشرة](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/RespitePulse-Release.apk)**
-            - **[تحميل MyApp-Release.apk مباشرة](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/MyApp-Release.apk)**
+            ### 📥 رابط التحميل المباشر لملف الـ APK:
+            - **[تحميل RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk)**
+            - **[تحميل RespitePulse-Release.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/RespitePulse-Release.apk)**
 
             ---
 
             ### 🚀 أبرز ميزات وتحسينات هذا الإصدار:
-            - 🔄 **إصدار ديناميكي تصاعدي آلياً**: زيادة رقم الإصدار `versionCode` و `versionName` تلقائياً مع كل عملية بناء لتثبيت التحديث مباشرة فوق النسخ السابقة.
-            - 🧹 **تنظيف تلقائي شامل للمستودع**: حذف جميع الإصدارات والوسوم السابقة تلقائياً للاحتفاظ بأحدث إصدار فقط بدون تراكم.
-            - 🎨 **أيقونة التطبيق الجديدة (Adaptive Icon)**: تقويم ونبض وورقة بنسبة ملء 70% وخلفية شفافة تتكيف بسلاسة مع واجهة One UI وثيمات Material You.
-            - 📅 **صيغة التواريخ الموحدة**: عرض كافة التواريخ بصيغة السنة-الشهر-اليوم (`yyyy-MM-dd`).
-            - 🛡️ **تثبيت التحديث مباشرة (In-Place Update)**: توحيد مفتاح التوقيع وتحديث أذونات التثبيت لتجنب أي تعارض في الحزم.
+            - 🔄 **تثبيت التحديث مباشرة فوق النسخ السابقة**: توحيد مفتاح التوقيع الرقمي لمنع أي تعارض في الشهادات.
+            - 🧹 **حذف الإصدارات والوسوم السابقة تلقائياً**: إبقاء أحدث نسخة فقط على المستودع.
+            - 🏷️ **تسمية التطبيق متبوعة برقم الإصدار**: `RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk`.
+            - 🛡️ **قفل الحماية المتعدد**: دعم القفل بالرمز (PIN) ورسم النمط (Pattern) وبصمة الإصبع (Biometric).
+            - 🎨 **ثيم النيومورفيزم (Neumorphism)**: إضافة نمط التصميم البارز والمجسم بجانب الزجاج الشفاف.
+            - 🌐 **تعريب وترجمة شاملة لكافة عناصر التطبيق**.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

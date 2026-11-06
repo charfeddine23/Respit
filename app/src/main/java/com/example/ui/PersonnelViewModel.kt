@@ -7,11 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.AppDatabase
 import com.example.data.AppNotification
 import com.example.data.AppThemeMode
+import com.example.data.AppThemeStyle
 import com.example.data.LeaveStatus
 import com.example.data.Personnel
 import com.example.data.PersonnelRepository
 import com.example.data.SettingsManager
 import com.example.util.AppLanguage
+import com.example.util.AppStrings
 import com.example.util.LeaveNotificationHelper
 import com.example.util.PdfExporter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +34,15 @@ enum class SortOption(val titleAr: String) {
     OVERDUE_FIRST("المتأخرون أولاً"),
     START_DESC("الأحدث استفادة"),
     NAME_ASC("الاسم (أ - ي)"),
-    REG_ASC("رقم التسجيل")
+    REG_ASC("رقم التسجيل");
+
+    fun getTitle(lang: AppLanguage): String = when (this) {
+        RETURN_SOON -> AppStrings.get("sort_return_soon", lang)
+        OVERDUE_FIRST -> AppStrings.get("sort_overdue_first", lang)
+        START_DESC -> AppStrings.get("sort_start_desc", lang)
+        NAME_ASC -> AppStrings.get("sort_name_asc", lang)
+        REG_ASC -> AppStrings.get("sort_reg_asc", lang)
+    }
 }
 
 data class DashboardStats(
@@ -65,11 +75,21 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     // User preferences & settings state
     val currentThemeMode = MutableStateFlow(settingsManager.themeMode)
+    val currentThemeStyle = MutableStateFlow(settingsManager.themeStyle)
     val isDarkMode = MutableStateFlow(settingsManager.isDarkMode)
     val dutyThresholdDays = MutableStateFlow(settingsManager.dutyThresholdDays)
     val isPinEnabled = MutableStateFlow(settingsManager.isPinEnabled)
     val pinCode = MutableStateFlow(settingsManager.pinCode)
-    val isLocked = MutableStateFlow(settingsManager.isPinEnabled && settingsManager.pinCode.length == 4)
+    val securityLockType = MutableStateFlow(settingsManager.securityLockType)
+    val patternCode = MutableStateFlow(settingsManager.patternCode)
+    val isBiometricEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
+    val isLocked = MutableStateFlow(
+        settingsManager.isPinEnabled && (
+            (settingsManager.securityLockType == "PIN" && settingsManager.pinCode.length == 4) ||
+            (settingsManager.securityLockType == "PATTERN" && settingsManager.patternCode.isNotBlank()) ||
+            (settingsManager.securityLockType == "BIOMETRIC")
+        )
+    )
     val currentLanguage = MutableStateFlow(AppLanguage.fromCode(settingsManager.language))
     val isFocusMode = MutableStateFlow(settingsManager.isFocusMode)
 
@@ -518,6 +538,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         dismissedNotificationIds.value = emptySet()
     }
 
+    fun setThemeStyle(style: AppThemeStyle) {
+        settingsManager.themeStyle = style
+        currentThemeStyle.value = style
+    }
+
     fun setDutyThreshold(days: Int) {
         val safeDays = days.coerceIn(5, 365)
         dutyThresholdDays.value = safeDays
@@ -529,6 +554,30 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         settingsManager.isPinEnabled = enabled
         pinCode.value = newPin
         isPinEnabled.value = enabled
+        if (!enabled) {
+            isLocked.value = false
+        }
+    }
+
+    fun setSecuritySettings(
+        enabled: Boolean,
+        lockType: String,
+        pin: String,
+        pattern: String,
+        biometric: Boolean
+    ) {
+        settingsManager.isPinEnabled = enabled
+        settingsManager.securityLockType = lockType
+        settingsManager.pinCode = pin
+        settingsManager.patternCode = pattern
+        settingsManager.isBiometricEnabled = biometric
+
+        isPinEnabled.value = enabled
+        securityLockType.value = lockType
+        pinCode.value = pin
+        patternCode.value = pattern
+        isBiometricEnabled.value = biometric
+
         if (!enabled) {
             isLocked.value = false
         }
@@ -547,8 +596,25 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         return false
     }
 
+    fun verifyPattern(enteredPattern: String): Boolean {
+        if (!isPinEnabled.value) {
+            isLocked.value = false
+            return true
+        }
+        if (enteredPattern == settingsManager.patternCode) {
+            isLocked.value = false
+            return true
+        }
+        return false
+    }
+
+    fun unlockWithBiometric(): Boolean {
+        isLocked.value = false
+        return true
+    }
+
     fun lockApp() {
-        if (isPinEnabled.value && settingsManager.pinCode.length == 4) {
+        if (isPinEnabled.value) {
             isLocked.value = true
         }
     }

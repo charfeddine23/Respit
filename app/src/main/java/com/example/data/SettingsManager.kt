@@ -14,16 +14,31 @@ enum class AppThemeMode(val code: String, val titleAr: String) {
     }
 }
 
+enum class AppThemeStyle(val code: String, val titleAr: String) {
+    GLASSMORPHISM("glassmorphism", "الزجاج الشفاف (Glassmorphism)"),
+    NEUMORPHISM("neumorphism", "النيومورفيزم (Neumorphism)");
+
+    companion object {
+        fun fromCode(code: String): AppThemeStyle {
+            return entries.find { it.code == code } ?: GLASSMORPHISM
+        }
+    }
+}
+
 class SettingsManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
 
     companion object {
         private const val KEY_THEME_MODE = "pref_theme_mode"
+        private const val KEY_THEME_STYLE = "pref_theme_style"
         private const val KEY_DARK_MODE = "pref_dark_mode"
         private const val KEY_DUTY_THRESHOLD = "pref_duty_threshold_days"
         private const val KEY_PIN_ENABLED = "pref_pin_enabled"
         private const val KEY_PIN_CODE = "pref_pin_code"
+        private const val KEY_SECURITY_LOCK_TYPE = "pref_security_lock_type"
+        private const val KEY_PATTERN_CODE = "pref_pattern_code"
+        private const val KEY_BIOMETRIC_ENABLED = "pref_biometric_enabled"
         private const val KEY_LANGUAGE = "pref_language"
         private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
         private const val KEY_DISMISSED_NOTIFICATIONS = "pref_dismissed_notifications"
@@ -64,6 +79,15 @@ class SettingsManager(context: Context) {
         get() = prefs.getInt(KEY_DUTY_THRESHOLD, DEFAULT_DUTY_THRESHOLD)
         set(value) = prefs.edit().putInt(KEY_DUTY_THRESHOLD, value).apply()
 
+    var themeStyle: AppThemeStyle
+        get() {
+            val code = prefs.getString(KEY_THEME_STYLE, null)
+            return if (code != null) AppThemeStyle.fromCode(code) else AppThemeStyle.GLASSMORPHISM
+        }
+        set(value) {
+            prefs.edit().putString(KEY_THEME_STYLE, value.code).apply()
+        }
+
     var isPinEnabled: Boolean
         get() = prefs.getBoolean(KEY_PIN_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_PIN_ENABLED, value).apply()
@@ -71,6 +95,18 @@ class SettingsManager(context: Context) {
     var pinCode: String
         get() = prefs.getString(KEY_PIN_CODE, "") ?: ""
         set(value) = prefs.edit().putString(KEY_PIN_CODE, value).apply()
+
+    var securityLockType: String
+        get() = prefs.getString(KEY_SECURITY_LOCK_TYPE, "PIN") ?: "PIN"
+        set(value) = prefs.edit().putString(KEY_SECURITY_LOCK_TYPE, value).apply()
+
+    var patternCode: String
+        get() = prefs.getString(KEY_PATTERN_CODE, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_PATTERN_CODE, value).apply()
+
+    var isBiometricEnabled: Boolean
+        get() = prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_BIOMETRIC_ENABLED, value).apply()
 
     var language: String
         get() = prefs.getString(KEY_LANGUAGE, "ar") ?: "ar"

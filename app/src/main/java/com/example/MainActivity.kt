@@ -173,6 +173,10 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val context = LocalContext.current
     val isLocked by viewModel.isLocked.collectAsState()
     val currentThemeMode by viewModel.currentThemeMode.collectAsState()
+    val currentThemeStyle by viewModel.currentThemeStyle.collectAsState()
+    val securityLockType by viewModel.securityLockType.collectAsState()
+    val patternCode by viewModel.patternCode.collectAsState()
+    val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val isFocusMode by viewModel.isFocusMode.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
@@ -266,16 +270,31 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         }
     }
 
-    // If locked with PIN, present full screen PIN Lock Screen
+    // If locked with PIN/Pattern/Biometric, present full screen Security Lock Screen
     if (isLocked) {
         PinLockScreen(
             onVerifyPin = { enteredPin ->
                 val ok = viewModel.verifyPin(enteredPin)
                 if (ok) {
-                    Toast.makeText(context, "تم إلغاء القفل بنجاح", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
                 }
                 ok
-            }
+            },
+            onVerifyPattern = { pattern ->
+                val ok = viewModel.verifyPattern(pattern)
+                if (ok) {
+                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
+                }
+                ok
+            },
+            onBiometricUnlock = {
+                viewModel.unlockWithBiometric()
+                Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
+            },
+            lockType = securityLockType,
+            isBiometricAvailable = isBiometricEnabled,
+            isDarkMode = isDarkMode,
+            currentLang = currentLang
         )
         return
     }
@@ -358,7 +377,10 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     // Ambient Liquid Dynamic Aurora Mesh Background (Smooth 60fps drifting orbs)
-                    DynamicAuroraBackground(isDark = isDarkMode)
+                    DynamicAuroraBackground(
+                        isDark = isDarkMode,
+                        isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
+                    )
 
                     Scaffold(
                         modifier = Modifier
@@ -368,7 +390,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                         topBar = {
                             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                                 Surface(
-                                    color = if (isDarkMode) Color(0xFC0F172A) else Color.Transparent,
+                                    color = Color.Transparent,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .statusBarsPadding()
@@ -387,8 +409,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 .clip(RoundedCornerShape(12.dp))
                                                 .clickable {
                                                     viewModel.toggleTheme()
-                                                    val modeName = if (!isDarkMode) "الليلي" else "النهاري"
-                                                    Toast.makeText(context, "تم التبديل إلى الوضع ", Toast.LENGTH_SHORT).show()
+                                                    val modeName = if (!isDarkMode) AppStrings.get("theme_dark", currentLang) else AppStrings.get("theme_light", currentLang)
+                                                    Toast.makeText(context, "${AppStrings.get("theme_title", currentLang)}: $modeName", Toast.LENGTH_SHORT).show()
                                                 }
                                                 .padding(vertical = 4.dp, horizontal = 2.dp)
                                                 .testTag("app_title_row")
@@ -760,12 +782,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.History,
-                                            contentDescription = "عمليات البحث الأخيرة",
+                                            contentDescription = AppStrings.get("recent_searches_title", currentLang),
                                             tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Text(
-                                            text = "عمليات البحث الأخيرة:",
+                                            text = AppStrings.get("recent_searches_title", currentLang),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF64748B),
@@ -811,7 +833,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                     ) {
                                                         Icon(
                                                             imageVector = Icons.Default.Close,
-                                                            contentDescription = "حذف",
+                                                            contentDescription = AppStrings.get("delete", currentLang),
                                                             tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
                                                             modifier = Modifier.size(11.dp)
                                                         )
@@ -827,7 +849,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             contentPadding = PaddingValues(horizontal = 6.dp)
                                         ) {
                                             Text(
-                                                text = "مسح",
+                                                text = AppStrings.get("clear_btn", currentLang),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = if (isDarkMode) Color(0xFFF87171) else Color(0xFFEF4444),
                                                 fontSize = 10.sp,
@@ -850,7 +872,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "سجلات الأفراد (${personnelList.size} من ${allPersonnelList.size})",
+                                text = "${AppStrings.get("total_personnel", currentLang)} (${personnelList.size} / ${allPersonnelList.size})",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -858,12 +880,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "عتبة الاستحقاق: $dutyThreshold يوم  |  ",
+                                    text = "${AppStrings.get("duty_threshold_label", currentLang)}: $dutyThreshold ${AppStrings.get("days", currentLang)}  |  ",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = currentSort.titleAr,
+                                    text = currentSort.getTitle(currentLang),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold
@@ -921,7 +943,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                     viewModel.confirmReturnToDuty(person.id)
                                     Toast.makeText(
                                         context,
-                                        "تم تأكيد استئناف عمل ${person.rank} / ${person.fullName} بنجاح",
+                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 },
@@ -997,7 +1019,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                     onClick = {
                         viewModel.deletePersonnel(target)
                         personnelToDelete = null
-                        Toast.makeText(context, "تم حذف السجل بنجاح", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.get("delete_success", currentLang), Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text(AppStrings.get("delete", currentLang), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
@@ -1048,6 +1070,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             isDarkMode = isDarkMode,
             currentThemeMode = currentThemeMode,
             onSelectThemeMode = { viewModel.setThemeMode(it) },
+            currentThemeStyle = currentThemeStyle,
+            onSelectThemeStyle = { viewModel.setThemeStyle(it) },
             onToggleTheme = { viewModel.toggleTheme() },
             isFocusMode = isFocusMode,
             onToggleFocusMode = { viewModel.toggleFocusMode() },
@@ -1056,6 +1080,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             isPinEnabled = isPinEnabled,
             currentPin = currentPin,
             onSavePin = { pin, enabled -> viewModel.setPinCode(pin, enabled) },
+            securityLockType = securityLockType,
+            currentPattern = patternCode,
+            isBiometricEnabled = isBiometricEnabled,
+            onSaveSecurity = { type, pin, pattern, bio, enabled ->
+                viewModel.setSecuritySettings(enabled, type, pin, pattern, bio)
+            },
             onLockNow = { viewModel.lockApp() },
             currentLanguage = currentLang,
             onSelectLanguage = { viewModel.setLanguage(it) },
@@ -1092,25 +1122,25 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         AlertDialog(
             onDismissRequest = { showResetConfirmDialog = false },
             title = {
-                Text("استعادة بيانات افتراضية", fontWeight = FontWeight.Bold)
+                Text(AppStrings.get("reset_sample_dialog_title", currentLang), fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("هل تريد استعادة بيانات النماذج الأولية للإجازات؟ سيتم مسح التعديلات واستعادة أمثلة الأفراد.")
+                Text(AppStrings.get("reset_sample_dialog_desc", currentLang))
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         viewModel.resetToSampleData()
                         showResetConfirmDialog = false
-                        Toast.makeText(context, "تمت استعادة البيانات الافتراضية بنجاح", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.get("reset_sample_success", currentLang), Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Text("استعادة", fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get("drawer_reset_title", currentLang), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetConfirmDialog = false }) {
-                    Text("إلغاء")
+                    Text(AppStrings.get("cancel", currentLang))
                 }
             }
         )

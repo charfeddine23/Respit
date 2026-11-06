@@ -291,64 +291,6 @@ fun StatisticsSection(
                         )
                     }
                 }
-
-                // Interactive Quick Filter Chips Row (All, On Leave, Returning Today, Overdue, On Duty, Eligible)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val filterChips = listOf(
-                        "ALL" to AppStrings.get("status_all", currentLang),
-                        "AT_HOME" to AppStrings.get("status_at_home", currentLang),
-                        "RETURNING_TODAY" to AppStrings.get("status_returning_today", currentLang),
-                        "OVERDUE" to AppStrings.get("status_overdue", currentLang),
-                        "ON_DUTY" to AppStrings.get("status_on_duty", currentLang),
-                        "ELIGIBLE" to AppStrings.get("status_eligible", currentLang)
-                    )
-
-                    filterChips.forEach { (statusKey, label) ->
-                        val isSelected = selectedStatus == statusKey
-                        val chipBg by animateColorAsState(
-                            targetValue = if (isSelected) {
-                                if (isDarkMode) Color(0xFF00BCD4) else Color(0xFF00BCD4)
-                            } else {
-                                if (isDarkMode) Color(0x261E293B) else Color(0x66FFFFFF)
-                            },
-                            label = "chipBg"
-                        )
-                        val chipText by animateColorAsState(
-                            targetValue = if (isSelected) Color.White
-                            else if (isDarkMode) Color(0xFFE2E8F0)
-                            else Color(0xFF0F172A),
-                            label = "chipText"
-                        )
-
-                        Surface(
-                            onClick = { onSelectStatus(statusKey) },
-                            shape = RoundedCornerShape(12.dp),
-                            color = chipBg,
-                            border = BorderStroke(
-                                width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) Color(0xFF00E5FF) else (if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1))
-                            ),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            ) {
-                                Text(
-                                    text = label,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                    color = chipText
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
     }

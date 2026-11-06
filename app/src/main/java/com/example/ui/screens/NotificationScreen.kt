@@ -144,7 +144,7 @@ fun NotificationScreen(
                 containerColor = Color.Transparent,
                 topBar = {
                     Surface(
-                        color = if (isDarkMode) Color(0xFC0F172A) else Color.Transparent,
+                        color = Color.Transparent,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TopAppBar(
@@ -206,7 +206,7 @@ fun NotificationScreen(
                                         }
                                     }
                                     Text(
-                                        text = "متابعة الإجازات، الدخول اليوم، والتأخر",
+                                        text = AppStrings.get("notifications_subtitle", currentLang),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontSize = 11.sp,
                                         color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569)
@@ -238,7 +238,7 @@ fun NotificationScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Refresh,
-                                            contentDescription = "تحديث",
+                                            contentDescription = AppStrings.get("refresh", currentLang),
                                             tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -298,14 +298,14 @@ fun NotificationScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         NotificationFilterChip(
-                            label = "الكل (${notifications.size})",
+                            label = "${AppStrings.get("all_count", currentLang)} (${notifications.size})",
                             isSelected = selectedFilter == "ALL",
                             onClick = { selectedFilter = "ALL" },
                             isDark = isDarkMode
                         )
                         if (pinnedCount > 0) {
                             NotificationFilterChip(
-                                label = "📌 المثبتة ($pinnedCount)",
+                                label = "${AppStrings.get("filter_pinned", currentLang)} ($pinnedCount)",
                                 isSelected = selectedFilter == "PINNED",
                                 onClick = { selectedFilter = "PINNED" },
                                 isDark = isDarkMode,
@@ -313,28 +313,28 @@ fun NotificationScreen(
                             )
                         }
                         NotificationFilterChip(
-                            label = "🔔 الدخول اليوم",
+                            label = AppStrings.get("filter_returning_today", currentLang),
                             isSelected = selectedFilter == "RETURNING_TODAY",
                             onClick = { selectedFilter = "RETURNING_TODAY" },
                             isDark = isDarkMode,
                             accentColor = Color(0xFF00BCD4)
                         )
                         NotificationFilterChip(
-                            label = "⚠️ متأخرون",
+                            label = AppStrings.get("filter_overdue", currentLang),
                             isSelected = selectedFilter == "OVERDUE",
                             onClick = { selectedFilter = "OVERDUE" },
                             isDark = isDarkMode,
                             accentColor = Color(0xFFEF4444)
                         )
                         NotificationFilterChip(
-                            label = "⏳ إجازات قادمة",
+                            label = AppStrings.get("filter_approaching", currentLang),
                             isSelected = selectedFilter == "APPROACHING",
                             onClick = { selectedFilter = "APPROACHING" },
                             isDark = isDarkMode,
                             accentColor = Color(0xFF10B981)
                         )
                         NotificationFilterChip(
-                            label = "🌟 مستحقون",
+                            label = AppStrings.get("filter_eligible", currentLang),
                             isSelected = selectedFilter == "ELIGIBLE",
                             onClick = { selectedFilter = "ELIGIBLE" },
                             isDark = isDarkMode,
@@ -404,7 +404,7 @@ fun NotificationScreen(
                                     OutlinedButton(
                                         onClick = {
                                             viewModel.restoreDismissedNotifications()
-                                            Toast.makeText(context, "تمت استعادة التنبيهات الممسوحة", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, AppStrings.get("restore_dismissed_toast", currentLang), Toast.LENGTH_SHORT).show()
                                         },
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.testTag("restore_dismissed_button")
@@ -415,7 +415,7 @@ fun NotificationScreen(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("استعادة التنبيهات الممسوحة (${dismissedIds.size})")
+                                        Text("${AppStrings.get("restore_dismissed_btn", currentLang)} (${dismissedIds.size})")
                                     }
                                 }
                             }
@@ -437,7 +437,7 @@ fun NotificationScreen(
                                     onTogglePin = { viewModel.togglePinNotification(notification.id) },
                                     onDismiss = {
                                         viewModel.dismissNotification(notification.id)
-                                        Toast.makeText(context, "تم مسح الإشعار", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, AppStrings.get("dismiss_notification_toast", currentLang), Toast.LENGTH_SHORT).show()
                                     },
                                     onSelectPersonnel = {
                                         if (notification.personnelId != null && onSelectPersonnel != null) {
@@ -461,23 +461,23 @@ fun NotificationScreen(
             onDismissRequest = { showClearAllConfirmDialog = false },
             title = {
                 Text(
-                    text = "مسح جميع التنبيهات",
+                    text = AppStrings.get("clear_all_dialog_title", currentLang),
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
-                Text("هل تريد بالتأكيد مسح كافة التنبيهات المعروضة؟ يمكنك استعادتها لاحقاً عند الحاجة.")
+                Text(AppStrings.get("clear_all_dialog_desc", currentLang))
             },
             confirmButton = {
                 Button(
                     onClick = {
                         viewModel.clearAllNotifications()
                         showClearAllConfirmDialog = false
-                        Toast.makeText(context, "تم مسح جميع التنبيهات بنجاح", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.get("clear_all_success_toast", currentLang), Toast.LENGTH_SHORT).show()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
                 ) {
-                    Text("مسح الكل", color = Color.White)
+                    Text(AppStrings.get("clear_all_confirm", currentLang), color = Color.White)
                 }
             },
             dismissButton = {
@@ -543,32 +543,32 @@ private fun NotificationCard(
         "OVERDUE" -> Triple(
             Color(0xFFEF4444),
             Icons.Default.Warning,
-            "متأخر عن الدخول"
+            AppStrings.get("notif_type_overdue", currentLang)
         )
         "RETURNING_TODAY" -> Triple(
             Color(0xFF0284C7),
             Icons.Default.NotificationsActive,
-            "موعد الدخول اليوم"
+            AppStrings.get("notif_type_returning_today", currentLang)
         )
         "APPROACHING_RETURN" -> Triple(
             Color(0xFFF59E0B),
             Icons.Default.Event,
-            "اقتراب موعد الدخول"
+            AppStrings.get("notif_type_approaching", currentLang)
         )
         "APPROACHING_START" -> Triple(
             Color(0xFF10B981),
             Icons.Default.FlightTakeoff,
-            "انطلاق إجازة"
+            AppStrings.get("notif_type_leave_start", currentLang)
         )
         "ELIGIBLE" -> Triple(
             Color(0xFF8B5CF6),
             Icons.Default.Star,
-            "استحقاق إجازة"
+            AppStrings.get("notif_type_eligible", currentLang)
         )
         else -> Triple(
             MaterialTheme.colorScheme.primary,
             Icons.Default.Notifications,
-            "تنبيه"
+            AppStrings.get("notif_type_alert", currentLang)
         )
     }
 
@@ -670,7 +670,7 @@ private fun NotificationCard(
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Text(
-                                    text = "مثبت في الأعلى",
+                                    text = AppStrings.get("pinned_badge", currentLang),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color(0xFFF59E0B),
@@ -805,7 +805,7 @@ private fun NotificationCard(
                                 modifier = Modifier.size(13.dp)
                             )
                             Text(
-                                text = "عرض السجل",
+                                text = AppStrings.get("view_record", currentLang),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,

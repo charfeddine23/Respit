@@ -98,7 +98,7 @@ fun DeveloperInfoDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "معلومات التطبيق والمطور",
+                            text = AppStrings.get("app_and_dev_info", currentLang),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -108,7 +108,7 @@ fun DeveloperInfoDialog(
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
+                            contentDescription = AppStrings.get("close", currentLang),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -205,7 +205,7 @@ fun DeveloperInfoDialog(
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "المطور المعتمد",
+                                text = AppStrings.get("certified_developer", currentLang),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
