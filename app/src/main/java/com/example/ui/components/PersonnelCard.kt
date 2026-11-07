@@ -384,7 +384,7 @@ fun PersonnelCard(
                         ),
                         modifier = Modifier
                             .weight(1f)
-                            .height(40.dp)
+                            .height(44.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
@@ -407,7 +407,7 @@ fun PersonnelCard(
                     border = BorderStroke(1.dp, if (isDarkMode) Color(0x4038BDF8) else Color(0x6000BCD4)),
                     modifier = Modifier
                         .then(if (personnel.isReturnedToDuty) Modifier.weight(1f) else Modifier)
-                        .height(40.dp)
+                        .height(44.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
@@ -430,7 +430,7 @@ fun PersonnelCard(
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(44.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (isDarkMode) Color(0x22EF4444) else Color(0x1AEF4444))
                         .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(12.dp))

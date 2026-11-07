@@ -21,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -618,19 +619,24 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                         },
                         floatingActionButtonPosition = FabPosition.Center
                     ) { innerPadding ->
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
                 contentAlignment = Alignment.TopCenter
             ) {
+                val isTablet = maxWidth >= 600.dp
+                val contentMaxWidth = if (isTablet) 980.dp else 680.dp
+                val horizontalPadding = if (isTablet) 24.dp else 16.dp
+                val contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp)
+
                 // Native Compose Liquid Glass Dashboard (Adaptive responsive width for tablets)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .widthIn(max = 840.dp)
+                        .widthIn(max = contentMaxWidth)
                         .testTag("personnel_lazy_column"),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = contentPadding,
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     // Statistics KPI Cards (Interactive Unified Dashboard)
@@ -928,6 +934,44 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                }
+                            }
+                        }
+                    } else if (isTablet) {
+                        // Adaptive 2-column grid layout for tablets and wide screens
+                        items(personnelList.chunked(2), key = { pair -> pair.joinToString("-") { it.id.toString() } }) { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                for (person in rowItems) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        PersonnelCard(
+                                            personnel = person,
+                                            dutyThresholdDays = dutyThreshold,
+                                            isFocusMode = isFocusMode,
+                                            isDarkMode = isDarkMode,
+                                            currentLang = currentLang,
+                                            onConfirmDuty = {
+                                                viewModel.confirmReturnToDuty(person.id)
+                                                Toast.makeText(
+                                                    context,
+                                                    "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            },
+                                            onEdit = {
+                                                personnelToEdit = person
+                                                showAddEditDialog = true
+                                            },
+                                            onDelete = {
+                                                personnelToDelete = person
+                                            }
+                                        )
+                                    }
+                                }
+                                if (rowItems.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }

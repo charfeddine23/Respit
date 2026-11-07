@@ -97,7 +97,7 @@ fun StatisticsSection(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Main Unified Glassmorphic Dashboard Card
-        Box(
+        androidx.compose.foundation.layout.BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .liquidGlass(
@@ -108,6 +108,14 @@ fun StatisticsSection(
                 )
                 .padding(16.dp)
         ) {
+            val isWide = maxWidth >= 500.dp
+            val isCompact = maxWidth < 340.dp
+            val ringSize = if (isWide) 130.dp else if (isCompact) 100.dp else 116.dp
+            val canvasSize = if (isWide) 120.dp else if (isCompact) 92.dp else 108.dp
+            val strokeWidthDp = if (isWide) 11.dp else if (isCompact) 8.dp else 10.dp
+            val centerTotalSp = if (isWide) 24.sp else if (isCompact) 19.sp else 22.sp
+            val centerLabelSp = if (isWide) 10.sp else if (isCompact) 8.sp else 9.sp
+
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 // Top Header Row: Dashboard Title & Pulse Dot
                 Row(
@@ -167,12 +175,12 @@ fun StatisticsSection(
                     // Modern Multi-Segment Radial Ring Chart
                     Box(
                         modifier = Modifier
-                            .size(116.dp)
+                            .size(ringSize)
                             .padding(4.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Canvas(modifier = Modifier.size(108.dp)) {
-                            val strokeWidth = 10.dp.toPx()
+                        Canvas(modifier = Modifier.size(canvasSize)) {
+                            val strokeWidth = strokeWidthDp.toPx()
                             val trackColor = if (isDarkMode) Color(0x26334155) else Color(0x33CBD5E1)
 
                             // Background Track
@@ -231,24 +239,24 @@ fun StatisticsSection(
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Black,
                                 color = if (isDarkMode) Color.White else SlateTextPrimary,
-                                fontSize = 22.sp
+                                fontSize = centerTotalSp
                             )
                             Text(
                                 text = AppStrings.get("total_personnel", currentLang),
                                 style = MaterialTheme.typography.labelSmall,
-                                fontSize = 9.sp,
+                                fontSize = centerLabelSp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(if (isWide) 18.dp else 14.dp))
 
                     // Real-Time Metrics Column (Interactive rows)
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(if (isWide) 10.dp else 8.dp)
                     ) {
                         // Metric 1: On Duty
                         DashboardMetricRow(
@@ -258,6 +266,7 @@ fun StatisticsSection(
                             accentColor = EmeraldSuccess,
                             isSelected = selectedStatus == "ON_DUTY",
                             isDarkMode = isDarkMode,
+                            isWide = isWide,
                             onClick = { onSelectStatus(if (selectedStatus == "ON_DUTY") "ALL" else "ON_DUTY") }
                         )
 
@@ -269,6 +278,7 @@ fun StatisticsSection(
                             accentColor = if (isDarkMode) CyanGlow else VibrantCyan,
                             isSelected = selectedStatus == "AT_HOME",
                             isDarkMode = isDarkMode,
+                            isWide = isWide,
                             onClick = { onSelectStatus(if (selectedStatus == "AT_HOME") "ALL" else "AT_HOME") }
                         )
 
@@ -281,6 +291,7 @@ fun StatisticsSection(
                             accentColor = if (stats.overdue > 0) RedDanger else AmberWarning,
                             isSelected = selectedStatus == "OVERDUE" || selectedStatus == "RETURNING_TODAY",
                             isDarkMode = isDarkMode,
+                            isWide = isWide,
                             onClick = {
                                 onSelectStatus(
                                     if (selectedStatus == "OVERDUE") "ALL"
@@ -304,6 +315,7 @@ private fun DashboardMetricRow(
     accentColor: Color,
     isSelected: Boolean,
     isDarkMode: Boolean,
+    isWide: Boolean = false,
     onClick: () -> Unit
 ) {
     Surface(
@@ -323,14 +335,17 @@ private fun DashboardMetricRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 7.dp),
+                .padding(horizontal = if (isWide) 12.dp else 10.dp, vertical = if (isWide) 8.dp else 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f, fill = false)
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(26.dp)
+                        .size(if (isWide) 28.dp else 26.dp)
                         .clip(CircleShape)
                         .background(accentColor.copy(alpha = 0.18f)),
                     contentAlignment = Alignment.Center
@@ -339,21 +354,25 @@ private fun DashboardMetricRow(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(if (isWide) 16.dp else 15.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = label,
-                    fontSize = 11.sp,
+                    fontSize = if (isWide) 12.sp else 11.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isDarkMode) Color(0xFFE2E8F0) else SlateTextPrimary
+                    color = if (isDarkMode) Color(0xFFE2E8F0) else SlateTextPrimary,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
 
+            Spacer(modifier = Modifier.width(6.dp))
+
             Text(
                 text = count,
-                fontSize = 14.sp,
+                fontSize = if (isWide) 15.sp else 14.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = accentColor
             )

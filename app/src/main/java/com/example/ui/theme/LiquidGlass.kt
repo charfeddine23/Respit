@@ -126,6 +126,7 @@ fun DynamicAuroraBackground(
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
+        val baseDim = kotlin.math.sqrt(w * h)
 
         if (isDark) {
             // Base Gradient: Deep Rich Slate / Midnight
@@ -142,7 +143,7 @@ fun DynamicAuroraBackground(
             // Orb 1: Glowing Neon Cyan (floats top right)
             val orb1X = w * (0.65f + 0.22f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
             val orb1Y = h * (0.15f + 0.12f * kotlin.math.cos(t1 * kotlin.math.PI).toFloat())
-            val orb1Radius = w * (0.48f + 0.08f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
+            val orb1Radius = baseDim * (0.46f + 0.08f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
 
             drawCircle(
                 brush = Brush.radialGradient(
@@ -161,7 +162,7 @@ fun DynamicAuroraBackground(
             // Orb 2: Luminous Purple / Indigo (floats middle left)
             val orb2X = w * (0.18f + 0.16f * kotlin.math.cos(t2 * kotlin.math.PI).toFloat())
             val orb2Y = h * (0.52f + 0.10f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
-            val orb2Radius = w * (0.52f + 0.06f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
+            val orb2Radius = baseDim * (0.48f + 0.06f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
 
             drawCircle(
                 brush = Brush.radialGradient(
@@ -180,7 +181,7 @@ fun DynamicAuroraBackground(
             // Orb 3: Soft Emerald Green (floats bottom right)
             val orb3X = w * (0.80f - 0.20f * kotlin.math.sin(t3 * kotlin.math.PI).toFloat())
             val orb3Y = h * (0.82f - 0.08f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
-            val orb3Radius = w * (0.44f + 0.06f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
+            val orb3Radius = baseDim * (0.42f + 0.06f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
 
             drawCircle(
                 brush = Brush.radialGradient(
@@ -212,7 +213,7 @@ fun DynamicAuroraBackground(
             // Orb 1: Vibrant Cyan / Sky Glow (floats top left)
             val orb1X = w * (0.12f + 0.18f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
             val orb1Y = h * (0.14f + 0.10f * kotlin.math.cos(t1 * kotlin.math.PI).toFloat())
-            val orb1Radius = w * (0.56f + 0.06f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
+            val orb1Radius = baseDim * (0.50f + 0.06f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
 
             drawCircle(
                 brush = Brush.radialGradient(
@@ -231,7 +232,7 @@ fun DynamicAuroraBackground(
             // Orb 2: Lavender / Lilac Glow (floats middle right)
             val orb2X = w * (0.88f - 0.18f * kotlin.math.cos(t2 * kotlin.math.PI).toFloat())
             val orb2Y = h * (0.40f + 0.12f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
-            val orb2Radius = w * (0.50f + 0.06f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
+            val orb2Radius = baseDim * (0.46f + 0.06f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
 
             drawCircle(
                 brush = Brush.radialGradient(
@@ -250,7 +251,7 @@ fun DynamicAuroraBackground(
             // Orb 3: Fresh Cyan / Turquoise (floats bottom center)
             val orb3X = w * (0.40f + 0.25f * kotlin.math.sin(t3 * kotlin.math.PI).toFloat())
             val orb3Y = h * (0.82f - 0.08f * kotlin.math.cos(t1 * kotlin.math.PI).toFloat())
-            val orb3Radius = w * (0.50f + 0.06f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
+            val orb3Radius = baseDim * (0.46f + 0.06f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
 
             drawCircle(
                 brush = Brush.radialGradient(
