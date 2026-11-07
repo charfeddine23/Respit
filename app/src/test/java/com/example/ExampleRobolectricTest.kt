@@ -13,6 +13,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import androidx.room.Room
+import com.example.data.AppDatabase
+import com.example.data.LeaveRecord
+import com.example.data.PersonnelRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -152,4 +158,56 @@ class ExampleRobolectricTest {
     // With threshold 50 -> eligible
     assertTrue(pDuty.isEligibleForLeave(50))
   }
+
+  @Test
+  fun `verify Room database persistence for Personnel and LeaveRecord`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val inMemoryDb = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+
+    val personnelDao = inMemoryDb.personnelDao()
+    val leaveDao = inMemoryDb.leaveRecordDao()
+    val repo = PersonnelRepository(personnelDao, leaveDao)
+
+    // Test Personnel insertion and Flow query
+    val p = Personnel(
+      fullName = "أحمد القاسمي",
+      rank = "ملازم",
+      registrationNumber = "DZ-999000",
+      startDateMillis = System.currentTimeMillis(),
+      returnDateMillis = System.currentTimeMillis() + 10 * 86400000L,
+      leaveType = "عطلة سنوية"
+    )
+    val insertedId = repo.insert(p)
+    assertTrue(insertedId > 0)
+
+    val list = repo.allPersonnel.first()
+    assertEquals(1, list.size)
+    assertEquals("أحمد القاسمي", list[0].fullName)
+
+    // Test LeaveRecord insertion and Flow query
+    val leave = LeaveRecord(
+      personnelId = insertedId,
+      personnelName = "أحمد القاسمي",
+      rank = "ملازم",
+      registrationNumber = "DZ-999000",
+      leaveType = "عطلة سنوية",
+      startDateMillis = System.currentTimeMillis(),
+      returnDateMillis = System.currentTimeMillis() + 10 * 86400000L,
+      durationDays = 10,
+      statusText = "جارية (بالبيت)",
+      destinationWilaya = "16 - الجزائر"
+    )
+    val leaveId = repo.insertLeave(leave)
+    assertTrue(leaveId > 0)
+
+    val leavesList = repo.allLeaves.first()
+    assertEquals(1, leavesList.size)
+    assertEquals("أحمد القاسمي", leavesList[0].personnelName)
+    assertEquals(10L, leavesList[0].durationDays)
+
+    inMemoryDb.close()
+  }
 }
+

@@ -10,9 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-@Database(entities = [Personnel::class], version = 3, exportSchema = false)
+@Database(
+    entities = [Personnel::class, LeaveRecord::class],
+    version = 4,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun personnelDao(): PersonnelDao
+    abstract fun leaveRecordDao(): LeaveRecordDao
 
     companion object {
         @Volatile
@@ -40,12 +45,12 @@ abstract class AppDatabase : RoomDatabase() {
                 super.onCreate(db)
                 INSTANCE?.let { database ->
                     scope.launch(Dispatchers.IO) {
-                        populateDatabase(database.personnelDao())
+                        populateDatabase(database.personnelDao(), database.leaveRecordDao())
                     }
                 }
             }
 
-            suspend fun populateDatabase(dao: PersonnelDao) {
+            suspend fun populateDatabase(personnelDao: PersonnelDao, leaveDao: LeaveRecordDao) {
                 fun getOffsetDateMillis(daysOffset: Int): Long {
                     val c = Calendar.getInstance()
                     c.add(Calendar.DAY_OF_YEAR, daysOffset)
@@ -56,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                     return c.timeInMillis
                 }
 
-                val seed = listOf(
+                val seedPersonnel = listOf(
                     Personnel(
                         fullName = "عبد الرحمن بلقاسمي",
                         rank = "ملازم أول",
@@ -124,7 +129,89 @@ abstract class AppDatabase : RoomDatabase() {
                         notes = "قيادة الأركان"
                     )
                 )
-                dao.insertAll(seed)
+                personnelDao.insertAll(seedPersonnel)
+
+                val seedLeaves = listOf(
+                    LeaveRecord(
+                        personnelId = 1,
+                        personnelName = "عبد الرحمن بلقاسمي",
+                        rank = "ملازم أول",
+                        registrationNumber = "DZ-160492",
+                        leaveType = "عطلة سنوية",
+                        startDateMillis = getOffsetDateMillis(-7),
+                        returnDateMillis = getOffsetDateMillis(3),
+                        durationDays = 10,
+                        statusText = "جارية (بالبيت)",
+                        destinationWilaya = "16 - الجزائر",
+                        notes = "عطلة النصف الأول من السنة"
+                    ),
+                    LeaveRecord(
+                        personnelId = 2,
+                        personnelName = "محمد الأمين يحياوي",
+                        rank = "مساعد رئيسي",
+                        registrationNumber = "DZ-318920",
+                        leaveType = "إجازة",
+                        startDateMillis = getOffsetDateMillis(-4),
+                        returnDateMillis = getOffsetDateMillis(6),
+                        durationDays = 10,
+                        statusText = "جارية (بالبيت)",
+                        destinationWilaya = "31 - وهران",
+                        notes = "إجازة عادية"
+                    ),
+                    LeaveRecord(
+                        personnelId = 3,
+                        personnelName = "خالد بن عيسى الدراجي",
+                        rank = "رقيب أول",
+                        registrationNumber = "DZ-254100",
+                        leaveType = "إجازة قصيرة",
+                        startDateMillis = getOffsetDateMillis(-10),
+                        returnDateMillis = getOffsetDateMillis(0),
+                        durationDays = 10,
+                        statusText = "الدخول اليوم",
+                        destinationWilaya = "25 - قسنطينة",
+                        notes = "إجازة مستحقة"
+                    ),
+                    LeaveRecord(
+                        personnelId = 4,
+                        personnelName = "ياسين بوجمعة صوالحي",
+                        rank = "مساعد أول",
+                        registrationNumber = "DZ-057812",
+                        leaveType = "نقاهة",
+                        startDateMillis = getOffsetDateMillis(-12),
+                        returnDateMillis = getOffsetDateMillis(-2),
+                        durationDays = 10,
+                        statusText = "متأخر عن الدخول",
+                        destinationWilaya = "05 - باتنة",
+                        notes = "فترة نقاهة طبية"
+                    ),
+                    LeaveRecord(
+                        personnelId = 5,
+                        personnelName = "حمزة بن زروال الماجري",
+                        rank = "عريف أول",
+                        registrationNumber = "DZ-194321",
+                        leaveType = "عطلة سنوية",
+                        startDateMillis = getOffsetDateMillis(-45),
+                        returnDateMillis = getOffsetDateMillis(-35),
+                        durationDays = 10,
+                        statusText = "مكتملة (مستأنف للعمل)",
+                        destinationWilaya = "19 - سطيف",
+                        notes = "استأنف العمل بانتظام"
+                    ),
+                    LeaveRecord(
+                        personnelId = 6,
+                        personnelName = "فاروق لعريبي الورتيلاني",
+                        rank = "نقيب",
+                        registrationNumber = "DZ-098871",
+                        leaveType = "إجازة",
+                        startDateMillis = getOffsetDateMillis(3),
+                        returnDateMillis = getOffsetDateMillis(13),
+                        durationDays = 10,
+                        statusText = "مبرمجة قريباً",
+                        destinationWilaya = "09 - البليدة",
+                        notes = "موافقة القيادة"
+                    )
+                )
+                leaveDao.insertAll(seedLeaves)
             }
         }
     }

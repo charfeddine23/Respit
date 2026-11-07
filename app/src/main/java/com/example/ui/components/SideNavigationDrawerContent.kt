@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -75,6 +76,7 @@ fun SideNavigationDrawerContent(
     onCheckNotifications: () -> Unit,
     onExportPdf: () -> Unit,
     onOpenBackup: () -> Unit,
+    onOpenRoomDatabase: () -> Unit,
     onToggleTheme: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenDeveloper: () -> Unit,
@@ -289,6 +291,19 @@ fun SideNavigationDrawerContent(
             isDarkMode = isDarkMode,
             onClick = onOpenBackup,
             testTag = "drawer_backup_item"
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Room Database Screen Item
+        DrawerNavigationItem(
+            icon = Icons.Default.Storage,
+            iconTint = Color(0xFF0284C7),
+            title = AppStrings.get("room_db_title", currentLang),
+            subtitle = AppStrings.get("room_db_sub", currentLang),
+            isDarkMode = isDarkMode,
+            onClick = onOpenRoomDatabase,
+            testTag = "drawer_room_db_item"
         )
 
         Spacer(modifier = Modifier.height(6.dp))

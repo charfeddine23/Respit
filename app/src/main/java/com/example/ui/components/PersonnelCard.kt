@@ -71,6 +71,7 @@ fun PersonnelCard(
     modifier: Modifier = Modifier,
     isFocusMode: Boolean = false,
     isDarkMode: Boolean = false,
+    isNeumorphic: Boolean = false,
     currentLang: AppLanguage = AppLanguage.ARABIC
 ) {
     val status = personnel.status
@@ -82,7 +83,7 @@ fun PersonnelCard(
     val visual = when {
         status == LeaveStatus.AT_HOME -> StatusVisual(
             color = if (isDarkMode) CyanGlow else VibrantCyan,
-            bgTint = if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA),
+            bgTint = if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F2FE),
             icon = Icons.Default.Home,
             labelKey = "status_at_home"
         )
@@ -94,7 +95,7 @@ fun PersonnelCard(
         )
         status == LeaveStatus.OVERDUE -> StatusVisual(
             color = RedDanger,
-            bgTint = if (isDarkMode) Color(0x33EF4444) else Color(0xFFFEE2E2),
+            bgTint = if (isDarkMode) Color(0x33EF4444) else Color(0xFFFFE4E6),
             icon = Icons.Default.Warning,
             labelKey = "status_overdue"
         )
@@ -106,7 +107,7 @@ fun PersonnelCard(
         )
         status == LeaveStatus.ON_DUTY -> StatusVisual(
             color = EmeraldSuccess,
-            bgTint = if (isDarkMode) Color(0x3310B981) else Color(0xFFD1FAE5),
+            bgTint = if (isDarkMode) Color(0x3310B981) else Color(0xFFDCFCE7),
             icon = Icons.Default.Shield,
             labelKey = "status_on_duty"
         )
@@ -126,15 +127,19 @@ fun PersonnelCard(
         .joinToString("")
         .ifEmpty { "P" }
 
+    val avatarShape = if (isNeumorphic) RoundedCornerShape(18.dp) else CircleShape
+
     // Unified Card Container
     Box(
         modifier = modifier
             .fillMaxWidth()
             .liquidGlass(
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(24.dp),
                 elevation = if (isFocusMode) 7.dp else 4.dp,
                 borderAlpha = if (isFocusMode) 0.95f else 0.85f,
-                isDark = isDarkMode
+                isDark = isDarkMode,
+                isNeumorphic = isNeumorphic,
+                cornerRadius = 24.dp
             )
             .testTag("personnel_item_${personnel.id}")
     ) {
@@ -154,13 +159,13 @@ fun PersonnelCard(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Modern Circular Avatar with Status-Themed Rim
+                    // Modern Squircle / Circular Avatar matching reference styling
                     Box(
                         modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
+                            .size(48.dp)
+                            .clip(avatarShape)
                             .background(visual.bgTint)
-                            .border(1.5.dp, visual.color, CircleShape),
+                            .border(1.2.dp, visual.color.copy(alpha = if (isNeumorphic) 0.35f else 0.9f), avatarShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

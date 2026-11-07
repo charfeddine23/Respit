@@ -67,6 +67,7 @@ fun StatisticsSection(
     selectedStatus: String = "ALL",
     onSelectStatus: (String) -> Unit = {},
     isDarkMode: Boolean = false,
+    isNeumorphic: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val total = if (stats.total > 0) stats.total.toFloat() else 1f
@@ -96,15 +97,17 @@ fun StatisticsSection(
             .testTag("statistics_section"),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Main Unified Glassmorphic Dashboard Card
+        // Main Unified Glassmorphic / Neumorphic Dashboard Card
         androidx.compose.foundation.layout.BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .liquidGlass(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(26.dp),
                     elevation = 6.dp,
                     borderAlpha = 0.9f,
-                    isDark = isDarkMode
+                    isDark = isDarkMode,
+                    isNeumorphic = isNeumorphic,
+                    cornerRadius = 26.dp
                 )
                 .padding(16.dp)
         ) {
@@ -267,6 +270,7 @@ fun StatisticsSection(
                             isSelected = selectedStatus == "ON_DUTY",
                             isDarkMode = isDarkMode,
                             isWide = isWide,
+                            isNeumorphic = isNeumorphic,
                             onClick = { onSelectStatus(if (selectedStatus == "ON_DUTY") "ALL" else "ON_DUTY") }
                         )
 
@@ -279,6 +283,7 @@ fun StatisticsSection(
                             isSelected = selectedStatus == "AT_HOME",
                             isDarkMode = isDarkMode,
                             isWide = isWide,
+                            isNeumorphic = isNeumorphic,
                             onClick = { onSelectStatus(if (selectedStatus == "AT_HOME") "ALL" else "AT_HOME") }
                         )
 
@@ -292,6 +297,7 @@ fun StatisticsSection(
                             isSelected = selectedStatus == "OVERDUE" || selectedStatus == "RETURNING_TODAY",
                             isDarkMode = isDarkMode,
                             isWide = isWide,
+                            isNeumorphic = isNeumorphic,
                             onClick = {
                                 onSelectStatus(
                                     if (selectedStatus == "OVERDUE") "ALL"
@@ -316,15 +322,33 @@ private fun DashboardMetricRow(
     isSelected: Boolean,
     isDarkMode: Boolean,
     isWide: Boolean = false,
+    isNeumorphic: Boolean = false,
     onClick: () -> Unit
 ) {
+    val rowShape = RoundedCornerShape(16.dp)
+    val iconShape = if (isNeumorphic) RoundedCornerShape(12.dp) else CircleShape
+    val iconBg = if (isNeumorphic) {
+        when (accentColor) {
+            EmeraldSuccess -> if (isDarkMode) Color(0x3310B981) else Color(0xFFDCFCE7)
+            RedDanger -> if (isDarkMode) Color(0x33EF4444) else Color(0xFFFFE4E6)
+            AmberWarning -> if (isDarkMode) Color(0x33F59E0B) else Color(0xFFFEF3C7)
+            else -> if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F2FE)
+        }
+    } else {
+        accentColor.copy(alpha = 0.18f)
+    }
+
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
+        shape = rowShape,
         color = if (isSelected) {
             if (isDarkMode) accentColor.copy(alpha = 0.25f) else accentColor.copy(alpha = 0.15f)
         } else {
-            if (isDarkMode) Color(0x221E293B) else Color.White.copy(alpha = 0.7f)
+            if (isNeumorphic) {
+                if (isDarkMode) Color(0xFF161F2E) else Color(0xFFEDF2F8)
+            } else {
+                if (isDarkMode) Color(0x221E293B) else Color.White.copy(alpha = 0.7f)
+            }
         },
         border = BorderStroke(
             width = if (isSelected) 1.5.dp else 1.dp,
@@ -345,16 +369,16 @@ private fun DashboardMetricRow(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (isWide) 28.dp else 26.dp)
-                        .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.18f)),
+                        .size(if (isWide) 32.dp else 28.dp)
+                        .clip(iconShape)
+                        .background(iconBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(if (isWide) 16.dp else 15.dp)
+                        modifier = Modifier.size(if (isWide) 18.dp else 16.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))

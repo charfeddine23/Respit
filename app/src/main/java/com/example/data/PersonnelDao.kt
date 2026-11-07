@@ -39,4 +39,7 @@ interface PersonnelDao {
 
     @Query("DELETE FROM personnel")
     suspend fun clearAll()
+
+    @Query("SELECT COUNT(*) FROM personnel")
+    fun getPersonnelCount(): Flow<Int>
 }

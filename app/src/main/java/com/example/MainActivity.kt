@@ -124,6 +124,7 @@ import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
 import com.example.ui.screens.NotificationScreen
+import com.example.ui.screens.RoomDatabaseScreen
 import com.example.ui.theme.DynamicAuroraBackground
 import com.example.ui.theme.LiquidGlassDefaults
 import com.example.ui.theme.MyApplicationTheme
@@ -185,6 +186,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val currentPin by viewModel.pinCode.collectAsState()
     val lastUndo by viewModel.lastUndoAction.collectAsState()
     val currentLang by viewModel.currentLanguage.collectAsState()
+    val isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
 
     val personnelList by viewModel.filteredPersonnel.collectAsState()
     val allPersonnelList by viewModel.allPersonnel.collectAsState()
@@ -250,6 +252,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     var showFilterSortDialog by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
     var showNotificationScreen by remember { mutableStateOf(false) }
+    var showRoomDatabaseScreen by remember { mutableStateOf(false) }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -271,16 +274,9 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         }
     }
 
-    // If locked with PIN/Pattern/Biometric, present full screen Security Lock Screen
+    // If locked with Pattern, present full screen Security Lock Screen
     if (isLocked) {
         PinLockScreen(
-            onVerifyPin = { enteredPin ->
-                val ok = viewModel.verifyPin(enteredPin)
-                if (ok) {
-                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
-                }
-                ok
-            },
             onVerifyPattern = { pattern ->
                 val ok = viewModel.verifyPattern(pattern)
                 if (ok) {
@@ -288,12 +284,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                 }
                 ok
             },
-            onBiometricUnlock = {
-                viewModel.unlockWithBiometric()
-                Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
-            },
-            lockType = securityLockType,
-            isBiometricAvailable = isBiometricEnabled,
             isDarkMode = isDarkMode,
             currentLang = currentLang
         )
@@ -312,6 +302,15 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                     showAddEditDialog = true
                 }
             }
+        )
+        return
+    }
+
+    // Direct in-app Room Local Database Screen (Dedicated Page)
+    if (showRoomDatabaseScreen) {
+        RoomDatabaseScreen(
+            viewModel = viewModel,
+            onBack = { showRoomDatabaseScreen = false }
         )
         return
     }
@@ -351,6 +350,10 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             },
                             onOpenBackup = {
                                 showExportDialog = true
+                                scope.launch { drawerState.close() }
+                            },
+                            onOpenRoomDatabase = {
+                                showRoomDatabaseScreen = true
                                 scope.launch { drawerState.close() }
                             },
                             onToggleTheme = {
@@ -418,11 +421,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(36.dp)
+                                                    .size(38.dp)
                                                     .liquidGlassInteractive(
-                                                        shape = RoundedCornerShape(10.dp),
+                                                        shape = if (isNeumorphic) RoundedCornerShape(12.dp) else RoundedCornerShape(10.dp),
                                                         glowColor = MaterialTheme.colorScheme.primary,
-                                                        isDark = isDarkMode
+                                                        isDark = isDarkMode,
+                                                        isNeumorphic = isNeumorphic
                                                     ),
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -450,28 +454,21 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             // Quick Notification Button with soft rounded corners & live badge
+                                            val notifShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
                                             Box(
                                                 modifier = Modifier
                                                     .liquidGlassInteractive(
-                                                        shape = RoundedCornerShape(12.dp),
+                                                        shape = notifShape,
                                                         glowColor = MaterialTheme.colorScheme.primary,
-                                                        isDark = isDarkMode
+                                                        isDark = isDarkMode,
+                                                        isNeumorphic = isNeumorphic
                                                     )
                                             ) {
                                                 IconButton(
                                                     onClick = { showNotificationScreen = true },
                                                     modifier = Modifier
-                                                        .size(38.dp)
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(
-                                                            color = if (isDarkMode) Color(0x3300BCD4) else Color(0x2200BCD4),
-                                                            shape = RoundedCornerShape(12.dp)
-                                                        )
-                                                        .border(
-                                                            1.2.dp,
-                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                                                            RoundedCornerShape(12.dp)
-                                                        )
+                                                        .size(42.dp)
+                                                        .clip(notifShape)
                                                         .testTag("header_notifications_button")
                                                 ) {
                                                     BadgedBox(
@@ -513,105 +510,165 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Bottom Left: Settings Button (Aurora Glass)
-                                    Surface(
-                                        onClick = { showSettingsDialog = true },
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .shadow(
-                                                elevation = 8.dp,
-                                                shape = RoundedCornerShape(18.dp),
-                                                ambientColor = if (isDarkMode) Color(0x3300BCD4) else Color(0x2200BCD4),
-                                                spotColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x3300BCD4)
-                                            )
-                                            .clip(RoundedCornerShape(18.dp))
-                                            .background(
-                                                if (isDarkMode) {
-                                                    Brush.verticalGradient(listOf(Color(0xEE1E293B), Color(0xDD0F172A)))
-                                                } else {
-                                                    Brush.verticalGradient(listOf(Color(0xF0FFFFFF), Color(0xE0F0FDFA)))
-                                                }
-                                            )
-                                            .border(
-                                                BorderStroke(
-                                                    1.5.dp,
-                                                    Brush.linearGradient(
-                                                        listOf(
-                                                            Color.White.copy(alpha = if (isDarkMode) 0.6f else 0.95f),
-                                                            Color(0xFF00E5FF).copy(alpha = 0.7f),
-                                                            Color.White.copy(alpha = 0.5f)
-                                                        )
-                                                    )
-                                                ),
-                                                RoundedCornerShape(18.dp)
-                                            )
-                                            .testTag("bottom_settings_button"),
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = Color.Transparent
-                                    ) {
+                                    // Bottom Left: Settings Button
+                                    if (isNeumorphic) {
                                         Box(
-                                            modifier = Modifier.fillMaxSize(),
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .liquidGlassInteractive(
+                                                    shape = CircleShape,
+                                                    isDark = isDarkMode,
+                                                    isNeumorphic = true
+                                                )
+                                                .clickable { showSettingsDialog = true }
+                                                .testTag("bottom_settings_button"),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Settings,
                                                 contentDescription = AppStrings.get("settings", currentLang),
-                                                tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
+                                                tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
                                                 modifier = Modifier.size(26.dp)
                                             )
                                         }
+                                    } else {
+                                        Surface(
+                                            onClick = { showSettingsDialog = true },
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .shadow(
+                                                    elevation = 8.dp,
+                                                    shape = RoundedCornerShape(18.dp),
+                                                    ambientColor = if (isDarkMode) Color(0x3300BCD4) else Color(0x2200BCD4),
+                                                    spotColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x3300BCD4)
+                                                )
+                                                .clip(RoundedCornerShape(18.dp))
+                                                .background(
+                                                    if (isDarkMode) {
+                                                        Brush.verticalGradient(listOf(Color(0xEE1E293B), Color(0xDD0F172A)))
+                                                    } else {
+                                                        Brush.verticalGradient(listOf(Color(0xF0FFFFFF), Color(0xE0F0FDFA)))
+                                                    }
+                                                )
+                                                .border(
+                                                    BorderStroke(
+                                                        1.5.dp,
+                                                        Brush.linearGradient(
+                                                            listOf(
+                                                                Color.White.copy(alpha = if (isDarkMode) 0.6f else 0.95f),
+                                                                Color(0xFF00E5FF).copy(alpha = 0.7f),
+                                                                Color.White.copy(alpha = 0.5f)
+                                                            )
+                                                        )
+                                                    ),
+                                                    RoundedCornerShape(18.dp)
+                                                )
+                                                .testTag("bottom_settings_button"),
+                                            shape = RoundedCornerShape(18.dp),
+                                            color = Color.Transparent
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Settings,
+                                                    contentDescription = AppStrings.get("settings", currentLang),
+                                                    tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
+                                                    modifier = Modifier.size(26.dp)
+                                                )
+                                            }
+                                        }
                                     }
 
-                                    // Bottom Right: Add Personnel Button (Vibrant Cyan Gradient)
-                                    Surface(
-                                        onClick = {
-                                            personnelToEdit = null
-                                            showAddEditDialog = true
-                                        },
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .shadow(
-                                                elevation = 8.dp,
-                                                shape = RoundedCornerShape(18.dp),
-                                                ambientColor = Color(0xFF00BCD4).copy(alpha = 0.45f),
-                                                spotColor = Color(0xFF00E5FF).copy(alpha = 0.55f)
-                                            )
-                                            .clip(RoundedCornerShape(18.dp))
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        Color(0xFF00BCD4),
-                                                        Color(0xFF00E5FF)
+                                    // Bottom Right: Add Personnel Button (Vibrant Royal Blue Circle FAB in Neumorphism matching user image)
+                                    if (isNeumorphic) {
+                                        Surface(
+                                            onClick = {
+                                                personnelToEdit = null
+                                                showAddEditDialog = true
+                                            },
+                                            modifier = Modifier
+                                                .size(58.dp)
+                                                .shadow(
+                                                    elevation = 10.dp,
+                                                    shape = CircleShape,
+                                                    ambientColor = Color(0x602563EB),
+                                                    spotColor = Color(0x901D4ED8)
+                                                )
+                                                .clip(CircleShape)
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
                                                     )
                                                 )
-                                            )
-                                            .border(
-                                                BorderStroke(
-                                                    1.5.dp,
+                                                .testTag("add_personnel_fab"),
+                                            shape = CircleShape,
+                                            color = Color(0xFF2563EB)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Add,
+                                                    contentDescription = "إضافة فرد جديد",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(30.dp)
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Surface(
+                                            onClick = {
+                                                personnelToEdit = null
+                                                showAddEditDialog = true
+                                            },
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .shadow(
+                                                    elevation = 8.dp,
+                                                    shape = RoundedCornerShape(18.dp),
+                                                    ambientColor = Color(0xFF00BCD4).copy(alpha = 0.45f),
+                                                    spotColor = Color(0xFF00E5FF).copy(alpha = 0.55f)
+                                                )
+                                                .clip(RoundedCornerShape(18.dp))
+                                                .background(
                                                     Brush.linearGradient(
                                                         listOf(
-                                                            Color.White.copy(alpha = 0.85f),
-                                                            Color(0xFFE0F7FA).copy(alpha = 0.7f),
-                                                            Color.White.copy(alpha = 0.4f)
+                                                            Color(0xFF00BCD4),
+                                                            Color(0xFF00E5FF)
                                                         )
                                                     )
-                                                ),
-                                                RoundedCornerShape(18.dp)
-                                            )
-                                            .testTag("add_personnel_fab"),
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = Color.Transparent
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
+                                                )
+                                                .border(
+                                                    BorderStroke(
+                                                        1.5.dp,
+                                                        Brush.linearGradient(
+                                                            listOf(
+                                                                Color.White.copy(alpha = 0.85f),
+                                                                Color(0xFFE0F7FA).copy(alpha = 0.7f),
+                                                                Color.White.copy(alpha = 0.4f)
+                                                            )
+                                                        )
+                                                    ),
+                                                    RoundedCornerShape(18.dp)
+                                                )
+                                                .testTag("add_personnel_fab"),
+                                            shape = RoundedCornerShape(18.dp),
+                                            color = Color.Transparent
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Add,
-                                                contentDescription = "إضافة فرد جديد",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(28.dp)
-                                            )
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Add,
+                                                    contentDescription = "إضافة فرد جديد",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(28.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -646,11 +703,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             currentLang = currentLang,
                             selectedStatus = selectedStatus,
                             onSelectStatus = { viewModel.selectedStatus.value = it },
-                            isDarkMode = isDarkMode
+                            isDarkMode = isDarkMode,
+                            isNeumorphic = isNeumorphic
                         )
                     }
 
-                    // Liquid Glass Search Container with Integrated Filter & Sort Button
+                    // Liquid Glass / Neumorphic Search Container with Integrated Filter & Sort Button
                     item {
                         val activeFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
                                 (if (selectedRank != "ALL") 1 else 0) +
@@ -663,7 +721,9 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                     shape = LiquidGlassDefaults.CardShape,
                                     elevation = 5.dp,
                                     borderAlpha = 0.85f,
-                                    isDark = isDarkMode
+                                    isDark = isDarkMode,
+                                    isNeumorphic = isNeumorphic,
+                                    cornerRadius = 24.dp
                                 )
                                 .padding(12.dp)
                         ) {
@@ -741,7 +801,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                         modifier = Modifier.liquidGlassInteractive(
                                             shape = RoundedCornerShape(14.dp),
                                             glowColor = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
-                                            isDark = isDarkMode
+                                            isDark = isDarkMode,
+                                            isNeumorphic = isNeumorphic
                                         )
                                     ) {
                                         BadgedBox(
@@ -951,6 +1012,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             dutyThresholdDays = dutyThreshold,
                                             isFocusMode = isFocusMode,
                                             isDarkMode = isDarkMode,
+                                            isNeumorphic = isNeumorphic,
                                             currentLang = currentLang,
                                             onConfirmDuty = {
                                                 viewModel.confirmReturnToDuty(person.id)
@@ -982,6 +1044,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                 dutyThresholdDays = dutyThreshold,
                                 isFocusMode = isFocusMode,
                                 isDarkMode = isDarkMode,
+                                isNeumorphic = isNeumorphic,
                                 currentLang = currentLang,
                                 onConfirmDuty = {
                                     viewModel.confirmReturnToDuty(person.id)
@@ -1141,6 +1204,9 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             },
             onRestoreFromDrive = {
                 driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
+            },
+            onOpenRoomDatabase = {
+                showRoomDatabaseScreen = true
             },
             onDismiss = { showSettingsDialog = false }
         )

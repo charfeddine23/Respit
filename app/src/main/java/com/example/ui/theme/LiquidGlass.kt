@@ -11,33 +11,35 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 object LiquidGlassDefaults {
-    val CardShape = RoundedCornerShape(22.dp)
+    val CardShape = RoundedCornerShape(24.dp)
     val PillShape = RoundedCornerShape(50.dp)
-    val SmallShape = RoundedCornerShape(16.dp)
-    val DialogShape = RoundedCornerShape(26.dp)
+    val SmallShape = RoundedCornerShape(18.dp)
+    val DialogShape = RoundedCornerShape(28.dp)
 }
 
 /**
- * Dynamic, smoothly animated Aurora & Neon mesh gradient background:
- * - Light Mode: Soft aurora mesh flowing between cyan (#E0F7FA), clean white, and muted lilac (#F3E5F5)
- *   with organic floating ambient cyan and lavender orbs.
- * - Dark Mode: Deep charcoal/slate space (#0A0F1D / #0F172A) with luminous floating neon cyan (#00E5FF),
- *   purple (#7C4DFF), and emerald (#10B981) glowing orbs.
- * High performance, silky smooth 60fps animations.
+ * Dynamic Aurora & Neumorphic background:
+ * - In Neumorphism: Clean tactile solid canvas (#E8EEF5 in light, #141923 in dark) matching the user reference design.
+ * - In Glassmorphism: Smoothly drifting aurora ambient glowing mesh.
  */
 @Composable
 fun DynamicAuroraBackground(
@@ -46,47 +48,9 @@ fun DynamicAuroraBackground(
     modifier: Modifier = Modifier
 ) {
     if (isNeumorphic) {
-        // Soft Minimalist Tactile Neumorphism Canvas
+        val canvasBg = if (isDark) Color(0xFF141923) else Color(0xFFE8EEF5)
         Canvas(modifier = modifier.fillMaxSize()) {
-            if (isDark) {
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF0F172A),
-                            Color(0xFF131D31),
-                            Color(0xFF1E293B)
-                        )
-                    )
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0x1838BDF8), Color.Transparent),
-                        center = Offset(0f, 0f),
-                        radius = size.width * 0.7f
-                    ),
-                    center = Offset(0f, 0f),
-                    radius = size.width * 0.7f
-                )
-            } else {
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color(0xFFF1F5F9),
-                            Color(0xFFE2E8F0),
-                            Color(0xFFE6EDF5)
-                        )
-                    )
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0x40FFFFFF), Color.Transparent),
-                        center = Offset(0f, 0f),
-                        radius = size.width * 0.8f
-                    ),
-                    center = Offset(0f, 0f),
-                    radius = size.width * 0.8f
-                )
-            }
+            drawRect(color = canvasBg)
         }
         return
     }
@@ -280,42 +244,79 @@ fun DynamicAuroraBackground(
 @Composable
 fun Modifier.liquidGlass(
     shape: Shape = LiquidGlassDefaults.CardShape,
-    elevation: Dp = 4.dp,
+    elevation: Dp = 5.dp,
     borderAlpha: Float = 0.85f,
     isDark: Boolean = false,
-    isNeumorphic: Boolean = false
+    isNeumorphic: Boolean = false,
+    cornerRadius: Dp = 24.dp
 ): Modifier {
     if (isNeumorphic) {
-        val surfaceColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+        val surfaceColor = if (isDark) Color(0xFF1A2232) else Color(0xFFE8EEF5)
+        val lightShadow = if (isDark) Color(0x1AFFFFFF) else Color(0xF2FFFFFF)
+        val darkShadow = if (isDark) Color(0x750A0E17) else Color(0x559CB0C6)
+        val isCircle = shape == CircleShape
         val borderBrush = Brush.linearGradient(
             if (isDark) {
                 listOf(
-                    Color(0x4038BDF8),
-                    Color(0x1500E5FF),
-                    Color(0x400B1120)
+                    Color.White.copy(alpha = 0.12f),
+                    Color.Transparent,
+                    Color.Black.copy(alpha = 0.45f)
                 )
             } else {
                 listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    Color(0x2200BCD4),
-                    Color(0x3394A3B8)
+                    Color.White.copy(alpha = 0.90f),
+                    Color.Transparent,
+                    Color(0x2094A3B8)
                 )
             }
         )
-        val shadowAmbient = if (isDark) Color(0x66000000) else Color(0x2E64748B)
-        val shadowSpot = if (isDark) Color(0x3300E5FF) else Color(0x1A0F172A)
 
         return this
-            .shadow(
-                elevation = elevation + 2.dp,
-                shape = shape,
-                clip = false,
-                ambientColor = shadowAmbient,
-                spotColor = shadowSpot
-            )
+            .drawBehind {
+                val elevationPx = (elevation + 2.dp).toPx()
+                val crPx = cornerRadius.toPx()
+
+                drawIntoCanvas { canvas ->
+                    val nativeCanvas = canvas.nativeCanvas
+
+                    if (isCircle) {
+                        val radius = size.minDimension / 2f
+                        val cx = size.width / 2f
+                        val cy = size.height / 2f
+
+                        val lightPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.3f, -elevationPx * 0.75f, -elevationPx * 0.75f, lightShadow.toArgb())
+                        }
+                        nativeCanvas.drawCircle(cx, cy, radius, lightPaint)
+
+                        val darkPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.5f, elevationPx * 0.85f, elevationPx * 0.85f, darkShadow.toArgb())
+                        }
+                        nativeCanvas.drawCircle(cx, cy, radius, darkPaint)
+                    } else {
+                        val lightPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.3f, -elevationPx * 0.75f, -elevationPx * 0.75f, lightShadow.toArgb())
+                        }
+                        nativeCanvas.drawRoundRect(0f, 0f, size.width, size.height, crPx, crPx, lightPaint)
+
+                        val darkPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.5f, elevationPx * 0.85f, elevationPx * 0.85f, darkShadow.toArgb())
+                        }
+                        nativeCanvas.drawRoundRect(0f, 0f, size.width, size.height, crPx, crPx, darkPaint)
+                    }
+                }
+            }
             .clip(shape)
             .background(surfaceColor)
-            .border(BorderStroke(1.4.dp, borderBrush), shape)
+            .border(BorderStroke(0.8.dp, borderBrush), shape)
     }
 
     val bgBrush = if (isDark) {
@@ -394,7 +395,8 @@ fun Modifier.liquidGlassPill(
     elevation = elevation,
     borderAlpha = 0.85f,
     isDark = isDark,
-    isNeumorphic = isNeumorphic
+    isNeumorphic = isNeumorphic,
+    cornerRadius = 50.dp
 )
 
 @Composable
@@ -402,27 +404,68 @@ fun Modifier.liquidGlassInteractive(
     shape: Shape = LiquidGlassDefaults.SmallShape,
     isDark: Boolean = false,
     glowColor: Color = VibrantCyan,
-    isNeumorphic: Boolean = false
+    isNeumorphic: Boolean = false,
+    cornerRadius: Dp = 18.dp
 ): Modifier {
     if (isNeumorphic) {
-        val surfaceColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+        val surfaceColor = if (isDark) Color(0xFF1A2232) else Color(0xFFE8EEF5)
+        val lightShadow = if (isDark) Color(0x1AFFFFFF) else Color(0xF2FFFFFF)
+        val darkShadow = if (isDark) Color(0x750A0E17) else Color(0x559CB0C6)
+        val isCircle = shape == CircleShape
         val borderBrush = Brush.linearGradient(
             if (isDark) {
-                listOf(Color(0x6638BDF8), Color(0x2200E5FF), Color(0x660B1120))
+                listOf(Color.White.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.40f))
             } else {
-                listOf(Color.White, Color(0x3300BCD4), Color(0x3394A3B8))
+                listOf(Color.White.copy(alpha = 0.90f), Color.Transparent, Color(0x2094A3B8))
             }
         )
+
         return this
-            .shadow(
-                elevation = 3.dp,
-                shape = shape,
-                ambientColor = if (isDark) Color(0x66000000) else Color(0x2464748B),
-                spotColor = if (isDark) Color(0x2600E5FF) else Color(0x1A00BCD4)
-            )
+            .drawBehind {
+                val elevationPx = 3.5.dp.toPx()
+                val crPx = cornerRadius.toPx()
+
+                drawIntoCanvas { canvas ->
+                    val nativeCanvas = canvas.nativeCanvas
+
+                    if (isCircle) {
+                        val radius = size.minDimension / 2f
+                        val cx = size.width / 2f
+                        val cy = size.height / 2f
+
+                        val lightPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.3f, -elevationPx * 0.75f, -elevationPx * 0.75f, lightShadow.toArgb())
+                        }
+                        nativeCanvas.drawCircle(cx, cy, radius, lightPaint)
+
+                        val darkPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.5f, elevationPx * 0.85f, elevationPx * 0.85f, darkShadow.toArgb())
+                        }
+                        nativeCanvas.drawCircle(cx, cy, radius, darkPaint)
+                    } else {
+                        val lightPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.3f, -elevationPx * 0.75f, -elevationPx * 0.75f, lightShadow.toArgb())
+                        }
+                        nativeCanvas.drawRoundRect(0f, 0f, size.width, size.height, crPx, crPx, lightPaint)
+
+                        val darkPaint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            color = surfaceColor.toArgb()
+                            setShadowLayer(elevationPx * 1.5f, elevationPx * 0.85f, elevationPx * 0.85f, darkShadow.toArgb())
+                        }
+                        nativeCanvas.drawRoundRect(0f, 0f, size.width, size.height, crPx, crPx, darkPaint)
+                    }
+                }
+            }
             .clip(shape)
             .background(surfaceColor)
-            .border(BorderStroke(1.2.dp, borderBrush), shape)
+            .border(BorderStroke(0.8.dp, borderBrush), shape)
     }
 
     val bg = if (isDark) Color(0xEE1E293B) else Color(0xEBFFFFFF)

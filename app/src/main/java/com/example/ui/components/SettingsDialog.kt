@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -111,6 +112,7 @@ fun SettingsDialog(
     lastDriveBackupTime: Long = 0L,
     onBackupToDrive: () -> Unit = {},
     onRestoreFromDrive: () -> Unit = {},
+    onOpenRoomDatabase: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -442,6 +444,107 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // Section 2.5: Room Local Database (SQLite Persistent Engine)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isDarkMode) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.85f))
+                        .border(
+                            1.dp,
+                            if (isDarkMode) Color(0x3338BDF8) else Color(0x4038BDF8),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .padding(16.dp)
+                        .testTag("settings_room_db_card")
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF0284C7).copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Storage,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0284C7),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = AppStrings.get("room_db_title", currentLanguage),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDarkMode) Color.White else SlateTextPrimary
+                                    )
+                                    Text(
+                                        text = AppStrings.get("room_db_sub", currentLanguage),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "SQLite Active",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF10B981),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                onDismiss()
+                                onOpenRoomDatabase()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .testTag("open_room_database_screen_btn"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF0284C7),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Storage,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = AppStrings.get("room_db_title", currentLanguage) + " ➔",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
                 // Section 3: Theme Settings (Light / Dark)
                 Box(
                     modifier = Modifier
@@ -727,7 +830,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 6: Security Lock Card (PIN, Pattern, Biometric)
+                // Section 6: Security Lock by Pattern ONLY
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -741,7 +844,7 @@ fun SettingsDialog(
                         .padding(16.dp)
                         .testTag("security_lock_card")
                 ) {
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -751,22 +854,34 @@ fun SettingsDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = null,
-                                    tint = Color(0xFF00BCD4),
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF00BCD4).copy(alpha = 0.18f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Gesture,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00BCD4),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = AppStrings.get("security_lock_title", currentLanguage),
+                                        text = AppStrings.get("draw_pattern_title", currentLanguage),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDarkMode) Color.White else SlateTextPrimary
                                     )
                                     Text(
-                                        text = AppStrings.get("security_lock_desc", currentLanguage),
+                                        text = if (patternState.isNotBlank()) {
+                                            AppStrings.get("pattern_saved_toast", currentLanguage)
+                                        } else {
+                                            AppStrings.get("draw_pattern_instruction", currentLanguage)
+                                        },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                                         fontSize = 11.sp
@@ -776,7 +891,13 @@ fun SettingsDialog(
 
                             Switch(
                                 checked = pinEnabledState,
-                                onCheckedChange = { pinEnabledState = it },
+                                onCheckedChange = { isChecked ->
+                                    pinEnabledState = isChecked
+                                    onSaveSecurity("PATTERN", "", patternState, false, isChecked)
+                                    if (!isChecked) {
+                                        Toast.makeText(context, AppStrings.get("cancel", currentLanguage), Toast.LENGTH_SHORT).show()
+                                    }
+                                },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
                                     checkedTrackColor = Color(0xFF00BCD4)
@@ -787,327 +908,92 @@ fun SettingsDialog(
                         if (pinEnabledState) {
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Lock Type Selector (PIN / Pattern / Biometric)
-                            Text(
-                                text = AppStrings.get("security_lock_type_title", currentLanguage),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                val lockTypes = listOf(
-                                    "PIN" to AppStrings.get("lock_type_pin", currentLanguage),
-                                    "PATTERN" to AppStrings.get("lock_type_pattern", currentLanguage),
-                                    "BIOMETRIC" to AppStrings.get("lock_type_biometric", currentLanguage)
+                                Text(
+                                    text = AppStrings.get("draw_pattern_instruction", currentLanguage),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isDarkMode) Color(0xFFE2E8F0) else SlateTextPrimary
                                 )
-                                lockTypes.forEach { (type, label) ->
-                                    val isSelected = selectedLockType == type
-                                    Surface(
-                                        onClick = { selectedLockType = type },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(42.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (isSelected) {
-                                            if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
-                                        } else {
-                                            if (isDarkMode) Color(0x221E293B) else Color.White
-                                        },
-                                        border = BorderStroke(
-                                            width = if (isSelected) 1.5.dp else 1.dp,
-                                            color = if (isSelected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x3394A3B8) else Color(0x40CBD5E1))
-                                        )
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = label,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 11.sp,
-                                                color = if (isSelected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
-                                            )
-                                        }
-                                    }
+
+                                if (patternState.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "✓ " + AppStrings.get("pattern_saved_toast", currentLanguage),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF10B981),
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            // Type 1: PIN Configuration
-                            if (selectedLockType == "PIN") {
-                                OutlinedTextField(
-                                    value = enteredPin,
-                                    onValueChange = {
-                                        if (it.length <= 4 && it.all { char -> char.isDigit() }) {
-                                            enteredPin = it
-                                            pinError = null
-                                        }
-                                    },
-                                    label = { Text("PIN (4 Digits)") },
-                                    placeholder = { Text("1234") },
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                                    visualTransformation = PasswordVisualTransformation(),
-                                    isError = pinError != null,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        focusedContainerColor = if (isDarkMode) Color(0xFF243044) else Color(0xF7FFFFFF),
-                                        unfocusedContainerColor = if (isDarkMode) Color(0xFF1E293B) else Color(0xD9FFFFFF),
-                                        unfocusedBorderColor = if (isDarkMode) Color(0xFF475569) else Color(0x3300BCD4),
-                                        focusedBorderColor = Color(0xFF00BCD4),
-                                        focusedLabelColor = Color(0xFF00BCD4),
-                                        unfocusedLabelColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        cursorColor = Color(0xFF00BCD4)
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
 
                                 Spacer(modifier = Modifier.height(10.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(240.dp)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF1F5F9))
+                                        .border(1.2.dp, Color(0xFF00BCD4).copy(alpha = 0.5f), RoundedCornerShape(18.dp))
+                                ) {
+                                    PatternLockView(
+                                        onPatternComplete = { drawn ->
+                                            tempDrawnPattern = drawn
+                                            val count = drawn.split(",").filter { it.isNotBlank() }.size
+                                            if (count >= 4) {
+                                                patternFeedback = "${AppStrings.get("draw_pattern_title", currentLanguage)}: $count"
+                                            } else {
+                                                patternFeedback = AppStrings.get("pattern_too_short", currentLanguage)
+                                            }
+                                        },
+                                        isDark = isDarkMode,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+
+                                if (patternFeedback != null) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = patternFeedback!!,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (tempDrawnPattern.split(",").filter { it.isNotBlank() }.size >= 4) Color(0xFF00BCD4) else Color(0xFFEF4444)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    OutlinedButton(
-                                        onClick = {
-                                            if (enteredPin.length == 4) {
-                                                onSavePin(enteredPin, true)
-                                                Toast.makeText(context, "PIN Saved", Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                pinError = "PIN must be 4 digits"
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        border = BorderStroke(1.2.dp, Color(0x60CBD5E1))
-                                    ) {
-                                        Text(
-                                            text = AppStrings.get("change_pin_btn", currentLanguage),
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkMode) Color.White else SlateTextPrimary,
-                                            fontSize = 12.sp
-                                        )
-                                    }
-
                                     Button(
                                         onClick = {
-                                            onLockNow()
-                                            onDismiss()
+                                            val count = tempDrawnPattern.split(",").filter { it.isNotBlank() }.size
+                                            if (count >= 4) {
+                                                patternState = tempDrawnPattern
+                                                onSaveSecurity("PATTERN", "", patternState, false, true)
+                                                Toast.makeText(context, AppStrings.get("pattern_saved_toast", currentLanguage), Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, AppStrings.get("pattern_too_short", currentLanguage), Toast.LENGTH_SHORT).show()
+                                            }
                                         },
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(44.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFEF4444),
+                                            containerColor = Color(0xFF00BCD4),
                                             contentColor = Color.White
                                         )
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Lock,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = AppStrings.get("lock_now_btn", currentLanguage),
+                                            text = AppStrings.get("save", currentLanguage),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp
                                         )
                                     }
-                                }
-                            }
-
-                            // Type 2: Pattern Lock Configuration
-                            if (selectedLockType == "PATTERN") {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = AppStrings.get("draw_pattern_instruction", currentLanguage),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (isDarkMode) Color(0xFFE2E8F0) else SlateTextPrimary
-                                    )
-
-                                    if (patternState.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "✓ " + AppStrings.get("pattern_saved_toast", currentLanguage),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color(0xFF10B981),
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(240.dp)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF1F5F9))
-                                            .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                                    ) {
-                                        PatternLockView(
-                                            onPatternComplete = { drawn ->
-                                                tempDrawnPattern = drawn
-                                                val count = drawn.split(",").size
-                                                if (count >= 4) {
-                                                    patternFeedback = "${AppStrings.get("draw_pattern_title", currentLanguage)}: $count"
-                                                } else {
-                                                    patternFeedback = AppStrings.get("pattern_too_short", currentLanguage)
-                                                }
-                                            },
-                                            isDark = isDarkMode,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
-
-                                    if (patternFeedback != null) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = patternFeedback!!,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (tempDrawnPattern.split(",").size >= 4) Color(0xFF00BCD4) else Color(0xFFEF4444)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        OutlinedButton(
-                                            onClick = {
-                                                if (tempDrawnPattern.isNotEmpty() && tempDrawnPattern.split(",").size >= 4) {
-                                                    patternState = tempDrawnPattern
-                                                    onSaveSecurity(
-                                                        "PATTERN",
-                                                        enteredPin,
-                                                        patternState,
-                                                        biometricState,
-                                                        true
-                                                    )
-                                                    Toast.makeText(context, AppStrings.get("pattern_saved_toast", currentLanguage), Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    Toast.makeText(context, AppStrings.get("pattern_too_short", currentLanguage), Toast.LENGTH_SHORT).show()
-                                                }
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(44.dp),
-                                            shape = RoundedCornerShape(12.dp),
-                                            border = BorderStroke(1.2.dp, Color(0xFF00BCD4))
-                                        ) {
-                                            Text(
-                                                text = AppStrings.get("save", currentLanguage),
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF00BCD4),
-                                                fontSize = 12.sp
-                                            )
-                                        }
-
-                                        Button(
-                                            onClick = {
-                                                onLockNow()
-                                                onDismiss()
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(44.dp),
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFFEF4444),
-                                                contentColor = Color.White
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Lock,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = AppStrings.get("lock_now_btn", currentLanguage),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Type 3: Biometric Configuration
-                            if (selectedLockType == "BIOMETRIC") {
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Fingerprint,
-                                                contentDescription = null,
-                                                tint = Color(0xFF00BCD4),
-                                                modifier = Modifier.size(26.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Column {
-                                                Text(
-                                                    text = AppStrings.get("lock_type_biometric", currentLanguage),
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isDarkMode) Color.White else SlateTextPrimary
-                                                )
-                                                Text(
-                                                    text = AppStrings.get("biometric_unlock_btn", currentLanguage),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-                                        }
-
-                                        Switch(
-                                            checked = biometricState,
-                                            onCheckedChange = {
-                                                biometricState = it
-                                                onSaveSecurity(
-                                                    "BIOMETRIC",
-                                                    enteredPin,
-                                                    patternState,
-                                                    it,
-                                                    true
-                                                )
-                                            },
-                                            colors = SwitchDefaults.colors(
-                                                checkedThumbColor = Color.White,
-                                                checkedTrackColor = Color(0xFF00BCD4)
-                                            )
-                                        )
-                                    }
-
-                                    Text(
-                                        text = AppStrings.get("unlock_with_pin", currentLanguage) + " / " + AppStrings.get("unlock_with_pattern", currentLanguage),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
-                                        fontSize = 11.sp
-                                    )
 
                                     Button(
                                         onClick = {
@@ -1115,7 +1001,7 @@ fun SettingsDialog(
                                             onDismiss()
                                         },
                                         modifier = Modifier
-                                            .fillMaxWidth()
+                                            .weight(1f)
                                             .height(44.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
