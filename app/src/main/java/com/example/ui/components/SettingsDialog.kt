@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
@@ -112,7 +113,8 @@ fun SettingsDialog(
     lastDriveBackupTime: Long = 0L,
     onBackupToDrive: () -> Unit = {},
     onRestoreFromDrive: () -> Unit = {},
-    onOpenRoomDatabase: () -> Unit = {},
+    isDynamicAnimationsEnabled: Boolean = true,
+    onToggleDynamicAnimations: (Boolean) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -127,6 +129,7 @@ fun SettingsDialog(
     var pinError by remember { mutableStateOf<String?>(null) }
     var patternFeedback by remember { mutableStateOf<String?>(null) }
     var driveSyncState by remember { mutableStateOf(isDriveSyncEnabled) }
+    var dynamicAnimationsState by remember { mutableStateOf(isDynamicAnimationsEnabled) }
 
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
 
@@ -444,7 +447,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 2.5: Room Local Database (SQLite Persistent Engine)
+                // Section 2.5: Dynamic Animations & Performance Mode (Optimization for weak devices)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -452,11 +455,11 @@ fun SettingsDialog(
                         .background(if (isDarkMode) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.85f))
                         .border(
                             1.dp,
-                            if (isDarkMode) Color(0x3338BDF8) else Color(0x4038BDF8),
+                            if (isDarkMode) Color(0x33A855F7) else Color(0x40A855F7),
                             RoundedCornerShape(20.dp)
                         )
                         .padding(16.dp)
-                        .testTag("settings_room_db_card")
+                        .testTag("dynamic_animations_toggle_card")
                 ) {
                     Column {
                         Row(
@@ -464,81 +467,95 @@ fun SettingsDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF0284C7).copy(alpha = 0.15f)),
+                                        .background(Color(0xFFA855F7).copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Storage,
+                                        imageVector = Icons.Default.Speed,
                                         contentDescription = null,
-                                        tint = Color(0xFF0284C7),
+                                        tint = Color(0xFFA855F7),
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = AppStrings.get("room_db_title", currentLanguage),
+                                        text = AppStrings.get("dynamic_animations_title", currentLanguage),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDarkMode) Color.White else SlateTextPrimary
                                     )
                                     Text(
-                                        text = AppStrings.get("room_db_sub", currentLanguage),
+                                        text = AppStrings.get("dynamic_animations_desc", currentLanguage),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
-                                        fontSize = 11.sp
+                                        fontSize = 11.sp,
+                                        lineHeight = 15.sp
                                     )
                                 }
                             }
 
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.15f)
-                            ) {
-                                Text(
-                                    text = "SQLite Active",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF10B981),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Switch(
+                                checked = dynamicAnimationsState,
+                                onCheckedChange = {
+                                    dynamicAnimationsState = it
+                                    onToggleDynamicAnimations(it)
+                                    Toast.makeText(
+                                        context,
+                                        if (it) AppStrings.get("dynamic_animations_active", currentLanguage)
+                                        else AppStrings.get("dynamic_animations_disabled", currentLanguage),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFFA855F7)
                                 )
-                            }
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        Button(
-                            onClick = {
-                                onDismiss()
-                                onOpenRoomDatabase()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                                .testTag("open_room_database_screen_btn"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF0284C7),
-                                contentColor = Color.White
-                            )
+                        // Status info pill
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (dynamicAnimationsState) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFF59E0B).copy(alpha = 0.12f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (dynamicAnimationsState) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFF59E0B).copy(alpha = 0.3f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Storage,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = AppStrings.get("room_db_title", currentLanguage) + " ➔",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(if (dynamicAnimationsState) Color(0xFF10B981) else Color(0xFFF59E0B))
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (dynamicAnimationsState) AppStrings.get("dynamic_animations_active", currentLanguage)
+                                    else AppStrings.get("dynamic_animations_disabled", currentLanguage),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (dynamicAnimationsState) Color(0xFF10B981) else Color(0xFFF59E0B),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
                     }
                 }

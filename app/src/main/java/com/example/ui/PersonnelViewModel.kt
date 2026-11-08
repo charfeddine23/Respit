@@ -101,6 +101,14 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         settingsManager.isFocusMode = enabled
     }
 
+    // Dynamic UI Animations state (Master toggle for weak device optimization)
+    val isDynamicAnimationsEnabled = MutableStateFlow(settingsManager.isDynamicAnimationsEnabled)
+
+    fun setDynamicAnimationsEnabled(enabled: Boolean) {
+        isDynamicAnimationsEnabled.value = enabled
+        settingsManager.isDynamicAnimationsEnabled = enabled
+    }
+
     // Google Drive Sync state
     val isDriveSyncEnabled = MutableStateFlow(settingsManager.isGoogleDriveSyncEnabled)
     val lastDriveBackupTime = MutableStateFlow(settingsManager.lastGoogleDriveBackupTime)

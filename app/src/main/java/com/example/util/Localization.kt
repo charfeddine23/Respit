@@ -281,6 +281,20 @@ object AppStrings {
         "room_search_leaves" to "بحث في سجلات الإجازات...",
         "room_new_leave_title" to "إضافة سجل إجازة جديد في Room",
 
+        // Bottom Navigation Panel
+        "nav_dashboard" to "الرئيسية",
+        "nav_records" to "الأفراد",
+        "nav_database" to "قاعدة البيانات",
+        "nav_notifications" to "الإشعارات",
+
+        // Dynamic UI Animations & Performance
+        "dynamic_animations_title" to "الحركات والمؤثرات الديناميكية",
+        "dynamic_animations_desc" to "حركات تفاعلية حية، نبضات مضيئة، وانتقالات سلسة (يمكن إيقافها لتوفير البطارية وتسريع الأجهزة الاقتصادية).",
+        "dynamic_animations_active" to "الحركات مفعلة (أداء حيوي 60 FPS)",
+        "dynamic_animations_disabled" to "نمط الأداء الفائق (الحركات معطلة لتوفير المعالج)",
+        "view_all" to "عرض الكل",
+        "urgent_alerts_title" to "تنبيهات عاجلة (اليوم أو متأخر)",
+
         // Miscellaneous
         "input_text_dark_note" to "وضوح تام لخانة الإدخال",
         "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})"
@@ -546,6 +560,20 @@ object AppStrings {
         "room_search_leaves" to "Rechercher dans les congés...",
         "room_new_leave_title" to "Nouveau congé dans Room",
 
+        // Bottom Navigation Panel
+        "nav_dashboard" to "Accueil",
+        "nav_records" to "Personnel",
+        "nav_database" to "Base Room",
+        "nav_notifications" to "Alertes",
+
+        // Dynamic UI Animations & Performance
+        "dynamic_animations_title" to "Animations & Effets Dynamiques",
+        "dynamic_animations_desc" to "Micro-interactions fluides et lueurs pulsantes (désactivables pour économiser batterie et CPU sur appareils modestes).",
+        "dynamic_animations_active" to "Animations actives (60 FPS)",
+        "dynamic_animations_disabled" to "Mode Performance (Animations désactivées)",
+        "view_all" to "Voir tout",
+        "urgent_alerts_title" to "Alertes urgentes (Aujourd'hui / En retard)",
+
         // Miscellaneous
         "input_text_dark_note" to "Contraste texte noir optimisé",
         "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})"
@@ -810,6 +838,20 @@ object AppStrings {
         "room_no_leaves_desc" to "Click Add or Sync from Personnel to populate leave records in Room.",
         "room_search_leaves" to "Search leave records...",
         "room_new_leave_title" to "Add New Leave in Room",
+
+        // Bottom Navigation Panel
+        "nav_dashboard" to "Dashboard",
+        "nav_records" to "Personnel",
+        "nav_database" to "Room DB",
+        "nav_notifications" to "Notifications",
+
+        // Dynamic UI Animations & Performance
+        "dynamic_animations_title" to "Dynamic Animations & Living UI",
+        "dynamic_animations_desc" to "Smooth micro-interactions, pulsing glows, and fluid transitions (disable to save battery and boost speed on lower-end devices).",
+        "dynamic_animations_active" to "Dynamic Animations Active (60 FPS)",
+        "dynamic_animations_disabled" to "Performance Mode (Animations Disabled)",
+        "view_all" to "View All",
+        "urgent_alerts_title" to "Urgent Alerts (Today / Overdue)",
 
         // Miscellaneous
         "input_text_dark_note" to "Pure black input text optimized",

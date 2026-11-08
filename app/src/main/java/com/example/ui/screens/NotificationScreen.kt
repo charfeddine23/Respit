@@ -129,13 +129,14 @@ fun NotificationScreen(
     }
 
     val pinnedCount = remember(notifications) { notifications.count { it.isPinned } }
+    val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Ambient Liquid Dynamic Aurora Mesh Background (Smooth 60fps drifting orbs)
-            DynamicAuroraBackground(isDark = isDarkMode)
+            DynamicAuroraBackground(isDark = isDarkMode, animationsEnabled = isDynamicAnimationsEnabled)
 
             Scaffold(
                 modifier = Modifier

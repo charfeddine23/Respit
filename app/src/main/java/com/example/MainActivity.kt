@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -115,6 +116,8 @@ import com.example.data.Personnel
 import com.example.ui.PersonnelViewModel
 import com.example.ui.SortOption
 import com.example.ui.components.AddEditPersonnelDialog
+import com.example.ui.components.AppBottomNavigationPanel
+import com.example.ui.components.AppNavPage
 import com.example.ui.components.DeveloperInfoDialog
 import com.example.ui.components.ExportDialog
 import com.example.ui.components.FilterSortDialog
@@ -251,8 +254,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     var showDeveloperDialog by remember { mutableStateOf(false) }
     var showFilterSortDialog by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
-    var showNotificationScreen by remember { mutableStateOf(false) }
-    var showRoomDatabaseScreen by remember { mutableStateOf(false) }
+    var selectedNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
+    val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -290,29 +293,9 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         return
     }
 
-    // Direct in-app Notification Screen
-    if (showNotificationScreen) {
-        NotificationScreen(
-            viewModel = viewModel,
-            onBack = { showNotificationScreen = false },
-            onSelectPersonnel = { personnelId ->
-                val p = allPersonnelList.find { it.id == personnelId }
-                if (p != null) {
-                    personnelToEdit = p
-                    showAddEditDialog = true
-                }
-            }
-        )
-        return
-    }
-
-    // Direct in-app Room Local Database Screen (Dedicated Page)
-    if (showRoomDatabaseScreen) {
-        RoomDatabaseScreen(
-            viewModel = viewModel,
-            onBack = { showRoomDatabaseScreen = false }
-        )
-        return
+    // Back navigation: Pop sub-screens back to Dashboard
+    BackHandler(enabled = selectedNavPage != AppNavPage.DASHBOARD) {
+        selectedNavPage = AppNavPage.DASHBOARD
     }
 
     // ModalNavigationDrawer anchored on the left edge for smooth left-edge swipe gesture
@@ -341,7 +324,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                 scope.launch { drawerState.close() }
                             },
                             onCheckNotifications = {
-                                showNotificationScreen = true
+                                selectedNavPage = AppNavPage.NOTIFICATIONS
                                 scope.launch { drawerState.close() }
                             },
                             onExportPdf = {
@@ -353,7 +336,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                 scope.launch { drawerState.close() }
                             },
                             onOpenRoomDatabase = {
-                                showRoomDatabaseScreen = true
+                                selectedNavPage = AppNavPage.DATABASE
                                 scope.launch { drawerState.close() }
                             },
                             onToggleTheme = {
@@ -383,7 +366,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                     // Ambient Liquid Dynamic Aurora Mesh Background (Smooth 60fps drifting orbs)
                     DynamicAuroraBackground(
                         isDark = isDarkMode,
-                        isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
+                        isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM,
+                        animationsEnabled = isDynamicAnimationsEnabled
                     )
 
                     Scaffold(
@@ -448,52 +432,89 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             )
                                         }
 
-                                        // Right Side (الجهة اليمنى): Quick Notifications & Drawer Menu Button
+                                        // Right Side (الجهة اليمنى): Quick Actions (Theme Toggle, Settings, Drawer Menu)
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            // Quick Notification Button with soft rounded corners & live badge
-                                            val notifShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+                                            val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+
+                                            // Quick Theme Toggle Button
                                             Box(
-                                                modifier = Modifier
-                                                    .liquidGlassInteractive(
-                                                        shape = notifShape,
-                                                        glowColor = MaterialTheme.colorScheme.primary,
-                                                        isDark = isDarkMode,
-                                                        isNeumorphic = isNeumorphic
-                                                    )
+                                                modifier = Modifier.liquidGlassInteractive(
+                                                    shape = iconShape,
+                                                    glowColor = MaterialTheme.colorScheme.primary,
+                                                    isDark = isDarkMode,
+                                                    isNeumorphic = isNeumorphic
+                                                )
                                             ) {
                                                 IconButton(
-                                                    onClick = { showNotificationScreen = true },
+                                                    onClick = {
+                                                        viewModel.toggleTheme()
+                                                        val modeName = if (!isDarkMode) AppStrings.get("theme_dark", currentLang) else AppStrings.get("theme_light", currentLang)
+                                                        Toast.makeText(context, "${AppStrings.get("theme_title", currentLang)}: $modeName", Toast.LENGTH_SHORT).show()
+                                                    },
                                                     modifier = Modifier
-                                                        .size(42.dp)
-                                                        .clip(notifShape)
-                                                        .testTag("header_notifications_button")
+                                                        .size(40.dp)
+                                                        .clip(iconShape)
+                                                        .testTag("header_theme_toggle_button")
                                                 ) {
-                                                    BadgedBox(
-                                                        badge = {
-                                                            if (notificationsCount > 0) {
-                                                                Badge(
-                                                                    containerColor = Color(0xFFEF4444),
-                                                                    contentColor = Color.White
-                                                                ) {
-                                                                    Text(
-                                                                        text = "",
-                                                                        fontSize = 10.sp,
-                                                                        fontWeight = FontWeight.Bold
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Notifications,
-                                                            contentDescription = AppStrings.get("check_notifications", currentLang),
-                                                            tint = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
+                                                    Icon(
+                                                        imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                                        contentDescription = AppStrings.get("theme_title", currentLang),
+                                                        tint = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            // Settings Dialog Button
+                                            Box(
+                                                modifier = Modifier.liquidGlassInteractive(
+                                                    shape = iconShape,
+                                                    glowColor = MaterialTheme.colorScheme.primary,
+                                                    isDark = isDarkMode,
+                                                    isNeumorphic = isNeumorphic
+                                                )
+                                            ) {
+                                                IconButton(
+                                                    onClick = { showSettingsDialog = true },
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(iconShape)
+                                                        .testTag("header_settings_button")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Settings,
+                                                        contentDescription = AppStrings.get("settings", currentLang),
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            // Drawer Menu Button
+                                            Box(
+                                                modifier = Modifier.liquidGlassInteractive(
+                                                    shape = iconShape,
+                                                    glowColor = MaterialTheme.colorScheme.primary,
+                                                    isDark = isDarkMode,
+                                                    isNeumorphic = isNeumorphic
+                                                )
+                                            ) {
+                                                IconButton(
+                                                    onClick = { scope.launch { drawerState.open() } },
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(iconShape)
+                                                        .testTag("header_menu_button")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Menu,
+                                                        contentDescription = "القائمة",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
                                                 }
                                             }
                                         }
@@ -502,579 +523,750 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             }
                         },
                         floatingActionButton = {
-                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Bottom Left: Settings Button
-                                    if (isNeumorphic) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(56.dp)
-                                                .liquidGlassInteractive(
-                                                    shape = CircleShape,
-                                                    isDark = isDarkMode,
-                                                    isNeumorphic = true
+                            if (selectedNavPage == AppNavPage.DASHBOARD || selectedNavPage == AppNavPage.RECORDS) {
+                                if (isNeumorphic) {
+                                    Surface(
+                                        onClick = {
+                                            personnelToEdit = null
+                                            showAddEditDialog = true
+                                        },
+                                        modifier = Modifier
+                                            .size(58.dp)
+                                            .shadow(
+                                                elevation = 10.dp,
+                                                shape = CircleShape,
+                                                ambientColor = Color(0x602563EB),
+                                                spotColor = Color(0x901D4ED8)
+                                            )
+                                            .clip(CircleShape)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
                                                 )
-                                                .clickable { showSettingsDialog = true }
-                                                .testTag("bottom_settings_button"),
+                                            )
+                                            .testTag("add_personnel_fab"),
+                                        shape = CircleShape,
+                                        color = Color(0xFF2563EB)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Settings,
-                                                contentDescription = AppStrings.get("settings", currentLang),
-                                                tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                                                modifier = Modifier.size(26.dp)
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "إضافة فرد جديد",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(30.dp)
                                             )
                                         }
-                                    } else {
-                                        Surface(
-                                            onClick = { showSettingsDialog = true },
-                                            modifier = Modifier
-                                                .size(56.dp)
-                                                .shadow(
-                                                    elevation = 8.dp,
-                                                    shape = RoundedCornerShape(18.dp),
-                                                    ambientColor = if (isDarkMode) Color(0x3300BCD4) else Color(0x2200BCD4),
-                                                    spotColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x3300BCD4)
-                                                )
-                                                .clip(RoundedCornerShape(18.dp))
-                                                .background(
-                                                    if (isDarkMode) {
-                                                        Brush.verticalGradient(listOf(Color(0xEE1E293B), Color(0xDD0F172A)))
-                                                    } else {
-                                                        Brush.verticalGradient(listOf(Color(0xF0FFFFFF), Color(0xE0F0FDFA)))
-                                                    }
-                                                )
-                                                .border(
-                                                    BorderStroke(
-                                                        1.5.dp,
-                                                        Brush.linearGradient(
-                                                            listOf(
-                                                                Color.White.copy(alpha = if (isDarkMode) 0.6f else 0.95f),
-                                                                Color(0xFF00E5FF).copy(alpha = 0.7f),
-                                                                Color.White.copy(alpha = 0.5f)
-                                                            )
-                                                        )
-                                                    ),
-                                                    RoundedCornerShape(18.dp)
-                                                )
-                                                .testTag("bottom_settings_button"),
-                                            shape = RoundedCornerShape(18.dp),
-                                            color = Color.Transparent
-                                        ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Settings,
-                                                    contentDescription = AppStrings.get("settings", currentLang),
-                                                    tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
-                                                    modifier = Modifier.size(26.dp)
-                                                )
-                                            }
-                                        }
                                     }
-
-                                    // Bottom Right: Add Personnel Button (Vibrant Royal Blue Circle FAB in Neumorphism matching user image)
-                                    if (isNeumorphic) {
-                                        Surface(
-                                            onClick = {
-                                                personnelToEdit = null
-                                                showAddEditDialog = true
-                                            },
-                                            modifier = Modifier
-                                                .size(58.dp)
-                                                .shadow(
-                                                    elevation = 10.dp,
-                                                    shape = CircleShape,
-                                                    ambientColor = Color(0x602563EB),
-                                                    spotColor = Color(0x901D4ED8)
+                                } else {
+                                    Surface(
+                                        onClick = {
+                                            personnelToEdit = null
+                                            showAddEditDialog = true
+                                        },
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .shadow(
+                                                elevation = 8.dp,
+                                                shape = RoundedCornerShape(18.dp),
+                                                ambientColor = Color(0xFF00BCD4).copy(alpha = 0.45f),
+                                                spotColor = Color(0xFF00E5FF).copy(alpha = 0.55f)
+                                            )
+                                            .clip(RoundedCornerShape(18.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(Color(0xFF00BCD4), Color(0xFF00E5FF))
                                                 )
-                                                .clip(CircleShape)
-                                                .background(
-                                                    Brush.verticalGradient(
-                                                        listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
-                                                    )
-                                                )
-                                                .testTag("add_personnel_fab"),
-                                            shape = CircleShape,
-                                            color = Color(0xFF2563EB)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Add,
-                                                    contentDescription = "إضافة فرد جديد",
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(30.dp)
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        Surface(
-                                            onClick = {
-                                                personnelToEdit = null
-                                                showAddEditDialog = true
-                                            },
-                                            modifier = Modifier
-                                                .size(56.dp)
-                                                .shadow(
-                                                    elevation = 8.dp,
-                                                    shape = RoundedCornerShape(18.dp),
-                                                    ambientColor = Color(0xFF00BCD4).copy(alpha = 0.45f),
-                                                    spotColor = Color(0xFF00E5FF).copy(alpha = 0.55f)
-                                                )
-                                                .clip(RoundedCornerShape(18.dp))
-                                                .background(
+                                            )
+                                            .border(
+                                                BorderStroke(
+                                                    1.5.dp,
                                                     Brush.linearGradient(
                                                         listOf(
-                                                            Color(0xFF00BCD4),
-                                                            Color(0xFF00E5FF)
+                                                            Color.White.copy(alpha = 0.85f),
+                                                            Color(0xFFE0F7FA).copy(alpha = 0.7f),
+                                                            Color.White.copy(alpha = 0.4f)
                                                         )
                                                     )
-                                                )
-                                                .border(
-                                                    BorderStroke(
-                                                        1.5.dp,
-                                                        Brush.linearGradient(
-                                                            listOf(
-                                                                Color.White.copy(alpha = 0.85f),
-                                                                Color(0xFFE0F7FA).copy(alpha = 0.7f),
-                                                                Color.White.copy(alpha = 0.4f)
-                                                            )
-                                                        )
-                                                    ),
-                                                    RoundedCornerShape(18.dp)
-                                                )
-                                                .testTag("add_personnel_fab"),
-                                            shape = RoundedCornerShape(18.dp),
-                                            color = Color.Transparent
+                                                ),
+                                                RoundedCornerShape(18.dp)
+                                            )
+                                            .testTag("add_personnel_fab"),
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = Color.Transparent
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Add,
-                                                    contentDescription = "إضافة فرد جديد",
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(28.dp)
-                                                )
-                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "إضافة فرد جديد",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(28.dp)
+                                            )
                                         }
                                     }
                                 }
                             }
                         },
-                        floatingActionButtonPosition = FabPosition.Center
+                        floatingActionButtonPosition = FabPosition.End,
+                        bottomBar = {
+                            AppBottomNavigationPanel(
+                                selectedPage = selectedNavPage,
+                                onSelectPage = { selectedNavPage = it },
+                                notificationsCount = notificationsCount,
+                                isDarkMode = isDarkMode,
+                                isNeumorphic = isNeumorphic,
+                                animationsEnabled = isDynamicAnimationsEnabled,
+                                currentLang = currentLang
+                            )
+                        }
                     ) { innerPadding ->
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                val isTablet = maxWidth >= 600.dp
-                val contentMaxWidth = if (isTablet) 980.dp else 680.dp
-                val horizontalPadding = if (isTablet) 24.dp else 16.dp
-                val contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp)
-
-                // Native Compose Liquid Glass Dashboard (Adaptive responsive width for tablets)
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .widthIn(max = contentMaxWidth)
-                        .testTag("personnel_lazy_column"),
-                    contentPadding = contentPadding,
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Statistics KPI Cards (Interactive Unified Dashboard)
-                    item {
-                        StatisticsSection(
-                            stats = stats,
-                            currentLang = currentLang,
-                            selectedStatus = selectedStatus,
-                            onSelectStatus = { viewModel.selectedStatus.value = it },
-                            isDarkMode = isDarkMode,
-                            isNeumorphic = isNeumorphic
-                        )
-                    }
-
-                    // Liquid Glass / Neumorphic Search Container with Integrated Filter & Sort Button
-                    item {
-                        val activeFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
-                                (if (selectedRank != "ALL") 1 else 0) +
-                                (if (currentSort != SortOption.RETURN_SOON) 1 else 0)
-
-                        Box(
+                        BoxWithConstraints(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .liquidGlass(
-                                    shape = LiquidGlassDefaults.CardShape,
-                                    elevation = 5.dp,
-                                    borderAlpha = 0.85f,
-                                    isDark = isDarkMode,
-                                    isNeumorphic = isNeumorphic,
-                                    cornerRadius = 24.dp
-                                )
-                                .padding(12.dp)
+                                .fillMaxSize()
+                                .padding(innerPadding),
+                            contentAlignment = Alignment.TopCenter
                         ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    // Search Input with high contrast slate text (#0F172A)
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = {
-                                            viewModel.searchQuery.value = it
-                                            if (it.trim().length >= 3) {
-                                                viewModel.addRecentSearch(it)
+                            val isTablet = maxWidth >= 600.dp
+                            val contentMaxWidth = if (isTablet) 980.dp else 680.dp
+                            val horizontalPadding = if (isTablet) 24.dp else 16.dp
+                            val contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 14.dp)
+
+                            when (selectedNavPage) {
+                                AppNavPage.DATABASE -> {
+                                    RoomDatabaseScreen(
+                                        viewModel = viewModel,
+                                        onBack = { selectedNavPage = AppNavPage.DASHBOARD }
+                                    )
+                                }
+                                AppNavPage.NOTIFICATIONS -> {
+                                    NotificationScreen(
+                                        viewModel = viewModel,
+                                        onBack = { selectedNavPage = AppNavPage.DASHBOARD },
+                                        onSelectPersonnel = { personnelId ->
+                                            val p = allPersonnelList.find { it.id == personnelId }
+                                            if (p != null) {
+                                                personnelToEdit = p
+                                                showAddEditDialog = true
                                             }
-                                        },
+                                        }
+                                    )
+                                }
+                                AppNavPage.DASHBOARD -> {
+                                    val previewList = remember(personnelList) { personnelList.take(4) }
+                                    LazyColumn(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .testTag("search_field"),
-                                        placeholder = {
-                                            Text(
-                                                AppStrings.get("search_placeholder", currentLang),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                            .fillMaxSize()
+                                            .widthIn(max = contentMaxWidth)
+                                            .testTag("dashboard_lazy_column"),
+                                        contentPadding = contentPadding,
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        // Unified Interactive KPI Dashboard (with Pulse & living animation support)
+                                        item {
+                                            StatisticsSection(
+                                                stats = stats,
+                                                currentLang = currentLang,
+                                                selectedStatus = selectedStatus,
+                                                onSelectStatus = {
+                                                    viewModel.selectedStatus.value = it
+                                                    selectedNavPage = AppNavPage.RECORDS
+                                                },
+                                                isDarkMode = isDarkMode,
+                                                isNeumorphic = isNeumorphic,
+                                                animationsEnabled = isDynamicAnimationsEnabled
                                             )
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.Search,
-                                                contentDescription = AppStrings.get("search_label", currentLang),
-                                                tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
-                                            )
-                                        },
-                                        trailingIcon = {
-                                            if (searchQuery.isNotEmpty()) {
-                                                IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Clear,
-                                                        contentDescription = AppStrings.get("clear_search", currentLang),
-                                                        tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                        }
+
+                                        // Quick Search and Filter Trigger Box
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .liquidGlass(
+                                                        shape = LiquidGlassDefaults.CardShape,
+                                                        elevation = 5.dp,
+                                                        borderAlpha = 0.85f,
+                                                        isDark = isDarkMode,
+                                                        isNeumorphic = isNeumorphic,
+                                                        cornerRadius = 24.dp
+                                                    )
+                                                    .padding(12.dp)
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                    ) {
+                                                        OutlinedTextField(
+                                                            value = searchQuery,
+                                                            onValueChange = {
+                                                                viewModel.searchQuery.value = it
+                                                                if (it.trim().length >= 3) {
+                                                                    viewModel.addRecentSearch(it)
+                                                                }
+                                                            },
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .testTag("search_field"),
+                                                            placeholder = {
+                                                                Text(
+                                                                    AppStrings.get("search_placeholder", currentLang),
+                                                                    style = MaterialTheme.typography.bodyMedium,
+                                                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                                )
+                                                            },
+                                                            leadingIcon = {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Search,
+                                                                    contentDescription = AppStrings.get("search_label", currentLang),
+                                                                    tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
+                                                                )
+                                                            },
+                                                            trailingIcon = {
+                                                                if (searchQuery.isNotEmpty()) {
+                                                                    IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                                                        Icon(
+                                                                            imageVector = Icons.Default.Clear,
+                                                                            contentDescription = AppStrings.get("clear_search", currentLang),
+                                                                            tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                                        )
+                                                                    }
+                                                                }
+                                                            },
+                                                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                                            keyboardActions = KeyboardActions(
+                                                                onSearch = {
+                                                                    if (searchQuery.isNotBlank()) {
+                                                                        viewModel.addRecentSearch(searchQuery)
+                                                                    }
+                                                                }
+                                                            ),
+                                                            colors = OutlinedTextFieldDefaults.colors(
+                                                                focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                                unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                                focusedContainerColor = if (isDarkMode) Color(0x331E293B) else Color(0xF5FFFFFF),
+                                                                unfocusedContainerColor = if (isDarkMode) Color(0x221E293B) else Color(0xD9FFFFFF),
+                                                                unfocusedBorderColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x4000BCD4),
+                                                                focusedBorderColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
+                                                                focusedPlaceholderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                                                unfocusedPlaceholderColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                                                cursorColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
+                                                            ),
+                                                            singleLine = true,
+                                                            shape = RoundedCornerShape(14.dp)
+                                                        )
+
+                                                        Box(
+                                                            modifier = Modifier.liquidGlassInteractive(
+                                                                shape = RoundedCornerShape(14.dp),
+                                                                glowColor = MaterialTheme.colorScheme.primary,
+                                                                isDark = isDarkMode,
+                                                                isNeumorphic = isNeumorphic
+                                                            )
+                                                        ) {
+                                                            IconButton(
+                                                                onClick = {
+                                                                    selectedNavPage = AppNavPage.RECORDS
+                                                                    showFilterSortDialog = true
+                                                                },
+                                                                modifier = Modifier
+                                                                    .size(52.dp)
+                                                                    .testTag("filter_sort_dialog_button")
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Tune,
+                                                                    contentDescription = "الفلترة والترتيب",
+                                                                    tint = MaterialTheme.colorScheme.primary,
+                                                                    modifier = Modifier.size(26.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Recent Searches
+                                                    if (recentSearches.isNotEmpty()) {
+                                                        Row(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .horizontalScroll(rememberScrollState()),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.History,
+                                                                contentDescription = AppStrings.get("recent_searches_title", currentLang),
+                                                                tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
+                                                                modifier = Modifier.size(16.dp)
+                                                            )
+                                                            Text(
+                                                                text = AppStrings.get("recent_searches_title", currentLang),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF64748B),
+                                                                fontSize = 11.sp
+                                                            )
+                                                            recentSearches.forEach { queryItem ->
+                                                                Surface(
+                                                                    shape = RoundedCornerShape(50.dp),
+                                                                    color = if (searchQuery == queryItem) {
+                                                                        if (isDarkMode) Color(0xFF00BCD4) else Color(0xFFE0F7FA)
+                                                                    } else {
+                                                                        if (isDarkMode) Color(0xFF334155) else Color(0xF2FFFFFF)
+                                                                    },
+                                                                    border = BorderStroke(
+                                                                        0.8.dp,
+                                                                        if (isDarkMode) Color(0x6600E5FF) else Color(0x4000BCD4)
+                                                                    ),
+                                                                    onClick = {
+                                                                        viewModel.searchQuery.value = queryItem
+                                                                        viewModel.addRecentSearch(queryItem)
+                                                                    },
+                                                                    modifier = Modifier.height(28.dp)
+                                                                ) {
+                                                                    Row(
+                                                                        verticalAlignment = Alignment.CenterVertically,
+                                                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                                                    ) {
+                                                                        Text(
+                                                                            text = queryItem,
+                                                                            style = MaterialTheme.typography.labelSmall,
+                                                                            fontWeight = FontWeight.SemiBold,
+                                                                            color = if (searchQuery == queryItem) {
+                                                                                if (isDarkMode) Color.White else Color(0xFF00838F)
+                                                                            } else {
+                                                                                if (isDarkMode) Color(0xFFF1F5F9) else Color(0xFF0F172A)
+                                                                            },
+                                                                            fontSize = 11.sp
+                                                                        )
+                                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                                        IconButton(
+                                                                            onClick = { viewModel.removeRecentSearch(queryItem) },
+                                                                            modifier = Modifier.size(16.dp)
+                                                                        ) {
+                                                                            Icon(
+                                                                                imageVector = Icons.Default.Close,
+                                                                                contentDescription = AppStrings.get("delete", currentLang),
+                                                                                tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                                                                modifier = Modifier.size(11.dp)
+                                                                            )
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            TextButton(
+                                                                onClick = { viewModel.clearRecentSearches() },
+                                                                modifier = Modifier.height(28.dp),
+                                                                contentPadding = PaddingValues(horizontal = 6.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = AppStrings.get("clear_btn", currentLang),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = if (isDarkMode) Color(0xFFF87171) else Color(0xFFEF4444),
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.Bold
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Quick Navigation Header to Records
+                                        item {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "${AppStrings.get("total_personnel", currentLang)} (${personnelList.size} / ${allPersonnelList.size})",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+
+                                                TextButton(
+                                                    onClick = { selectedNavPage = AppNavPage.RECORDS },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = AppStrings.get("view_all", currentLang),
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        fontWeight = FontWeight.Bold
                                                     )
                                                 }
                                             }
-                                        },
-                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                        keyboardActions = KeyboardActions(
-                                            onSearch = {
-                                                if (searchQuery.isNotBlank()) {
-                                                    viewModel.addRecentSearch(searchQuery)
-                                                }
-                                            }
-                                        ),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                            unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                            focusedContainerColor = if (isDarkMode) Color(0x331E293B) else Color(0xF5FFFFFF),
-                                            unfocusedContainerColor = if (isDarkMode) Color(0x221E293B) else Color(0xD9FFFFFF),
-                                            unfocusedBorderColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x4000BCD4),
-                                            focusedBorderColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
-                                            focusedPlaceholderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                            unfocusedPlaceholderColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                            cursorColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
-                                        ),
-                                        singleLine = true,
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
+                                        }
 
-                                    // Consolidated Filter & Sort Button (Positioned on the Left)
-                                    Box(
-                                        modifier = Modifier.liquidGlassInteractive(
-                                            shape = RoundedCornerShape(14.dp),
-                                            glowColor = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
-                                            isDark = isDarkMode,
-                                            isNeumorphic = isNeumorphic
-                                        )
-                                    ) {
-                                        BadgedBox(
-                                            badge = {
-                                                if (activeFilterCount > 0) {
-                                                    Badge(
-                                                        containerColor = Color(0xFF00BCD4),
-                                                        contentColor = Color.White
-                                                    ) {
+                                        // Recent / Filtered Records Preview (up to 4 cards)
+                                        if (previewList.isEmpty()) {
+                                            item {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .liquidGlass(
+                                                            shape = LiquidGlassDefaults.CardShape,
+                                                            elevation = 4.dp,
+                                                            isDark = isDarkMode
+                                                        )
+                                                        .padding(28.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.FilterList,
+                                                            contentDescription = null,
+                                                            tint = if (isDarkMode) Color(0xFF00E5FF).copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                            modifier = Modifier.size(44.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.height(10.dp))
                                                         Text(
-                                                            text = "$activeFilterCount",
+                                                            text = AppStrings.get("no_results", currentLang),
+                                                            style = MaterialTheme.typography.titleMedium,
                                                             fontWeight = FontWeight.Bold,
-                                                            fontSize = 11.sp
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            text = AppStrings.get("no_results_desc", currentLang),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }
                                                 }
                                             }
-                                        ) {
-                                            IconButton(
-                                                onClick = { showFilterSortDialog = true },
-                                                modifier = Modifier
-                                                    .size(52.dp)
-                                                    .testTag("filter_sort_dialog_button")
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Tune,
-                                                    contentDescription = "الفلترة والترتيب",
-                                                    tint = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(26.dp)
+                                        } else {
+                                            items(previewList, key = { it.id }) { person ->
+                                                PersonnelCard(
+                                                    personnel = person,
+                                                    dutyThresholdDays = dutyThreshold,
+                                                    isFocusMode = isFocusMode,
+                                                    isDarkMode = isDarkMode,
+                                                    isNeumorphic = isNeumorphic,
+                                                    animationsEnabled = isDynamicAnimationsEnabled,
+                                                    currentLang = currentLang,
+                                                    onConfirmDuty = {
+                                                        viewModel.confirmReturnToDuty(person.id)
+                                                        Toast.makeText(
+                                                            context,
+                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    },
+                                                    onEdit = {
+                                                        personnelToEdit = person
+                                                        showAddEditDialog = true
+                                                    },
+                                                    onDelete = {
+                                                        personnelToDelete = person
+                                                    }
                                                 )
                                             }
                                         }
+
+                                        item {
+                                            Spacer(modifier = Modifier.height(80.dp))
+                                        }
                                     }
                                 }
+                                AppNavPage.RECORDS -> {
+                                    val activeFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
+                                            (if (selectedRank != "ALL") 1 else 0) +
+                                            (if (currentSort != SortOption.RETURN_SOON) 1 else 0)
 
-                                // Recent Searches row (last 5 employee names queried)
-                                if (recentSearches.isNotEmpty()) {
-                                    Row(
+                                    LazyColumn(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .horizontalScroll(rememberScrollState()),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            .fillMaxSize()
+                                            .widthIn(max = contentMaxWidth)
+                                            .testTag("records_lazy_column"),
+                                        contentPadding = contentPadding,
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.History,
-                                            contentDescription = AppStrings.get("recent_searches_title", currentLang),
-                                            tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(
-                                            text = AppStrings.get("recent_searches_title", currentLang),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF64748B),
-                                            fontSize = 11.sp
-                                        )
-                                        recentSearches.forEach { queryItem ->
-                                            Surface(
-                                                shape = RoundedCornerShape(50.dp),
-                                                color = if (searchQuery == queryItem) {
-                                                    if (isDarkMode) Color(0xFF00BCD4) else Color(0xFFE0F7FA)
-                                                } else {
-                                                    if (isDarkMode) Color(0xFF334155) else Color(0xF2FFFFFF)
-                                                },
-                                                border = androidx.compose.foundation.BorderStroke(
-                                                    0.8.dp,
-                                                    if (isDarkMode) Color(0x6600E5FF) else Color(0x4000BCD4)
-                                                ),
-                                                onClick = {
-                                                    viewModel.searchQuery.value = queryItem
-                                                    viewModel.addRecentSearch(queryItem)
-                                                },
-                                                modifier = Modifier.height(28.dp)
+                                        // Full Search Bar with Filter & Sort dialog trigger
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .liquidGlass(
+                                                        shape = LiquidGlassDefaults.CardShape,
+                                                        elevation = 5.dp,
+                                                        borderAlpha = 0.85f,
+                                                        isDark = isDarkMode,
+                                                        isNeumorphic = isNeumorphic,
+                                                        cornerRadius = 24.dp
+                                                    )
+                                                    .padding(12.dp)
                                             ) {
                                                 Row(
+                                                    modifier = Modifier.fillMaxWidth(),
                                                     verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                                 ) {
-                                                    Text(
-                                                        text = queryItem,
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = if (searchQuery == queryItem) {
-                                                            if (isDarkMode) Color.White else Color(0xFF00838F)
-                                                        } else {
-                                                            if (isDarkMode) Color(0xFFF1F5F9) else Color(0xFF0F172A)
+                                                    OutlinedTextField(
+                                                        value = searchQuery,
+                                                        onValueChange = {
+                                                            viewModel.searchQuery.value = it
+                                                            if (it.trim().length >= 3) {
+                                                                viewModel.addRecentSearch(it)
+                                                            }
                                                         },
-                                                        fontSize = 11.sp
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .testTag("search_field_records"),
+                                                        placeholder = {
+                                                            Text(
+                                                                AppStrings.get("search_placeholder", currentLang),
+                                                                style = MaterialTheme.typography.bodyMedium,
+                                                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                            )
+                                                        },
+                                                        leadingIcon = {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Search,
+                                                                contentDescription = AppStrings.get("search_label", currentLang),
+                                                                tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
+                                                            )
+                                                        },
+                                                        trailingIcon = {
+                                                            if (searchQuery.isNotEmpty()) {
+                                                                IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Clear,
+                                                                        contentDescription = AppStrings.get("clear_search", currentLang),
+                                                                        tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                                    )
+                                                                }
+                                                            }
+                                                        },
+                                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                                        keyboardActions = KeyboardActions(
+                                                            onSearch = {
+                                                                if (searchQuery.isNotBlank()) {
+                                                                    viewModel.addRecentSearch(searchQuery)
+                                                                }
+                                                            }
+                                                        ),
+                                                        colors = OutlinedTextFieldDefaults.colors(
+                                                            focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            focusedContainerColor = if (isDarkMode) Color(0x331E293B) else Color(0xF5FFFFFF),
+                                                            unfocusedContainerColor = if (isDarkMode) Color(0x221E293B) else Color(0xD9FFFFFF),
+                                                            unfocusedBorderColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x4000BCD4),
+                                                            focusedBorderColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
+                                                            focusedPlaceholderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                                            unfocusedPlaceholderColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                                            cursorColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
+                                                        ),
+                                                        singleLine = true,
+                                                        shape = RoundedCornerShape(14.dp)
                                                     )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    IconButton(
-                                                        onClick = { viewModel.removeRecentSearch(queryItem) },
-                                                        modifier = Modifier.size(16.dp)
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Close,
-                                                            contentDescription = AppStrings.get("delete", currentLang),
-                                                            tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                                            modifier = Modifier.size(11.dp)
+
+                                                    Box(
+                                                        modifier = Modifier.liquidGlassInteractive(
+                                                            shape = RoundedCornerShape(14.dp),
+                                                            glowColor = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
+                                                            isDark = isDarkMode,
+                                                            isNeumorphic = isNeumorphic
                                                         )
+                                                    ) {
+                                                        BadgedBox(
+                                                            badge = {
+                                                                if (activeFilterCount > 0) {
+                                                                    Badge(
+                                                                        containerColor = Color(0xFF00BCD4),
+                                                                        contentColor = Color.White
+                                                                    ) {
+                                                                        Text(
+                                                                            text = "$activeFilterCount",
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            fontSize = 11.sp
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                        ) {
+                                                            IconButton(
+                                                                onClick = { showFilterSortDialog = true },
+                                                                modifier = Modifier
+                                                                    .size(52.dp)
+                                                                    .testTag("filter_sort_dialog_button_records")
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Tune,
+                                                                    contentDescription = "الفلترة والترتيب",
+                                                                    tint = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
+                                                                    modifier = Modifier.size(26.dp)
+                                                                )
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
 
-                                        // Clear all button
-                                        TextButton(
-                                            onClick = { viewModel.clearRecentSearches() },
-                                            modifier = Modifier.height(28.dp),
-                                            contentPadding = PaddingValues(horizontal = 6.dp)
-                                        ) {
-                                            Text(
-                                                text = AppStrings.get("clear_btn", currentLang),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = if (isDarkMode) Color(0xFFF87171) else Color(0xFFEF4444),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
+                                        // Results Count Indicator
+                                        item {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "${AppStrings.get("total_personnel", currentLang)} (${personnelList.size} / ${allPersonnelList.size})",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "${AppStrings.get("duty_threshold_label", currentLang)}: $dutyThreshold ${AppStrings.get("days", currentLang)}  |  ",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Text(
+                                                        text = currentSort.getTitle(currentLang),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Personnel List Cards
+                                        if (personnelList.isEmpty()) {
+                                            item {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .liquidGlass(
+                                                            shape = LiquidGlassDefaults.CardShape,
+                                                            elevation = 4.dp,
+                                                            isDark = isDarkMode
+                                                        )
+                                                        .padding(32.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.FilterList,
+                                                            contentDescription = null,
+                                                            tint = if (isDarkMode) Color(0xFF00E5FF).copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                            modifier = Modifier.size(48.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.height(12.dp))
+                                                        Text(
+                                                            text = AppStrings.get("no_results", currentLang),
+                                                            style = MaterialTheme.typography.titleMedium,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            text = AppStrings.get("no_results_desc", currentLang),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        } else if (isTablet) {
+                                            // Adaptive 2-column grid layout for tablets and wide screens
+                                            items(personnelList.chunked(2), key = { pair -> pair.joinToString("-") { it.id.toString() } }) { rowItems ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                                ) {
+                                                    for (person in rowItems) {
+                                                        Box(modifier = Modifier.weight(1f)) {
+                                                            PersonnelCard(
+                                                                personnel = person,
+                                                                dutyThresholdDays = dutyThreshold,
+                                                                isFocusMode = isFocusMode,
+                                                                isDarkMode = isDarkMode,
+                                                                isNeumorphic = isNeumorphic,
+                                                                animationsEnabled = isDynamicAnimationsEnabled,
+                                                                currentLang = currentLang,
+                                                                onConfirmDuty = {
+                                                                    viewModel.confirmReturnToDuty(person.id)
+                                                                    Toast.makeText(
+                                                                        context,
+                                                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
+                                                                        Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                                },
+                                                                onEdit = {
+                                                                    personnelToEdit = person
+                                                                    showAddEditDialog = true
+                                                                },
+                                                                onDelete = {
+                                                                    personnelToDelete = person
+                                                                }
+                                                            )
+                                                        }
+                                                    }
+                                                    if (rowItems.size == 1) {
+                                                        Spacer(modifier = Modifier.weight(1f))
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            items(personnelList, key = { it.id }) { person ->
+                                                PersonnelCard(
+                                                    personnel = person,
+                                                    dutyThresholdDays = dutyThreshold,
+                                                    isFocusMode = isFocusMode,
+                                                    isDarkMode = isDarkMode,
+                                                    isNeumorphic = isNeumorphic,
+                                                    animationsEnabled = isDynamicAnimationsEnabled,
+                                                    currentLang = currentLang,
+                                                    onConfirmDuty = {
+                                                        viewModel.confirmReturnToDuty(person.id)
+                                                        Toast.makeText(
+                                                            context,
+                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    },
+                                                    onEdit = {
+                                                        personnelToEdit = person
+                                                        showAddEditDialog = true
+                                                    },
+                                                    onDelete = {
+                                                        personnelToDelete = person
+                                                    }
+                                                )
+                                            }
+                                        }
+
+                                        item {
+                                            Spacer(modifier = Modifier.height(90.dp))
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-
-                    // Results Count Indicator
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${AppStrings.get("total_personnel", currentLang)} (${personnelList.size} / ${allPersonnelList.size})",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "${AppStrings.get("duty_threshold_label", currentLang)}: $dutyThreshold ${AppStrings.get("days", currentLang)}  |  ",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = currentSort.getTitle(currentLang),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-
-                    // Personnel List Cards (Liquid Glass)
-                    if (personnelList.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .liquidGlass(
-                                        shape = LiquidGlassDefaults.CardShape,
-                                        elevation = 4.dp,
-                                        isDark = isDarkMode
-                                    )
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.Default.FilterList,
-                                        contentDescription = null,
-                                        tint = if (isDarkMode) Color(0xFF00E5FF).copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = AppStrings.get("no_results", currentLang),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = AppStrings.get("no_results_desc", currentLang),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    } else if (isTablet) {
-                        // Adaptive 2-column grid layout for tablets and wide screens
-                        items(personnelList.chunked(2), key = { pair -> pair.joinToString("-") { it.id.toString() } }) { rowItems ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                for (person in rowItems) {
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        PersonnelCard(
-                                            personnel = person,
-                                            dutyThresholdDays = dutyThreshold,
-                                            isFocusMode = isFocusMode,
-                                            isDarkMode = isDarkMode,
-                                            isNeumorphic = isNeumorphic,
-                                            currentLang = currentLang,
-                                            onConfirmDuty = {
-                                                viewModel.confirmReturnToDuty(person.id)
-                                                Toast.makeText(
-                                                    context,
-                                                    "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            },
-                                            onEdit = {
-                                                personnelToEdit = person
-                                                showAddEditDialog = true
-                                            },
-                                            onDelete = {
-                                                personnelToDelete = person
-                                            }
-                                        )
-                                    }
-                                }
-                                if (rowItems.size == 1) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    } else {
-                        items(personnelList, key = { it.id }) { person ->
-                            PersonnelCard(
-                                personnel = person,
-                                dutyThresholdDays = dutyThreshold,
-                                isFocusMode = isFocusMode,
-                                isDarkMode = isDarkMode,
-                                isNeumorphic = isNeumorphic,
-                                currentLang = currentLang,
-                                onConfirmDuty = {
-                                    viewModel.confirmReturnToDuty(person.id)
-                                    Toast.makeText(
-                                        context,
-                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                onEdit = {
-                                    personnelToEdit = person
-                                    showAddEditDialog = true
-                                },
-                                onDelete = {
-                                    personnelToDelete = person
-                                }
-                            )
-                        }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(90.dp))
                     }
                 }
             }
         }
     }
-}
-}
-}
 
     // Add / Edit Personnel Dialog
     if (showAddEditDialog) {
@@ -1205,9 +1397,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             onRestoreFromDrive = {
                 driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
             },
-            onOpenRoomDatabase = {
-                showRoomDatabaseScreen = true
-            },
+            isDynamicAnimationsEnabled = isDynamicAnimationsEnabled,
+            onToggleDynamicAnimations = { viewModel.setDynamicAnimationsEnabled(it) },
             onDismiss = { showSettingsDialog = false }
         )
     }

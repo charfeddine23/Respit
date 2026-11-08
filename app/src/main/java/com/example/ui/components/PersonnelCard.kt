@@ -1,5 +1,12 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -72,11 +79,33 @@ fun PersonnelCard(
     isFocusMode: Boolean = false,
     isDarkMode: Boolean = false,
     isNeumorphic: Boolean = false,
+    animationsEnabled: Boolean = true,
     currentLang: AppLanguage = AppLanguage.ARABIC
 ) {
     val status = personnel.status
     val isEligible = personnel.isEligibleForLeave(dutyThresholdDays)
     val progress = personnel.leaveProgressFraction
+
+    val animatedProgress = if (animationsEnabled && !personnel.isReturnedToDuty) {
+        animateFloatAsState(
+            targetValue = progress,
+            animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+            label = "leaveProgress"
+        ).value
+    } else progress
+
+    val pulseAlpha = if (animationsEnabled && (status == LeaveStatus.OVERDUE || status == LeaveStatus.RETURNING_TODAY)) {
+        val infinite = rememberInfiniteTransition(label = "pulseBadge")
+        infinite.animateFloat(
+            initialValue = 0.5f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 850, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "badgePulse"
+        ).value
+    } else 1f
 
     // Dynamic Status Theme Tokens
     data class StatusVisual(val color: Color, val bgTint: Color, val icon: ImageVector, val labelKey: String)
@@ -321,7 +350,7 @@ fun PersonnelCard(
                 // Progress Bar & Countdown Pill
                 if (!personnel.isReturnedToDuty) {
                     LinearProgressIndicator(
-                        progress = { progress },
+                        progress = { animatedProgress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)

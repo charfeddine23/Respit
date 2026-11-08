@@ -2,7 +2,11 @@ package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -68,6 +72,7 @@ fun StatisticsSection(
     onSelectStatus: (String) -> Unit = {},
     isDarkMode: Boolean = false,
     isNeumorphic: Boolean = false,
+    animationsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val total = if (stats.total > 0) stats.total.toFloat() else 1f
@@ -75,21 +80,42 @@ fun StatisticsSection(
     val atHomeFraction = (stats.atHome / total).coerceIn(0f, 1f)
     val overdueFraction = ((stats.overdue + stats.returningToday) / total).coerceIn(0f, 1f)
 
-    val animatedOnDuty by animateFloatAsState(
-        targetValue = onDutyFraction,
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-        label = "onDutyAnim"
-    )
-    val animatedAtHome by animateFloatAsState(
-        targetValue = atHomeFraction,
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-        label = "atHomeAnim"
-    )
-    val animatedOverdue by animateFloatAsState(
-        targetValue = overdueFraction,
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-        label = "overdueAnim"
-    )
+    val animatedOnDuty = if (animationsEnabled) {
+        animateFloatAsState(
+            targetValue = onDutyFraction,
+            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            label = "onDutyAnim"
+        ).value
+    } else onDutyFraction
+
+    val animatedAtHome = if (animationsEnabled) {
+        animateFloatAsState(
+            targetValue = atHomeFraction,
+            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            label = "atHomeAnim"
+        ).value
+    } else atHomeFraction
+
+    val animatedOverdue = if (animationsEnabled) {
+        animateFloatAsState(
+            targetValue = overdueFraction,
+            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            label = "overdueAnim"
+        ).value
+    } else overdueFraction
+
+    val pulseAlpha = if (animationsEnabled) {
+        val infiniteTransition = rememberInfiniteTransition(label = "pulseInfinite")
+        infiniteTransition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulseAlpha"
+        ).value
+    } else 1f
 
     Column(
         modifier = modifier
@@ -129,9 +155,11 @@ fun StatisticsSection(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
+                                .size(9.dp)
                                 .clip(CircleShape)
-                                .background(if (isDarkMode) CyanGlow else VibrantCyan)
+                                .background(
+                                    (if (isDarkMode) CyanGlow else VibrantCyan).copy(alpha = pulseAlpha)
+                                )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(

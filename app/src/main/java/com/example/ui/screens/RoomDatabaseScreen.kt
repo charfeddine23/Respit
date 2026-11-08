@@ -134,12 +134,13 @@ fun RoomDatabaseScreen(
     val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
     val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
         Box(modifier = Modifier.fillMaxSize().background(bgColor).testTag("room_database_screen")) {
-            DynamicAuroraBackground(isDark = isDarkMode, isNeumorphic = isNeumorphic)
+            DynamicAuroraBackground(isDark = isDarkMode, isNeumorphic = isNeumorphic, animationsEnabled = isDynamicAnimationsEnabled)
 
             Scaffold(
                 containerColor = Color.Transparent,

@@ -45,12 +45,37 @@ object LiquidGlassDefaults {
 fun DynamicAuroraBackground(
     isDark: Boolean = false,
     isNeumorphic: Boolean = false,
+    animationsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     if (isNeumorphic) {
         val canvasBg = if (isDark) Color(0xFF141923) else Color(0xFFE8EEF5)
         Canvas(modifier = modifier.fillMaxSize()) {
             drawRect(color = canvasBg)
+        }
+        return
+    }
+
+    if (!animationsEnabled) {
+        val staticBrush = if (isDark) {
+            Brush.verticalGradient(
+                listOf(
+                    Color(0xFF0F172A),
+                    Color(0xFF131D33),
+                    Color(0xFF101828)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    Color(0xFFE0F7FA),
+                    Color(0xFFFFFFFF),
+                    Color(0xFFF3E5F5)
+                )
+            )
+        }
+        Canvas(modifier = modifier.fillMaxSize()) {
+            drawRect(brush = staticBrush)
         }
         return
     }
