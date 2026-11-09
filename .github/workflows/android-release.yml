@@ -123,9 +123,10 @@ jobs:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: ${{ steps.keystore_setup.outputs.store_pass }}
           KEY_PASSWORD: ${{ steps.keystore_setup.outputs.key_pass }}
+          JAVA_TOOL_OPTIONS: "-Djava.awt.headless=true"
         run: |
           echo "Building Release APK with dynamic versioning (Build #${{ github.run_number }})..."
-          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace -Djava.awt.headless=true
 
       - name: Prepare Single Release APK
         run: |
