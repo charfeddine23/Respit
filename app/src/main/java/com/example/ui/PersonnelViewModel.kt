@@ -84,11 +84,24 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val securityLockType = MutableStateFlow(settingsManager.securityLockType)
     val patternCode = MutableStateFlow(settingsManager.patternCode)
     val isBiometricEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
+    val isPasskeyEnabled = MutableStateFlow(settingsManager.isPasskeyEnabled)
     val isLocked = MutableStateFlow(
-        settingsManager.isPinEnabled && settingsManager.patternCode.isNotBlank()
+        settingsManager.isPinEnabled && (
+            (settingsManager.securityLockType == "PIN" && settingsManager.pinCode.isNotBlank()) ||
+            (settingsManager.securityLockType == "PATTERN" && settingsManager.patternCode.isNotBlank()) ||
+            settingsManager.pinCode.isNotBlank() ||
+            settingsManager.patternCode.isNotBlank()
+        )
     )
     val currentLanguage = MutableStateFlow(AppLanguage.fromCode(settingsManager.language))
     val isFocusMode = MutableStateFlow(settingsManager.isFocusMode)
+
+    // Firebase & Google Cloud Sync
+    val firebaseSyncManager = com.example.data.firebase.FirebaseSyncManager(application)
+    val currentUser = firebaseSyncManager.currentUser
+    val cloudSyncStatus = firebaseSyncManager.syncStatus
+    val cloudSyncMessage = firebaseSyncManager.syncMessage
+    val lastCloudSyncTime = firebaseSyncManager.lastSyncTime
 
     fun toggleFocusMode() {
         val next = !isFocusMode.value
@@ -578,19 +591,22 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         lockType: String,
         pin: String,
         pattern: String,
-        biometric: Boolean
+        biometric: Boolean,
+        passkey: Boolean = false
     ) {
         settingsManager.isPinEnabled = enabled
         settingsManager.securityLockType = lockType
         settingsManager.pinCode = pin
         settingsManager.patternCode = pattern
         settingsManager.isBiometricEnabled = biometric
+        settingsManager.isPasskeyEnabled = passkey
 
         isPinEnabled.value = enabled
         securityLockType.value = lockType
         pinCode.value = pin
         patternCode.value = pattern
         isBiometricEnabled.value = biometric
+        isPasskeyEnabled.value = passkey
 
         if (!enabled) {
             isLocked.value = false
@@ -625,6 +641,55 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     fun unlockWithBiometric(): Boolean {
         isLocked.value = false
         return true
+    }
+
+    fun unlockWithPasskey(): Boolean {
+        isLocked.value = false
+        return true
+    }
+
+    fun signInWithGoogle(
+        activity: android.app.Activity,
+        onSuccess: (com.google.firebase.auth.FirebaseUser) -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            firebaseSyncManager.signInWithGoogle(
+                activity = activity,
+                onSuccess = { user ->
+                    onSuccess(user)
+                    syncWithFirebase()
+                },
+                onError = onError
+            )
+        }
+    }
+
+    fun signOutFromGoogle() {
+        viewModelScope.launch {
+            firebaseSyncManager.signOut()
+        }
+    }
+
+    fun syncWithFirebase(onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val list = allPersonnel.value
+            val (uploadSuccess, _) = firebaseSyncManager.uploadAllPersonnel(list)
+            if (uploadSuccess) {
+                val (remoteList, _) = firebaseSyncManager.downloadRemotePersonnel()
+                if (!remoteList.isNullOrEmpty()) {
+                    for (remoteP in remoteList) {
+                        val localExisting = repository.getPersonnelById(remoteP.id)
+                        if (localExisting == null) {
+                            repository.insert(remoteP)
+                        } else {
+                            repository.update(remoteP)
+                        }
+                    }
+                }
+            }
+            onComplete(uploadSuccess)
+        }
     }
 
     fun lockApp() {
@@ -692,7 +757,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 wilaya = wilaya,
                 notes = notes
             )
-            if (id == 0L) {
+            val savedEntity = if (id == 0L) {
                 val newId = repository.insert(entity)
                 lastUndoAction.value = UndoAction.Added(newId)
                 LeaveNotificationHelper.notifyLeaveApproved(
@@ -700,6 +765,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     entity.copy(id = newId),
                     currentLanguage.value.code
                 )
+                entity.copy(id = newId)
             } else {
                 repository.update(entity)
                 LeaveNotificationHelper.notifyLeaveApproved(
@@ -707,6 +773,10 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     entity,
                     currentLanguage.value.code
                 )
+                entity
+            }
+            if (currentUser.value != null) {
+                firebaseSyncManager.saveSinglePersonnel(savedEntity)
             }
         }
     }
@@ -718,6 +788,10 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 lastUndoAction.value = UndoAction.ReturnedToDuty(previous)
             }
             repository.confirmReturnToDuty(id)
+            val updated = repository.getPersonnelById(id)
+            if (updated != null && currentUser.value != null) {
+                firebaseSyncManager.saveSinglePersonnel(updated)
+            }
         }
     }
 
@@ -733,6 +807,10 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
             repository.grantNewLeave(id, startDateMillis, returnDateMillis)
+            val updated = repository.getPersonnelById(id)
+            if (updated != null && currentUser.value != null) {
+                firebaseSyncManager.saveSinglePersonnel(updated)
+            }
         }
     }
 
@@ -740,6 +818,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             lastUndoAction.value = UndoAction.Deleted(personnel)
             repository.delete(personnel)
+            if (currentUser.value != null) {
+                firebaseSyncManager.deleteRemotePersonnel(personnel.id)
+            }
         }
     }
 

@@ -182,6 +182,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val securityLockType by viewModel.securityLockType.collectAsState()
     val patternCode by viewModel.patternCode.collectAsState()
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
+    val isPasskeyEnabled by viewModel.isPasskeyEnabled.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val isFocusMode by viewModel.isFocusMode.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
@@ -190,6 +191,11 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val lastUndo by viewModel.lastUndoAction.collectAsState()
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
+
+    // Firebase & Cloud Sync
+    val currentUser by viewModel.currentUser.collectAsState()
+    val cloudSyncStatus by viewModel.cloudSyncStatus.collectAsState()
+    val cloudSyncMessage by viewModel.cloudSyncMessage.collectAsState()
 
     val personnelList by viewModel.filteredPersonnel.collectAsState()
     val allPersonnelList by viewModel.allPersonnel.collectAsState()
@@ -277,15 +283,37 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         }
     }
 
-    // If locked with Pattern, present full screen Security Lock Screen
+    // If locked with Pattern or PIN, present full screen Security Lock Screen
     if (isLocked) {
         PinLockScreen(
+            lockType = securityLockType,
+            onVerifyPin = { pin ->
+                val ok = viewModel.verifyPin(pin)
+                if (ok) {
+                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
+                }
+                ok
+            },
             onVerifyPattern = { pattern ->
                 val ok = viewModel.verifyPattern(pattern)
                 if (ok) {
                     Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
                 }
                 ok
+            },
+            isBiometricAvailable = isBiometricEnabled,
+            isPasskeyAvailable = isPasskeyEnabled,
+            onBiometricUnlock = {
+                val ok = viewModel.unlockWithBiometric()
+                if (ok) {
+                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
+                }
+            },
+            onPasskeyUnlock = {
+                val ok = viewModel.unlockWithPasskey()
+                if (ok) {
+                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
+                }
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang
@@ -298,14 +326,14 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         selectedNavPage = AppNavPage.DASHBOARD
     }
 
-    // ModalNavigationDrawer anchored on the left edge for smooth left-edge swipe gesture
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+    // ModalNavigationDrawer anchored on the RIGHT edge for right-side slide in
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         ModalNavigationDrawer(
             drawerState = drawerState,
-            gesturesEnabled = true, // left-edge swipe gesture enabled
+            gesturesEnabled = true, // right-edge swipe gesture enabled
             drawerContent = {
                 ModalDrawerSheet(
-                    modifier = Modifier.widthIn(max = 330.dp),
+                    modifier = Modifier.widthIn(max = 340.dp),
                     drawerContainerColor = if (isDarkMode) Color(0xFF0F172A) else Color(0xFFFFFFFF),
                     drawerTonalElevation = 6.dp
                 ) {
@@ -317,6 +345,33 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             isDarkMode = isDarkMode,
                             lastUndo = lastUndo,
                             stats = stats,
+                            currentUser = currentUser,
+                            cloudSyncStatus = cloudSyncStatus,
+                            cloudSyncMessage = cloudSyncMessage,
+                            onSignInGoogle = {
+                                val activity = context as? android.app.Activity
+                                if (activity != null) {
+                                    viewModel.signInWithGoogle(
+                                        activity = activity,
+                                        onSuccess = { user ->
+                                            Toast.makeText(context, "${AppStrings.get("sync_success", currentLang)} (${user.displayName ?: user.email})", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onError = { error ->
+                                            Toast.makeText(context, "${AppStrings.get("sync_failed", currentLang)}: $error", Toast.LENGTH_LONG).show()
+                                        }
+                                    )
+                                }
+                            },
+                            onSignOutGoogle = {
+                                viewModel.signOutFromGoogle()
+                                Toast.makeText(context, AppStrings.get("sign_out_btn", currentLang), Toast.LENGTH_SHORT).show()
+                            },
+                            onSyncFirebase = {
+                                viewModel.syncWithFirebase { ok ->
+                                    val msg = if (ok) AppStrings.get("sync_success", currentLang) else AppStrings.get("sync_failed", currentLang)
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                }
+                            },
                             onSelectLanguage = { lang -> viewModel.setLanguage(lang) },
                             onUndo = {
                                 viewModel.undo()
@@ -1382,8 +1437,9 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             securityLockType = securityLockType,
             currentPattern = patternCode,
             isBiometricEnabled = isBiometricEnabled,
-            onSaveSecurity = { type, pin, pattern, bio, enabled ->
-                viewModel.setSecuritySettings(enabled, type, pin, pattern, bio)
+            isPasskeyEnabled = isPasskeyEnabled,
+            onSaveSecurity = { type, pin, pattern, bio, passkey, enabled ->
+                viewModel.setSecuritySettings(enabled, type, pin, pattern, bio, passkey)
             },
             onLockNow = { viewModel.lockApp() },
             currentLanguage = currentLang,

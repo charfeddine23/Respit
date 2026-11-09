@@ -24,10 +24,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
@@ -35,12 +39,15 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -62,8 +69,10 @@ import com.example.R
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
 import com.example.ui.theme.liquidGlassInteractive
+import com.example.data.firebase.CloudSyncStatus
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
+import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun SideNavigationDrawerContent(
@@ -71,6 +80,12 @@ fun SideNavigationDrawerContent(
     isDarkMode: Boolean,
     lastUndo: UndoAction?,
     stats: DashboardStats,
+    currentUser: FirebaseUser? = null,
+    cloudSyncStatus: CloudSyncStatus = CloudSyncStatus.IDLE,
+    cloudSyncMessage: String? = null,
+    onSignInGoogle: () -> Unit = {},
+    onSignOutGoogle: () -> Unit = {},
+    onSyncFirebase: () -> Unit = {},
     onSelectLanguage: (AppLanguage) -> Unit,
     onUndo: () -> Unit,
     onCheckNotifications: () -> Unit,
@@ -155,6 +170,160 @@ fun SideNavigationDrawerContent(
                     color = Color(0xFFCBD5E1),
                     fontSize = 11.sp
                 )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Google Sign-In & Firebase Sync Card
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.9f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (currentUser != null) Color(0xFF10B981).copy(alpha = 0.6f)
+                else if (isDarkMode) Color(0x33475569) else Color(0x40BAE6FD)
+            ),
+            modifier = Modifier.fillMaxWidth().testTag("drawer_firebase_card")
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (currentUser != null) Color(0xFF10B981).copy(alpha = 0.15f) else Color(0xFF00BCD4).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (currentUser != null) Icons.Default.CloudDone else Icons.Default.CloudSync,
+                                contentDescription = null,
+                                tint = if (currentUser != null) Color(0xFF10B981) else Color(0xFF00BCD4),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = if (currentUser != null) (currentUser.displayName ?: currentUser.email ?: AppStrings.get("firebase_synced", currentLang))
+                                       else AppStrings.get("google_sign_in_title", currentLang),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                maxLines = 1
+                            )
+                            Text(
+                                text = if (currentUser != null) AppStrings.get("firebase_synced", currentLang)
+                                       else AppStrings.get("google_sign_in_desc", currentLang),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (currentUser != null) Color(0xFF10B981) else Color(0xFF64748B),
+                                fontSize = 11.sp,
+                                maxLines = 2
+                            )
+                        }
+                    }
+                }
+
+                if (!cloudSyncMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = cloudSyncMessage,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (cloudSyncStatus == CloudSyncStatus.SUCCESS) Color(0xFF10B981) else if (cloudSyncStatus == CloudSyncStatus.ERROR) Color(0xFFEF4444) else Color(0xFF00BCD4),
+                        fontSize = 11.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (currentUser == null) {
+                    Button(
+                        onClick = onSignInGoogle,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .testTag("drawer_google_signin_button"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF00BCD4),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = AppStrings.get("sign_in_google_btn", currentLang),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onSyncFirebase,
+                            enabled = cloudSyncStatus != CloudSyncStatus.SYNCING,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .testTag("drawer_sync_firebase_button"),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF10B981),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (cloudSyncStatus == CloudSyncStatus.SYNCING) AppStrings.get("syncing_status", currentLang) else AppStrings.get("firebase_sync_now", currentLang),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onSignOutGoogle,
+                            modifier = Modifier
+                                .height(38.dp)
+                                .testTag("drawer_google_signout_button"),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Logout,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = AppStrings.get("sign_out_btn", currentLang),
+                                color = Color(0xFFEF4444),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
             }
         }
 

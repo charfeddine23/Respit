@@ -39,6 +39,7 @@ class SettingsManager(context: Context) {
         private const val KEY_SECURITY_LOCK_TYPE = "pref_security_lock_type"
         private const val KEY_PATTERN_CODE = "pref_pattern_code"
         private const val KEY_BIOMETRIC_ENABLED = "pref_biometric_enabled"
+        private const val KEY_PASSKEY_ENABLED = "pref_passkey_enabled"
         private const val KEY_LANGUAGE = "pref_language"
         private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
         private const val KEY_DISMISSED_NOTIFICATIONS = "pref_dismissed_notifications"
@@ -108,6 +109,10 @@ class SettingsManager(context: Context) {
     var isBiometricEnabled: Boolean
         get() = prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_BIOMETRIC_ENABLED, value).apply()
+
+    var isPasskeyEnabled: Boolean
+        get() = prefs.getBoolean(KEY_PASSKEY_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_PASSKEY_ENABLED, value).apply()
 
     var language: String
         get() = prefs.getString(KEY_LANGUAGE, "ar") ?: "ar"

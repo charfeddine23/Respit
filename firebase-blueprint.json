@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "Personnel": {
+      "path": "/users/{userId}/personnel/{personnelId}",
+      "description": "Military personnel leave records belonging to a user",
+      "fields": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the personnel"
+        },
+        "rank": {
+          "type": "string",
+          "description": "Military rank"
+        },
+        "registrationNumber": {
+          "type": "string",
+          "description": "Registration number"
+        },
+        "startDateMillis": {
+          "type": "number",
+          "description": "Start date timestamp in millis"
+        },
+        "returnDateMillis": {
+          "type": "number",
+          "description": "Expected return date timestamp in millis"
+        },
+        "isReturnedToDuty": {
+          "type": "boolean",
+          "description": "Whether the personnel returned to duty"
+        },
+        "leaveType": {
+          "type": "string",
+          "description": "Type of leave"
+        },
+        "wilaya": {
+          "type": "string",
+          "description": "Wilaya/Location"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes"
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "timestamp",
+          "description": "Server update timestamp"
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "rank",
+        "startDateMillis",
+        "returnDateMillis",
+        "isReturnedToDuty"
+      ]
+    }
+  }
+}

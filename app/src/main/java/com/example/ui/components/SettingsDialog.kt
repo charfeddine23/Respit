@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -102,7 +103,8 @@ fun SettingsDialog(
     securityLockType: String = "PIN",
     currentPattern: String = "",
     isBiometricEnabled: Boolean = false,
-    onSaveSecurity: (type: String, pin: String, pattern: String, biometric: Boolean, enabled: Boolean) -> Unit = { _, _, _, _, _ -> },
+    isPasskeyEnabled: Boolean = false,
+    onSaveSecurity: (type: String, pin: String, pattern: String, biometric: Boolean, passkey: Boolean, enabled: Boolean) -> Unit = { _, _, _, _, _, _ -> },
     onLockNow: () -> Unit,
     currentLanguage: AppLanguage = AppLanguage.ARABIC,
     onSelectLanguage: (AppLanguage) -> Unit = {},
@@ -126,6 +128,8 @@ fun SettingsDialog(
     var patternState by remember { mutableStateOf(currentPattern) }
     var tempDrawnPattern by remember { mutableStateOf("") }
     var biometricState by remember { mutableStateOf(isBiometricEnabled) }
+    var passkeyState by remember { mutableStateOf(isPasskeyEnabled) }
+    var showSecurityPrivacyDialog by remember { mutableStateOf(false) }
     var pinError by remember { mutableStateOf<String?>(null) }
     var patternFeedback by remember { mutableStateOf<String?>(null) }
     var driveSyncState by remember { mutableStateOf(isDriveSyncEnabled) }
@@ -847,7 +851,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 6: Security Lock by Pattern ONLY
+                // Section 6: Security & Privacy (Navigates to dedicated Security & Privacy Dialog)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -858,188 +862,69 @@ fun SettingsDialog(
                             if (isDarkMode) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) else Color(0x60CBD5E1),
                             RoundedCornerShape(20.dp)
                         )
+                        .clickable { showSecurityPrivacyDialog = true }
                         .padding(16.dp)
-                        .testTag("security_lock_card")
+                        .testTag("security_privacy_card")
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF00BCD4).copy(alpha = 0.18f))
+                                    .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFF00BCD4).copy(alpha = 0.18f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Gesture,
-                                        contentDescription = null,
-                                        tint = Color(0xFF00BCD4),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = AppStrings.get("draw_pattern_title", currentLanguage),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color.White else SlateTextPrimary
-                                    )
-                                    Text(
-                                        text = if (patternState.isNotBlank()) {
-                                            AppStrings.get("pattern_saved_toast", currentLanguage)
-                                        } else {
-                                            AppStrings.get("draw_pattern_instruction", currentLanguage)
-                                        },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
-                                        fontSize = 11.sp
-                                    )
-                                }
-                            }
-
-                            Switch(
-                                checked = pinEnabledState,
-                                onCheckedChange = { isChecked ->
-                                    pinEnabledState = isChecked
-                                    onSaveSecurity("PATTERN", "", patternState, false, isChecked)
-                                    if (!isChecked) {
-                                        Toast.makeText(context, AppStrings.get("cancel", currentLanguage), Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color(0xFF00BCD4)
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = null,
+                                    tint = Color(0xFF00BCD4),
+                                    modifier = Modifier.size(22.dp)
                                 )
-                            )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = AppStrings.get("security_privacy_title", currentLanguage),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color.White else SlateTextPrimary
+                                )
+                                Text(
+                                    text = if (pinEnabledState) {
+                                        val method = if (selectedLockType == "PIN") AppStrings.get("lock_type_pin", currentLanguage) else AppStrings.get("lock_type_pattern", currentLanguage)
+                                        "${AppStrings.get("app_lock_active", currentLanguage)} ($method)"
+                                    } else {
+                                        AppStrings.get("app_lock_inactive", currentLanguage)
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (pinEnabledState) Color(0xFF10B981) else if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
 
-                        if (pinEnabledState) {
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = AppStrings.get("draw_pattern_instruction", currentLanguage),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (isDarkMode) Color(0xFFE2E8F0) else SlateTextPrimary
-                                )
-
-                                if (patternState.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "✓ " + AppStrings.get("pattern_saved_toast", currentLanguage),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF10B981),
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(240.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF1F5F9))
-                                        .border(1.2.dp, Color(0xFF00BCD4).copy(alpha = 0.5f), RoundedCornerShape(18.dp))
-                                ) {
-                                    PatternLockView(
-                                        onPatternComplete = { drawn ->
-                                            tempDrawnPattern = drawn
-                                            val count = drawn.split(",").filter { it.isNotBlank() }.size
-                                            if (count >= 4) {
-                                                patternFeedback = "${AppStrings.get("draw_pattern_title", currentLanguage)}: $count"
-                                            } else {
-                                                patternFeedback = AppStrings.get("pattern_too_short", currentLanguage)
-                                            }
-                                        },
-                                        isDark = isDarkMode,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-
-                                if (patternFeedback != null) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = patternFeedback!!,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (tempDrawnPattern.split(",").filter { it.isNotBlank() }.size >= 4) Color(0xFF00BCD4) else Color(0xFFEF4444)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Button(
-                                        onClick = {
-                                            val count = tempDrawnPattern.split(",").filter { it.isNotBlank() }.size
-                                            if (count >= 4) {
-                                                patternState = tempDrawnPattern
-                                                onSaveSecurity("PATTERN", "", patternState, false, true)
-                                                Toast.makeText(context, AppStrings.get("pattern_saved_toast", currentLanguage), Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                Toast.makeText(context, AppStrings.get("pattern_too_short", currentLanguage), Toast.LENGTH_SHORT).show()
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF00BCD4),
-                                            contentColor = Color.White
-                                        )
-                                    ) {
-                                        Text(
-                                            text = AppStrings.get("save", currentLanguage),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
-                                        )
-                                    }
-
-                                    Button(
-                                        onClick = {
-                                            onLockNow()
-                                            onDismiss()
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFEF4444),
-                                            contentColor = Color.White
-                                        )
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Lock,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = AppStrings.get("lock_now_btn", currentLanguage),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
-                                        )
-                                    }
-                                }
-                            }
+                        // Tap Indicator Badge
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF00BCD4).copy(alpha = 0.12f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "إعدادات الأمان ›",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF00BCD4)
+                            )
                         }
                     }
                 }
@@ -1203,6 +1088,7 @@ fun SettingsDialog(
                                     enteredPin,
                                     patternState,
                                     biometricState,
+                                    passkeyState,
                                     true
                                 )
                             } else {
@@ -1211,6 +1097,7 @@ fun SettingsDialog(
                                     selectedLockType,
                                     "",
                                     "",
+                                    false,
                                     false,
                                     false
                                 )
@@ -1256,5 +1143,35 @@ fun SettingsDialog(
                 }
             }
         }
+    }
+
+    if (showSecurityPrivacyDialog) {
+        SecurityPrivacyDialog(
+            isLockEnabled = pinEnabledState,
+            currentLockType = selectedLockType,
+            currentPin = enteredPin,
+            currentPattern = patternState,
+            isBiometricEnabled = biometricState,
+            isPasskeyEnabled = passkeyState,
+            onSaveSecuritySettings = { enabled, lockType, pin, pattern, biometric, passkey ->
+                pinEnabledState = enabled
+                selectedLockType = lockType
+                enteredPin = pin
+                patternState = pattern
+                biometricState = biometric
+                passkeyState = passkey
+                onSavePin(pin, enabled)
+                onSaveSecurity(lockType, pin, pattern, biometric, passkey, enabled)
+                showSecurityPrivacyDialog = false
+            },
+            onLockNow = {
+                onLockNow()
+                showSecurityPrivacyDialog = false
+                onDismiss()
+            },
+            isDarkMode = isDarkMode,
+            currentLang = currentLanguage,
+            onDismiss = { showSecurityPrivacyDialog = false }
+        )
     }
 }

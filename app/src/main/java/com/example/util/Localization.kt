@@ -295,6 +295,36 @@ object AppStrings {
         "view_all" to "عرض الكل",
         "urgent_alerts_title" to "تنبيهات عاجلة (اليوم أو متأخر)",
 
+        // Security & Privacy (PIN, Pattern, Biometrics, Passkey)
+        "security_privacy_title" to "الأمان والخصوصية",
+        "security_privacy_desc" to "إعدادات قفل التطبيق برمز PIN أو النمط والمصادقة بالبصمة ومفتاح المرور Passkey",
+        "enable_app_lock" to "تفعيل قفل التطبيق",
+        "app_lock_active" to "قفل الأمان مفعل عند فتح التطبيق",
+        "app_lock_inactive" to "قفل الأمان معطل حالياً",
+        "choose_lock_method" to "اختر طريقة القفل الأساسية",
+        "enter_4digit_pin" to "أدخل رمز PIN من 4 أرقام",
+        "pin_configured" to "تم تعيين رمز PIN المكون من 4 أرقام",
+        "pin_saved_toast" to "تم حفظ رمز PIN بنجاح",
+        "biometric_title" to "المصادقة بالبصمة",
+        "biometric_desc" to "فتح قفل التطبيق السريع باستخدام بصمة الإصبع الحيوية",
+        "passkey_title" to "مفتاح المرور (Passkey)",
+        "passkey_desc" to "مصادقة تشفير متقدمة وسريعة باستخدام مفتاح المرور الرقمي",
+        "security_saved_toast" to "تم حفظ إعدادات الأمان والخصوصية بنجاح",
+        "use_pattern_btn" to "استخدم النمط",
+        "use_pin_btn" to "استخدم رمز PIN",
+
+        // Firebase & Google Sign-In
+        "google_sign_in_title" to "تسجيل الدخول بحساب Google",
+        "google_sign_in_desc" to "مزامنة سحابية تلقائية ومحمية لقاعدة بيانات الأفراد عبر Firebase",
+        "sign_in_google_btn" to "تسجيل الدخول عبر Google",
+        "sign_out_btn" to "تسجيل الخروج",
+        "firebase_synced" to "متزامن سحابياً مع Firebase",
+        "firebase_sync_now" to "مزامنة سحابية الآن",
+        "syncing_status" to "جاري المزامنة مع Firebase...",
+        "sync_success" to "تمت المزامنة السحابية بنجاح",
+        "sync_failed" to "تعذرت المزامنة السحابية",
+        "cloud_connected_user" to "الحساب المتصل:",
+
         // Miscellaneous
         "input_text_dark_note" to "وضوح تام لخانة الإدخال",
         "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})"
@@ -574,6 +604,36 @@ object AppStrings {
         "view_all" to "Voir tout",
         "urgent_alerts_title" to "Alertes urgentes (Aujourd'hui / En retard)",
 
+        // Security & Privacy (PIN, Pattern, Biometrics, Passkey)
+        "security_privacy_title" to "Sécurité & Confidentialité",
+        "security_privacy_desc" to "Paramètres de verrouillage par code PIN, Schéma, Empreinte et Passkey",
+        "enable_app_lock" to "Activer le verrouillage",
+        "app_lock_active" to "Verrouillage de sécurité actif à l'ouverture",
+        "app_lock_inactive" to "Verrouillage de sécurité désactivé",
+        "choose_lock_method" to "Méthode de verrouillage principale",
+        "enter_4digit_pin" to "Saisir code PIN à 4 chiffres",
+        "pin_configured" to "Code PIN configuré",
+        "pin_saved_toast" to "Code PIN enregistré avec succès",
+        "biometric_title" to "Authentification biométrique",
+        "biometric_desc" to "Déverrouiller l'application avec le capteur d'empreinte",
+        "passkey_title" to "Clé d'accès (Passkey)",
+        "passkey_desc" to "Authentification moderne et rapide via Passkey",
+        "security_saved_toast" to "Paramètres de sécurité enregistrés",
+        "use_pattern_btn" to "Utiliser le schéma",
+        "use_pin_btn" to "Utiliser code PIN",
+
+        // Firebase & Google Sign-In
+        "google_sign_in_title" to "Connexion avec Google",
+        "google_sign_in_desc" to "Synchronisation cloud sécurisée des dossiers du personnel avec Firebase",
+        "sign_in_google_btn" to "Se connecter avec Google",
+        "sign_out_btn" to "Se déconnecter",
+        "firebase_synced" to "Synchronisé avec Firebase",
+        "firebase_sync_now" to "Synchroniser maintenant",
+        "syncing_status" to "Synchronisation Firebase en cours...",
+        "sync_success" to "Synchronisation cloud réussie",
+        "sync_failed" to "Échec de synchronisation cloud",
+        "cloud_connected_user" to "Compte connecté :",
+
         // Miscellaneous
         "input_text_dark_note" to "Contraste texte noir optimisé",
         "app_version" to "Version: v${com.example.BuildConfig.VERSION_NAME} (${com.example.BuildConfig.VERSION_CODE})"
@@ -852,6 +912,36 @@ object AppStrings {
         "dynamic_animations_disabled" to "Performance Mode (Animations Disabled)",
         "view_all" to "View All",
         "urgent_alerts_title" to "Urgent Alerts (Today / Overdue)",
+
+        // Security & Privacy (PIN, Pattern, Biometrics, Passkey)
+        "security_privacy_title" to "Security & Privacy",
+        "security_privacy_desc" to "App lock security using PIN code, Pattern, Biometrics & Passkey",
+        "enable_app_lock" to "Enable App Lock",
+        "app_lock_active" to "Security lock active on application launch",
+        "app_lock_inactive" to "Security lock currently disabled",
+        "choose_lock_method" to "Choose Primary Lock Method",
+        "enter_4digit_pin" to "Enter 4-digit PIN code",
+        "pin_configured" to "4-digit PIN code configured",
+        "pin_saved_toast" to "PIN code saved successfully",
+        "biometric_title" to "Biometric Authentication",
+        "biometric_desc" to "Fast fingerprint unlock via biometric sensor",
+        "passkey_title" to "Passkey Authentication",
+        "passkey_desc" to "Next-generation secure cryptographic passkey sign-in",
+        "security_saved_toast" to "Security & privacy settings saved successfully",
+        "use_pattern_btn" to "Use Pattern",
+        "use_pin_btn" to "Use PIN Code",
+
+        // Firebase & Google Sign-In
+        "google_sign_in_title" to "Google Sign-In",
+        "google_sign_in_desc" to "Instant and protected cloud sync for personnel records via Firebase Firestore",
+        "sign_in_google_btn" to "Sign In with Google",
+        "sign_out_btn" to "Sign Out",
+        "firebase_synced" to "Synced with Firebase",
+        "firebase_sync_now" to "Cloud Sync Now",
+        "syncing_status" to "Syncing with Firebase...",
+        "sync_success" to "Cloud sync completed successfully",
+        "sync_failed" to "Cloud sync failed",
+        "cloud_connected_user" to "Connected Account:",
 
         // Miscellaneous
         "input_text_dark_note" to "Pure black input text optimized",
