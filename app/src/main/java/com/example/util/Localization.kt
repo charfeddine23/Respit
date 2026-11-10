@@ -294,6 +294,8 @@ object AppStrings {
         "dynamic_animations_disabled" to "نمط الأداء الفائق (الحركات معطلة لتوفير المعالج)",
         "view_all" to "عرض الكل",
         "urgent_alerts_title" to "تنبيهات عاجلة (اليوم أو متأخر)",
+        "click_to_expand" to "اضغط للتوسيع",
+        "click_to_collapse" to "اضغط للطي",
 
         // Security & Privacy (PIN, Pattern, Biometrics, Passkey)
         "security_privacy_title" to "الأمان والخصوصية",
@@ -592,6 +594,8 @@ object AppStrings {
         "dynamic_animations_disabled" to "Mode Performance (Animations désactivées)",
         "view_all" to "Voir tout",
         "urgent_alerts_title" to "Alertes urgentes (Aujourd'hui / En retard)",
+        "click_to_expand" to "Appuyer pour développer",
+        "click_to_collapse" to "Appuyer pour réduire",
 
         // Security & Privacy (PIN, Pattern, Biometrics, Passkey)
         "security_privacy_title" to "Sécurité & Confidentialité",
@@ -890,6 +894,8 @@ object AppStrings {
         "dynamic_animations_disabled" to "Performance Mode (Animations Disabled)",
         "view_all" to "View All",
         "urgent_alerts_title" to "Urgent Alerts (Today / Overdue)",
+        "click_to_expand" to "Click to expand",
+        "click_to_collapse" to "Click to collapse",
 
         // Security & Privacy (PIN, Pattern, Biometrics, Passkey)
         "security_privacy_title" to "Security & Privacy",

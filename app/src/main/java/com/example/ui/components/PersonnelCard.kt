@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -7,9 +10,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +36,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Schedule
@@ -44,9 +53,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -148,15 +162,15 @@ fun PersonnelCard(
         )
     }
 
-    // Avatar Initial Letter
-    val avatarInitials = personnel.fullName.trim().split(" ")
-        .filter { it.isNotBlank() }
-        .take(2)
-        .mapNotNull { it.firstOrNull() }
-        .joinToString("")
-        .ifEmpty { "P" }
-
     val avatarShape = if (isNeumorphic) RoundedCornerShape(18.dp) else CircleShape
+
+    var isExpanded by rememberSaveable(personnel.id) { mutableStateOf(false) }
+
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "arrowRotation"
+    )
 
     // Unified Card Container
     Box(
@@ -176,11 +190,13 @@ fun PersonnelCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Header Row: Avatar + Name/Rank/Wilaya + Status Badge
+            // Header Row: Days Count Badge + Name/Rank/Wilaya + Status Badge
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
@@ -188,7 +204,7 @@ fun PersonnelCard(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Modern Squircle / Circular Avatar matching reference styling
+                    // Modern Squircle / Circular Badge displaying Number of Days
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -197,12 +213,25 @@ fun PersonnelCard(
                             .border(1.2.dp, visual.color.copy(alpha = if (isNeumorphic) 0.35f else 0.9f), avatarShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = avatarInitials,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp,
-                            color = visual.color
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "${personnel.totalLeaveDays}",
+                                fontWeight = FontWeight.Black,
+                                fontSize = if (personnel.totalLeaveDays >= 100) 13.sp else 16.sp,
+                                color = visual.color,
+                                lineHeight = 16.sp
+                            )
+                            Text(
+                                text = if (currentLang == AppLanguage.FRENCH) "j" else if (currentLang == AppLanguage.ENGLISH) "d" else "يوم",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = visual.color.copy(alpha = 0.85f),
+                                lineHeight = 10.sp
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -304,177 +333,242 @@ fun PersonnelCard(
                 }
             }
 
-            // Timeline & Dates Progress Bar
-            Column(
+            // Click to Expand / Collapse Bar
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (isDarkMode) Color(0x221E293B) else Color(0x66F1F5F9))
-                    .padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (isDarkMode) Color(0x1F38BDF8) else Color(0x1200BCD4)
+                    )
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Dates Summary
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Start Date
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = if (isDarkMode) CyanGlow else VibrantCyan,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
-                            fontSize = 11.sp,
-                            color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    // Return Date
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color.White else SlateTextPrimary)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isDarkMode) CyanGlow else VibrantCyan,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .rotate(if (animationsEnabled) arrowRotation else (if (isExpanded) 180f else 0f))
+                    )
+                    Text(
+                        text = if (isExpanded) {
+                            AppStrings.get("click_to_collapse", currentLang)
+                        } else {
+                            AppStrings.get("click_to_expand", currentLang)
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkMode) CyanGlow else VibrantCyan
+                    )
                 }
 
-                // Progress Bar & Countdown Pill
-                if (!personnel.isReturnedToDuty) {
-                    LinearProgressIndicator(
-                        progress = { animatedProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(50.dp)),
-                        color = visual.color,
-                        trackColor = if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
+                // Quick return date preview when collapsed
+                if (!isExpanded) {
+                    Text(
+                        text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary)
                     )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
-                            fontSize = 10.sp,
-                            color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
-                        )
-
-                        Text(
-                            text = personnel.countdownTextAr,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = visual.color
-                        )
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${AppStrings.get("days_served", currentLang)}: ${personnel.daysSinceDutyReturn} ${AppStrings.get("days", currentLang)}",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EmeraldSuccess
-                        )
-                        if (isEligible) {
-                            Text(
-                                text = AppStrings.get("status_eligible", currentLang),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                color = AmberWarning
-                            )
-                        }
-                    }
                 }
             }
 
-            // Quick Action Buttons Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Expandable Details Section: From Leave Dates Downwards
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = if (animationsEnabled) {
+                    expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                        fadeIn(animationSpec = tween(250))
+                } else EnterTransition.None,
+                exit = if (animationsEnabled) {
+                    shrinkVertically(animationSpec = tween(250, easing = FastOutSlowInEasing)) +
+                        fadeOut(animationSpec = tween(200))
+                } else ExitTransition.None
             ) {
-                // Confirm Return to Duty (If not yet returned)
-                if (!personnel.isReturnedToDuty) {
-                    Button(
-                        onClick = onConfirmDuty,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = EmeraldSuccess,
-                            contentColor = Color.White
-                        ),
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Timeline & Dates Progress Bar
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isDarkMode) Color(0x221E293B) else Color(0x66F1F5F9))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = AppStrings.get("confirm_duty_btn", currentLang),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                        // Dates Summary
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Start Date
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = if (isDarkMode) CyanGlow else VibrantCyan,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
+                                    fontSize = 11.sp,
+                                    color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
 
-                // Edit Button
-                OutlinedButton(
-                    onClick = onEdit,
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (isDarkMode) Color(0x4038BDF8) else Color(0x6000BCD4)),
-                    modifier = Modifier
-                        .then(if (personnel.isReturnedToDuty) Modifier.weight(1f) else Modifier)
-                        .height(44.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = AppStrings.get("edit", currentLang),
-                        tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    if (personnel.isReturnedToDuty) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = AppStrings.get("edit", currentLang),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F)
-                        )
-                    }
-                }
+                            // Return Date
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color.White else SlateTextPrimary)
+                                )
+                            }
+                        }
 
-                // Delete Button
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isDarkMode) Color(0x22EF4444) else Color(0x1AEF4444))
-                        .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = AppStrings.get("delete", currentLang),
-                        tint = Color(0xFFEF4444),
-                        modifier = Modifier.size(18.dp)
-                    )
+                        // Progress Bar & Countdown Pill
+                        if (!personnel.isReturnedToDuty) {
+                            LinearProgressIndicator(
+                                progress = { animatedProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(50.dp)),
+                                color = visual.color,
+                                trackColor = if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
+                                    fontSize = 10.sp,
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+                                )
+
+                                Text(
+                                    text = personnel.countdownTextAr,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = visual.color
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${AppStrings.get("days_served", currentLang)}: ${personnel.daysSinceDutyReturn} ${AppStrings.get("days", currentLang)}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = EmeraldSuccess
+                                )
+                                if (isEligible) {
+                                    Text(
+                                        text = AppStrings.get("status_eligible", currentLang),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = AmberWarning
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Quick Action Buttons Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Confirm Return to Duty (If not yet returned)
+                        if (!personnel.isReturnedToDuty) {
+                            Button(
+                                onClick = onConfirmDuty,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = EmeraldSuccess,
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("confirm_duty_btn", currentLang),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // Edit Button
+                        OutlinedButton(
+                            onClick = onEdit,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, if (isDarkMode) Color(0x4038BDF8) else Color(0x6000BCD4)),
+                            modifier = Modifier
+                                .then(if (personnel.isReturnedToDuty) Modifier.weight(1f) else Modifier)
+                                .height(44.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = AppStrings.get("edit", currentLang),
+                                tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            if (personnel.isReturnedToDuty) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("edit", currentLang),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F)
+                                )
+                            }
+                        }
+
+                        // Delete Button
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isDarkMode) Color(0x22EF4444) else Color(0x1AEF4444))
+                                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = AppStrings.get("delete", currentLang),
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
