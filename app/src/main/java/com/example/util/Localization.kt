@@ -313,17 +313,6 @@ object AppStrings {
         "use_pattern_btn" to "استخدم النمط",
         "use_pin_btn" to "استخدم رمز PIN",
 
-        // Firebase & Google Sign-In
-        "google_sign_in_title" to "تسجيل الدخول بحساب Google",
-        "google_sign_in_desc" to "مزامنة سحابية تلقائية ومحمية لقاعدة بيانات الأفراد عبر Firebase",
-        "sign_in_google_btn" to "تسجيل الدخول عبر Google",
-        "sign_out_btn" to "تسجيل الخروج",
-        "firebase_synced" to "متزامن سحابياً مع Firebase",
-        "firebase_sync_now" to "مزامنة سحابية الآن",
-        "syncing_status" to "جاري المزامنة مع Firebase...",
-        "sync_success" to "تمت المزامنة السحابية بنجاح",
-        "sync_failed" to "تعذرت المزامنة السحابية",
-        "cloud_connected_user" to "الحساب المتصل:",
 
         // Miscellaneous
         "input_text_dark_note" to "وضوح تام لخانة الإدخال",
@@ -622,17 +611,6 @@ object AppStrings {
         "use_pattern_btn" to "Utiliser le schéma",
         "use_pin_btn" to "Utiliser code PIN",
 
-        // Firebase & Google Sign-In
-        "google_sign_in_title" to "Connexion avec Google",
-        "google_sign_in_desc" to "Synchronisation cloud sécurisée des dossiers du personnel avec Firebase",
-        "sign_in_google_btn" to "Se connecter avec Google",
-        "sign_out_btn" to "Se déconnecter",
-        "firebase_synced" to "Synchronisé avec Firebase",
-        "firebase_sync_now" to "Synchroniser maintenant",
-        "syncing_status" to "Synchronisation Firebase en cours...",
-        "sync_success" to "Synchronisation cloud réussie",
-        "sync_failed" to "Échec de synchronisation cloud",
-        "cloud_connected_user" to "Compte connecté :",
 
         // Miscellaneous
         "input_text_dark_note" to "Contraste texte noir optimisé",
@@ -931,17 +909,6 @@ object AppStrings {
         "use_pattern_btn" to "Use Pattern",
         "use_pin_btn" to "Use PIN Code",
 
-        // Firebase & Google Sign-In
-        "google_sign_in_title" to "Google Sign-In",
-        "google_sign_in_desc" to "Instant and protected cloud sync for personnel records via Firebase Firestore",
-        "sign_in_google_btn" to "Sign In with Google",
-        "sign_out_btn" to "Sign Out",
-        "firebase_synced" to "Synced with Firebase",
-        "firebase_sync_now" to "Cloud Sync Now",
-        "syncing_status" to "Syncing with Firebase...",
-        "sync_success" to "Cloud sync completed successfully",
-        "sync_failed" to "Cloud sync failed",
-        "cloud_connected_user" to "Connected Account:",
 
         // Miscellaneous
         "input_text_dark_note" to "Pure black input text optimized",

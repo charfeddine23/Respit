@@ -96,13 +96,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val currentLanguage = MutableStateFlow(AppLanguage.fromCode(settingsManager.language))
     val isFocusMode = MutableStateFlow(settingsManager.isFocusMode)
 
-    // Firebase & Google Cloud Sync
-    val firebaseSyncManager = com.example.data.firebase.FirebaseSyncManager(application)
-    val currentUser = firebaseSyncManager.currentUser
-    val cloudSyncStatus = firebaseSyncManager.syncStatus
-    val cloudSyncMessage = firebaseSyncManager.syncMessage
-    val lastCloudSyncTime = firebaseSyncManager.lastSyncTime
-
     fun toggleFocusMode() {
         val next = !isFocusMode.value
         isFocusMode.value = next
@@ -648,50 +641,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         return true
     }
 
-    fun signInWithGoogle(
-        activity: android.app.Activity,
-        onSuccess: (com.google.firebase.auth.FirebaseUser) -> Unit = {},
-        onError: (String) -> Unit = {}
-    ) {
-        viewModelScope.launch {
-            firebaseSyncManager.signInWithGoogle(
-                activity = activity,
-                onSuccess = { user ->
-                    onSuccess(user)
-                    syncWithFirebase()
-                },
-                onError = onError
-            )
-        }
-    }
-
-    fun signOutFromGoogle() {
-        viewModelScope.launch {
-            firebaseSyncManager.signOut()
-        }
-    }
-
-    fun syncWithFirebase(onComplete: (Boolean) -> Unit = {}) {
-        viewModelScope.launch {
-            val list = allPersonnel.value
-            val (uploadSuccess, _) = firebaseSyncManager.uploadAllPersonnel(list)
-            if (uploadSuccess) {
-                val (remoteList, _) = firebaseSyncManager.downloadRemotePersonnel()
-                if (!remoteList.isNullOrEmpty()) {
-                    for (remoteP in remoteList) {
-                        val localExisting = repository.getPersonnelById(remoteP.id)
-                        if (localExisting == null) {
-                            repository.insert(remoteP)
-                        } else {
-                            repository.update(remoteP)
-                        }
-                    }
-                }
-            }
-            onComplete(uploadSuccess)
-        }
-    }
-
     fun lockApp() {
         if (isPinEnabled.value) {
             isLocked.value = true
@@ -765,7 +714,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     entity.copy(id = newId),
                     currentLanguage.value.code
                 )
-                entity.copy(id = newId)
             } else {
                 repository.update(entity)
                 LeaveNotificationHelper.notifyLeaveApproved(
@@ -773,10 +721,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     entity,
                     currentLanguage.value.code
                 )
-                entity
-            }
-            if (currentUser.value != null) {
-                firebaseSyncManager.saveSinglePersonnel(savedEntity)
             }
         }
     }
@@ -788,10 +732,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 lastUndoAction.value = UndoAction.ReturnedToDuty(previous)
             }
             repository.confirmReturnToDuty(id)
-            val updated = repository.getPersonnelById(id)
-            if (updated != null && currentUser.value != null) {
-                firebaseSyncManager.saveSinglePersonnel(updated)
-            }
         }
     }
 
@@ -807,10 +747,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
             repository.grantNewLeave(id, startDateMillis, returnDateMillis)
-            val updated = repository.getPersonnelById(id)
-            if (updated != null && currentUser.value != null) {
-                firebaseSyncManager.saveSinglePersonnel(updated)
-            }
         }
     }
 
@@ -818,9 +754,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             lastUndoAction.value = UndoAction.Deleted(personnel)
             repository.delete(personnel)
-            if (currentUser.value != null) {
-                firebaseSyncManager.deleteRemotePersonnel(personnel.id)
-            }
         }
     }
 

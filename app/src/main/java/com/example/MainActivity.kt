@@ -192,11 +192,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
 
-    // Firebase & Cloud Sync
-    val currentUser by viewModel.currentUser.collectAsState()
-    val cloudSyncStatus by viewModel.cloudSyncStatus.collectAsState()
-    val cloudSyncMessage by viewModel.cloudSyncMessage.collectAsState()
-
     val personnelList by viewModel.filteredPersonnel.collectAsState()
     val allPersonnelList by viewModel.allPersonnel.collectAsState()
     val stats by viewModel.stats.collectAsState()
@@ -345,33 +340,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             isDarkMode = isDarkMode,
                             lastUndo = lastUndo,
                             stats = stats,
-                            currentUser = currentUser,
-                            cloudSyncStatus = cloudSyncStatus,
-                            cloudSyncMessage = cloudSyncMessage,
-                            onSignInGoogle = {
-                                val activity = context as? android.app.Activity
-                                if (activity != null) {
-                                    viewModel.signInWithGoogle(
-                                        activity = activity,
-                                        onSuccess = { user ->
-                                            Toast.makeText(context, "${AppStrings.get("sync_success", currentLang)} (${user.displayName ?: user.email})", Toast.LENGTH_SHORT).show()
-                                        },
-                                        onError = { error ->
-                                            Toast.makeText(context, "${AppStrings.get("sync_failed", currentLang)}: $error", Toast.LENGTH_LONG).show()
-                                        }
-                                    )
-                                }
-                            },
-                            onSignOutGoogle = {
-                                viewModel.signOutFromGoogle()
-                                Toast.makeText(context, AppStrings.get("sign_out_btn", currentLang), Toast.LENGTH_SHORT).show()
-                            },
-                            onSyncFirebase = {
-                                viewModel.syncWithFirebase { ok ->
-                                    val msg = if (ok) AppStrings.get("sync_success", currentLang) else AppStrings.get("sync_failed", currentLang)
-                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                }
-                            },
                             onSelectLanguage = { lang -> viewModel.setLanguage(lang) },
                             onUndo = {
                                 viewModel.undo()
