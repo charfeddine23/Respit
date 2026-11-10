@@ -24,6 +24,20 @@ val GlassCardBorderHighlight = Color(0xB3FFFFFF) // Specular top border highligh
 // ==========================================
 // Interactive Elements & Accents
 // ==========================================
+// Neumorphic Tactile Color Palette
+val NeumorphicBackgroundLight = Color(0xFFE6EEF8) // Soft, premium light grayish-blue (#E6EEF8 / #EDF2F7)
+val NeumorphicCardLight = Color(0xFFE6EEF8)
+val NeumorphicDarkShadowLight = Color(0x458E9FB5)
+val NeumorphicLightShadowLight = Color(0xFFFFFFFF)
+val NeumorphicBackgroundDark = Color(0xFF131926)
+val NeumorphicCardDark = Color(0xFF161F30)
+
+// Action Accents
+val RoyalBlueAccent = Color(0xFF2563EB)       // Rich royal blue for primary interactive buttons
+val RoyalBlueDark = Color(0xFF1D4ED8)
+val CoralRedAccent = Color(0xFFEF4444)        // Soft coral red for alerts / expenses
+val CoralRedDark = Color(0xFFDC2626)
+
 // Primary Vibrant Cyan/Turquoise Accent
 val VibrantCyan = Color(0xFF00BCD4)           // Primary action buttons, active chips, key icons
 val CyanGlow = Color(0xFF00E5FF)              // High-vibrancy glow accent

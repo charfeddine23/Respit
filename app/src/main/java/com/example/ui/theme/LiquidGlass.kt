@@ -49,7 +49,7 @@ fun DynamicAuroraBackground(
     modifier: Modifier = Modifier
 ) {
     if (isNeumorphic) {
-        val canvasBg = if (isDark) Color(0xFF141923) else Color(0xFFE8EEF5)
+        val canvasBg = if (isDark) Color(0xFF131926) else Color(0xFFE6EEF8)
         Canvas(modifier = modifier.fillMaxSize()) {
             drawRect(color = canvasBg)
         }
@@ -276,24 +276,27 @@ fun Modifier.liquidGlass(
     cornerRadius: Dp = 24.dp
 ): Modifier {
     if (isNeumorphic) {
-        val surfaceColor = if (isDark) Color(0xFF1A2232) else Color(0xFFE8EEF5)
-        val lightShadow = if (isDark) Color(0x1AFFFFFF) else Color(0xF2FFFFFF)
-        val darkShadow = if (isDark) Color(0x750A0E17) else Color(0x559CB0C6)
+        val surfaceColor = if (isDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
+        val lightShadow = if (isDark) Color(0x1FFFFFFF) else Color(0xFFFFFFFF)
+        val darkShadow = if (isDark) Color(0x990A0E17) else Color(0x458E9FB5)
         val isCircle = shape == CircleShape
         val borderBrush = Brush.linearGradient(
             if (isDark) {
                 listOf(
-                    Color.White.copy(alpha = 0.12f),
+                    Color.White.copy(alpha = 0.16f),
                     Color.Transparent,
-                    Color.Black.copy(alpha = 0.45f)
+                    Color.Black.copy(alpha = 0.50f)
                 )
             } else {
                 listOf(
-                    Color.White.copy(alpha = 0.90f),
+                    Color.White.copy(alpha = 0.95f),
+                    Color.White.copy(alpha = 0.40f),
                     Color.Transparent,
-                    Color(0x2094A3B8)
+                    Color(0x2864748B)
                 )
-            }
+            },
+            start = Offset.Zero,
+            end = Offset.Infinite
         )
 
         return this
@@ -433,16 +436,18 @@ fun Modifier.liquidGlassInteractive(
     cornerRadius: Dp = 18.dp
 ): Modifier {
     if (isNeumorphic) {
-        val surfaceColor = if (isDark) Color(0xFF1A2232) else Color(0xFFE8EEF5)
-        val lightShadow = if (isDark) Color(0x1AFFFFFF) else Color(0xF2FFFFFF)
-        val darkShadow = if (isDark) Color(0x750A0E17) else Color(0x559CB0C6)
+        val surfaceColor = if (isDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
+        val lightShadow = if (isDark) Color(0x1FFFFFFF) else Color(0xFFFFFFFF)
+        val darkShadow = if (isDark) Color(0x990A0E17) else Color(0x458E9FB5)
         val isCircle = shape == CircleShape
         val borderBrush = Brush.linearGradient(
             if (isDark) {
-                listOf(Color.White.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.40f))
+                listOf(Color.White.copy(alpha = 0.16f), Color.Transparent, Color.Black.copy(alpha = 0.45f))
             } else {
-                listOf(Color.White.copy(alpha = 0.90f), Color.Transparent, Color(0x2094A3B8))
-            }
+                listOf(Color.White.copy(alpha = 0.95f), Color.White.copy(alpha = 0.40f), Color.Transparent, Color(0x2864748B))
+            },
+            start = Offset.Zero,
+            end = Offset.Infinite
         )
 
         return this

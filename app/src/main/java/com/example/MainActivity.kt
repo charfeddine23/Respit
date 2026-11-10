@@ -54,10 +54,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Tune
@@ -128,9 +130,12 @@ import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
 import com.example.ui.screens.NotificationScreen
 import com.example.ui.screens.RoomDatabaseScreen
+import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.DynamicAuroraBackground
+import com.example.ui.theme.EmeraldSuccess
 import com.example.ui.theme.LiquidGlassDefaults
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.liquidGlass
 import com.example.ui.theme.liquidGlassInteractive
 import com.example.util.AppLanguage
@@ -705,6 +710,106 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             )
                                         }
 
+                                        // 3 Prominent Tactile Action Buttons (Matching Reference Design: Green, Coral, Royal Blue)
+                                        item {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                // 1. Green Button: "+ إضافة فرد" (Emerald Green)
+                                                Surface(
+                                                    onClick = {
+                                                        personnelToEdit = null
+                                                        showAddEditDialog = true
+                                                    },
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    color = EmeraldSuccess,
+                                                    shadowElevation = if (isNeumorphic) 6.dp else 4.dp,
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(48.dp)
+                                                        .testTag("action_btn_add_personnel")
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(17.dp))
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = AppStrings.get("add_personnel", currentLang),
+                                                            color = Color.White,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 11.sp,
+                                                            maxLines = 1
+                                                        )
+                                                    }
+                                                }
+
+                                                // 2. Coral Red Button: "تنبيهات عاجلة"
+                                                Surface(
+                                                    onClick = {
+                                                        selectedNavPage = AppNavPage.NOTIFICATIONS
+                                                    },
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    color = CoralRedAccent,
+                                                    shadowElevation = if (isNeumorphic) 6.dp else 4.dp,
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(48.dp)
+                                                        .testTag("action_btn_urgent_alerts")
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(17.dp))
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = AppStrings.get("urgent_alerts_title", currentLang).split("(").first().trim(),
+                                                            color = Color.White,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 11.sp,
+                                                            maxLines = 1
+                                                        )
+                                                    }
+                                                }
+
+                                                // 3. Royal Blue Button: "قاعدة البيانات"
+                                                Surface(
+                                                    onClick = {
+                                                        selectedNavPage = AppNavPage.DATABASE
+                                                    },
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    color = RoyalBlueAccent,
+                                                    shadowElevation = if (isNeumorphic) 6.dp else 4.dp,
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(48.dp)
+                                                        .testTag("action_btn_room_db")
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Icon(Icons.Default.Storage, contentDescription = null, tint = Color.White, modifier = Modifier.size(17.dp))
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = AppStrings.get("nav_database", currentLang),
+                                                            color = Color.White,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 11.sp,
+                                                            maxLines = 1
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         // Quick Search and Filter Trigger Box
                                         item {
                                             Box(
@@ -785,12 +890,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                                 cursorColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
                                                             ),
                                                             singleLine = true,
-                                                            shape = RoundedCornerShape(14.dp)
+                                                            shape = RoundedCornerShape(50.dp)
                                                         )
 
                                                         Box(
                                                             modifier = Modifier.liquidGlassInteractive(
-                                                                shape = RoundedCornerShape(14.dp),
+                                                                shape = RoundedCornerShape(50.dp),
                                                                 glowColor = MaterialTheme.colorScheme.primary,
                                                                 isDark = isDarkMode,
                                                                 isNeumorphic = isNeumorphic

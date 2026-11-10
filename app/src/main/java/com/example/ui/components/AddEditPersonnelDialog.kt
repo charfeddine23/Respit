@@ -192,15 +192,15 @@ fun AddEditPersonnelDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = if (isDark) Color(0xFF1E293B) else Color(0xF2FFFFFF),
+            shape = RoundedCornerShape(26.dp),
+            color = if (isDark) Color(0xFF161F30) else Color(0xFFE6EEF8),
             border = BorderStroke(
                 1.2.dp,
                 Brush.linearGradient(
                     listOf(
-                        Color.White.copy(alpha = if (isDark) 0.4f else 0.95f),
-                        Color(0x8000BCD4),
-                        Color.White.copy(alpha = 0.6f)
+                        Color.White.copy(alpha = if (isDark) 0.2f else 0.95f),
+                        Color(0x302563EB),
+                        Color.White.copy(alpha = 0.5f)
                     )
                 )
             ),
@@ -648,9 +648,9 @@ fun AddEditPersonnelDialog(
                             )
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00BCD4),
+                            containerColor = Color(0xFF2563EB),
                             contentColor = Color.White
                         )
                     ) {
@@ -659,7 +659,7 @@ fun AddEditPersonnelDialog(
 
                     OutlinedButton(
                         onClick = onDismiss,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, Color(0x3364748B))
                     ) {
                         Text(AppStrings.get("cancel", currentLang), color = Color(0xFF64748B), fontWeight = FontWeight.Bold)

@@ -139,15 +139,15 @@ fun SettingsDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = if (isDarkMode) Color(0xFF1E293B) else Color(0xF2FFFFFF), // rgba(255, 255, 255, 0.95)
+            shape = RoundedCornerShape(26.dp),
+            color = if (isDarkMode) Color(0xFF161F30) else Color(0xFFE6EEF8),
             border = BorderStroke(
                 1.2.dp,
                 Brush.linearGradient(
                     listOf(
-                        Color.White.copy(alpha = if (isDarkMode) 0.4f else 0.95f),
-                        Color(0x8000BCD4),
-                        Color.White.copy(alpha = 0.6f)
+                        Color.White.copy(alpha = if (isDarkMode) 0.2f else 0.95f),
+                        Color(0x302563EB),
+                        Color.White.copy(alpha = 0.5f)
                     )
                 )
             ),

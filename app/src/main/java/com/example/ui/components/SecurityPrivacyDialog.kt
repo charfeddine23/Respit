@@ -97,8 +97,8 @@ fun SecurityPrivacyDialog(
     var passkeyState by remember { mutableStateOf(isPasskeyEnabled) }
     var pinInput by remember { mutableStateOf("") }
 
-    val bgColor = if (isDarkMode) Color(0xFF0F172A) else Color(0xFFFFFFFF)
-    val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFF8FAFC)
+    val bgColor = if (isDarkMode) Color(0xFF161F30) else Color(0xFFE6EEF8)
+    val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFF1F6FC)
     val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
     val primaryCyan = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)

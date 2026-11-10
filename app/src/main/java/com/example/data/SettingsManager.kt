@@ -84,7 +84,7 @@ class SettingsManager(context: Context) {
     var themeStyle: AppThemeStyle
         get() {
             val code = prefs.getString(KEY_THEME_STYLE, null)
-            return if (code != null) AppThemeStyle.fromCode(code) else AppThemeStyle.GLASSMORPHISM
+            return if (code != null) AppThemeStyle.fromCode(code) else AppThemeStyle.NEUMORPHISM
         }
         set(value) {
             prefs.edit().putString(KEY_THEME_STYLE, value.code).apply()

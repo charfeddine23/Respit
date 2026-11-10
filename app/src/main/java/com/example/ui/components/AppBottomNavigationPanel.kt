@@ -72,12 +72,12 @@ fun AppBottomNavigationPanel(
     modifier: Modifier = Modifier
 ) {
     val containerBg = when {
-        isNeumorphic -> if (isDarkMode) Color(0xFF1E293B) else Color(0xFFE8EEF5)
+        isNeumorphic -> if (isDarkMode) Color(0xFF161F30) else Color(0xFFE6EEF8)
         else -> if (isDarkMode) Color(0xF00F172A) else Color(0xF5FFFFFF)
     }
 
     val borderColor = when {
-        isNeumorphic -> if (isDarkMode) Color(0x33475569) else Color(0x66CBD5E1)
+        isNeumorphic -> if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1)
         else -> if (isDarkMode) Color(0x3300E5FF) else Color(0x3300BCD4)
     }
 
@@ -88,12 +88,12 @@ fun AppBottomNavigationPanel(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(
                 elevation = if (isNeumorphic) 10.dp else 8.dp,
-                shape = RoundedCornerShape(26.dp),
-                ambientColor = if (isDarkMode) Color(0x40000000) else Color(0x20000000),
-                spotColor = if (isDarkMode) Color(0x6000E5FF) else Color(0x2000BCD4)
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = if (isDarkMode) Color(0x40000000) else Color(0x308DA0B5),
+                spotColor = if (isDarkMode) Color(0x6000E5FF) else Color(0x352563EB)
             )
             .testTag("bottom_nav_panel"),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(28.dp),
         color = containerBg,
         border = BorderStroke(1.2.dp, borderColor)
     ) {
@@ -171,8 +171,8 @@ private fun BottomNavItem(
     onClick: () -> Unit,
     testTag: String
 ) {
-    val activeColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF0284C7)
-    val inactiveColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8)
+    val activeColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF2563EB)
+    val inactiveColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF64748B)
 
     val itemColor by animateColorAsState(
         targetValue = if (isSelected) activeColor else inactiveColor,
@@ -187,9 +187,9 @@ private fun BottomNavItem(
     )
 
     val activePillBg = if (isDarkMode) {
-        Color(0xFF00E5FF).copy(alpha = 0.12f)
+        Color(0xFF00E5FF).copy(alpha = 0.14f)
     } else {
-        Color(0xFF0284C7).copy(alpha = 0.10f)
+        Color(0xFF2563EB).copy(alpha = 0.12f)
     }
 
     Box(

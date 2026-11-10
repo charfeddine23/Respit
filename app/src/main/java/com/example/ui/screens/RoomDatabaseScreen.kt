@@ -130,8 +130,8 @@ fun RoomDatabaseScreen(
     var showClearDialog by remember { mutableStateOf(false) }
     var showAddLeaveDialog by remember { mutableStateOf(false) }
 
-    val bgColor = if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF1F5F9)
-    val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
+    val bgColor = if (isDarkMode) Color(0xFF131926) else if (isNeumorphic) Color(0xFFE6EEF8) else Color(0xFFF1F5F9)
+    val cardBg = if (isDarkMode) Color(0xFF161F30) else if (isNeumorphic) Color(0xFFE6EEF8) else Color.White
     val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()

@@ -204,7 +204,7 @@ fun PersonnelCard(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Modern Squircle / Circular Badge displaying Number of Days
+                    // Modern Squircle / Circular Badge displaying Days Since Duty Return (شحال عندو من اللي دخل)
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -218,9 +218,9 @@ fun PersonnelCard(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "${personnel.totalLeaveDays}",
+                                text = "${personnel.daysSinceDutyReturn}",
                                 fontWeight = FontWeight.Black,
-                                fontSize = if (personnel.totalLeaveDays >= 100) 13.sp else 16.sp,
+                                fontSize = if (personnel.daysSinceDutyReturn >= 100) 13.sp else 16.sp,
                                 color = visual.color,
                                 lineHeight = 16.sp
                             )

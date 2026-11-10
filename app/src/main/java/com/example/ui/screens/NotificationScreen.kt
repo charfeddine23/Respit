@@ -87,6 +87,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.AppNotification
+import com.example.data.AppThemeStyle
 import com.example.data.Personnel
 import com.example.ui.PersonnelViewModel
 import com.example.ui.theme.DynamicAuroraBackground
@@ -109,6 +110,8 @@ fun NotificationScreen(
     val context = LocalContext.current
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
+    val themeStyle by viewModel.currentThemeStyle.collectAsState()
+    val isNeumorphic = themeStyle == AppThemeStyle.NEUMORPHISM
     val notifications by viewModel.notifications.collectAsState()
     val pinnedIds by viewModel.pinnedNotificationIds.collectAsState()
     val dismissedIds by viewModel.dismissedNotificationIds.collectAsState()
@@ -135,8 +138,12 @@ fun NotificationScreen(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Ambient Liquid Dynamic Aurora Mesh Background (Smooth 60fps drifting orbs)
-            DynamicAuroraBackground(isDark = isDarkMode, animationsEnabled = isDynamicAnimationsEnabled)
+            // Ambient Dynamic Neumorphic / Aurora Background
+            DynamicAuroraBackground(
+                isDark = isDarkMode,
+                isNeumorphic = isNeumorphic,
+                animationsEnabled = isDynamicAnimationsEnabled
+            )
 
             Scaffold(
                 modifier = Modifier
