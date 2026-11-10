@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build-and-release:
@@ -147,12 +148,26 @@ jobs:
           echo "Release APKs prepared at release-apk/:"
           ls -lh release-apk/
 
+      - name: Clean up Old Workflow Artifacts to Free Storage Quota
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Cleaning up old workflow artifacts from previous builds to prevent exceeding Actions storage quota..."
+          ARTIFACT_IDS=$(gh api --paginate "repos/${{ github.repository }}/actions/artifacts" --jq '.artifacts[].id' 2>/dev/null || true)
+          for art_id in $ARTIFACT_IDS; do
+            if [ -n "$art_id" ]; then
+              echo "Deleting old workflow artifact ID: $art_id"
+              gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$art_id" 2>/dev/null || true
+            fi
+          done
+
       - name: Upload Release APK as Workflow Artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: RespitePulse-v${{ steps.version_info.outputs.version_name }}
           path: release-apk/RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk
-          retention-days: 30
+          retention-days: 1
 
       - name: Clean up Older Releases and Tags (Keep Only Latest)
         env:
