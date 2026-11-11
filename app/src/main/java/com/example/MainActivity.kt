@@ -458,21 +458,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 fontWeight = FontWeight.ExtraBold,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA))
-                                                    .border(0.8.dp, Color(0xFF00BCD4).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = "v${com.example.BuildConfig.VERSION_NAME}",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00838F)
-                                                )
-                                            }
                                         }
 
                                         // Right Side (الجهة اليمنى): Quick Actions (Theme Toggle, Settings, Drawer Menu)
@@ -1557,12 +1542,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             },
             onImportJson = { jsonStr, replaceAll ->
                 viewModel.importPersonnelFromJson(jsonStr, replaceAll)
-            },
-            onBackupToDrive = {
-                driveBackupLauncher.launch("respite_pulse_backup_${System.currentTimeMillis()}.json")
-            },
-            onRestoreFromDrive = {
-                driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
             },
             onDismiss = { showExportDialog = false }
         )

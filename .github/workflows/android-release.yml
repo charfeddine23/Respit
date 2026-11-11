@@ -52,12 +52,12 @@ jobs:
           if [ -z "$VERSION_NAME" ]; then
             BASE_MAJOR=1
             BASE_MINOR=42
-            BASE_PATCH=40
+            BASE_PATCH=4
             VERSION_NAME="$BASE_MAJOR.$BASE_MINOR.$((BASE_PATCH + GITHUB_RUN_NUMBER))"
           fi
 
           if [ -z "$VERSION_CODE" ]; then
-            VERSION_CODE=$((200 + GITHUB_RUN_NUMBER))
+            VERSION_CODE=$((144 + GITHUB_RUN_NUMBER))
           fi
 
           APP_ID="com.aistudio.leavetracker.kpqvbn"
@@ -121,14 +121,13 @@ jobs:
       - name: Build Signed Release APK with Gradle
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
-          APP_VERSION_NAME: ${{ steps.version_info.outputs.version_name }}
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: ${{ steps.keystore_setup.outputs.store_pass }}
           KEY_PASSWORD: ${{ steps.keystore_setup.outputs.key_pass }}
           JAVA_TOOL_OPTIONS: "-Djava.awt.headless=true"
         run: |
-          echo "Building Release APK with dynamic versioning (Build #${{ github.run_number }} - Version ${{ steps.version_info.outputs.version_name }} Code ${{ steps.version_info.outputs.version_code }})..."
-          ./gradlew :app:assembleRelease -PversionName="${{ steps.version_info.outputs.version_name }}" -PversionCode="${{ steps.version_info.outputs.version_code }}" --no-daemon --stacktrace -Djava.awt.headless=true
+          echo "Building Release APK with dynamic versioning (Build #${{ github.run_number }})..."
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace -Djava.awt.headless=true
 
       - name: Prepare Single Release APK
         run: |
