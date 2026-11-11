@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FileUpload
@@ -67,6 +69,8 @@ fun ExportDialog(
     jsonContent: String,
     onExportPdf: () -> Unit,
     onImportJson: (jsonString: String, replaceAll: Boolean) -> Pair<Boolean, String>,
+    onBackupToDrive: () -> Unit = {},
+    onRestoreFromDrive: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -165,6 +169,27 @@ fun ExportDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Dedicated Manual Google Drive Backup Button
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onBackupToDrive()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudUpload,
+                            contentDescription = "نسخ احتياطي Google Drive",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("نسخ احتياطي يدوي إلى Google Drive 📤", fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     // Primary PDF Export Button
                     Button(
                         onClick = {
@@ -247,8 +272,29 @@ fun ExportDialog(
                     }
                 } else {
                     // IMPORT TAB
+                    // Dedicated Manual Google Drive Restore Button
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onRestoreFromDrive()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudDownload,
+                            contentDescription = "استعادة من Google Drive",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("استعادة يدوية من ملف Google Drive 📥", fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     Text(
-                        text = "الصق محتوى النسخة الاحتياطية (JSON) لاستيراد الأفراد وسجلاتهم إلى التطبيق:",
+                        text = "أو الصق محتوى النسخة الاحتياطية (JSON) لاستيراد الأفراد وسجلاتهم إلى التطبيق:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

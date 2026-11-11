@@ -609,39 +609,89 @@ fun SettingsDialog(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Two Dedicated Buttons: Light Mode (النهاري) and Dark Mode (الليلي)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            AppThemeMode.entries.forEach { mode ->
-                                val selected = currentThemeMode == mode
-                                Surface(
-                                    onClick = { onSelectThemeMode(mode) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(44.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = if (selected) {
-                                        if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
-                                    } else {
-                                        if (isDarkMode) Color(0x221E293B) else Color.White
-                                    },
-                                    border = BorderStroke(
-                                        width = if (selected) 1.5.dp else 1.dp,
-                                        color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x3394A3B8) else Color(0x40CBD5E1))
-                                    )
+                            val isLightSelected = currentThemeMode == AppThemeMode.LIGHT
+                            val isDarkSelected = currentThemeMode == AppThemeMode.DARK
+
+                            // 1. Day Mode Button (زر الوضع النهاري ☀️)
+                            Surface(
+                                onClick = { onSelectThemeMode(AppThemeMode.LIGHT) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .testTag("theme_day_button"),
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isLightSelected) {
+                                    if (isDarkMode) Color(0x33F59E0B) else Color(0xFFFEF3C7)
+                                } else {
+                                    if (isDarkMode) Color(0x221E293B) else Color.White
+                                },
+                                border = BorderStroke(
+                                    width = if (isLightSelected) 1.8.dp else 1.dp,
+                                    color = if (isLightSelected) Color(0xFFF59E0B) else (if (isDarkMode) Color(0x3394A3B8) else Color(0x40CBD5E1))
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = when (mode) {
-                                                AppThemeMode.LIGHT -> AppStrings.get("theme_light_btn", currentLanguage)
-                                                AppThemeMode.DARK -> AppStrings.get("theme_dark_btn", currentLanguage)
-                                            },
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                            fontSize = 13.sp,
-                                            color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.LightMode,
+                                        contentDescription = null,
+                                        tint = if (isLightSelected) Color(0xFFD97706) else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("theme_light_btn", currentLanguage),
+                                        fontWeight = if (isLightSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 13.sp,
+                                        color = if (isLightSelected) Color(0xFFB45309) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
+                                    )
+                                }
+                            }
+
+                            // 2. Night Mode Button (زر الوضع الليلي 🌙)
+                            Surface(
+                                onClick = { onSelectThemeMode(AppThemeMode.DARK) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .testTag("theme_night_button"),
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isDarkSelected) {
+                                    if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
+                                } else {
+                                    if (isDarkMode) Color(0x221E293B) else Color.White
+                                },
+                                border = BorderStroke(
+                                    width = if (isDarkSelected) 1.8.dp else 1.dp,
+                                    color = if (isDarkSelected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x3394A3B8) else Color(0x40CBD5E1))
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DarkMode,
+                                        contentDescription = null,
+                                        tint = if (isDarkSelected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("theme_dark_btn", currentLanguage),
+                                        fontWeight = if (isDarkSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 13.sp,
+                                        color = if (isDarkSelected) Color(0xFF00838F) else (if (isDarkMode) Color(0xFFCBD5E1) else SlateTextPrimary)
+                                    )
                                 }
                             }
                         }

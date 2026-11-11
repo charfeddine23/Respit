@@ -156,13 +156,22 @@ fun SideNavigationDrawerContent(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Version 1.42.2 Badge
-                Text(
-                    text = AppStrings.get("app_subtitle", currentLang),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFCBD5E1),
-                    fontSize = 11.sp
-                )
+                // Dynamic Version Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA))
+                        .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Version v${com.example.BuildConfig.VERSION_NAME} (Build ${com.example.BuildConfig.VERSION_CODE})",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00838F),
+                        fontSize = 11.sp
+                    )
+                }
             }
         }
 

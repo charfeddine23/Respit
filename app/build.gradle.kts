@@ -5,22 +5,24 @@ plugins {
   alias(libs.plugins.secrets)
 }
 
+val baseMajor = 1
+val baseMinor = 42
+val baseCode = 200
+val basePatchOffset = 40
+
+val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+  ?: System.getenv("BUILD_NUMBER")?.toIntOrNull()
+  ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
+
+val currentRun = runNumber ?: 1
+val dynamicVersionCode = baseCode + currentRun
+val dynamicVersionName = System.getenv("APP_VERSION_NAME")
+  ?: (project.findProperty("versionName") as? String)
+  ?: "$baseMajor.$baseMinor.${basePatchOffset + currentRun}"
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
-
-  val baseMajor = 1
-  val baseMinor = 42
-  val basePatch = 4
-  val baseCode = 144
-
-  val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
-    ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
-
-  val dynamicVersionCode = if (runNumber != null) baseCode + runNumber else baseCode
-  val dynamicVersionName = System.getenv("APP_VERSION_NAME")
-    ?: (project.findProperty("versionName") as? String)
-    ?: if (runNumber != null) "$baseMajor.$baseMinor.${basePatch + runNumber}" else "$baseMajor.$baseMinor.$basePatch"
 
   defaultConfig {
     applicationId = "com.aistudio.leavetracker.kpqvbn"
@@ -148,10 +150,22 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
 }
 
-tasks.register("printVersion") {
-  doLast {
-    println("VERSION_NAME=${android.defaultConfig.versionName}")
-    println("VERSION_CODE=${android.defaultConfig.versionCode}")
+abstract class PrintVersionTask : DefaultTask() {
+  @get:Input
+  abstract val versionName: Property<String>
+
+  @get:Input
+  abstract val versionCode: Property<Int>
+
+  @TaskAction
+  fun print() {
+    println("VERSION_NAME=${versionName.get()}")
+    println("VERSION_CODE=${versionCode.get()}")
   }
+}
+
+tasks.register<PrintVersionTask>("printVersion") {
+  versionName.set(dynamicVersionName)
+  versionCode.set(dynamicVersionCode)
 }
 

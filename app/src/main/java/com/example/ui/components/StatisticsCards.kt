@@ -139,11 +139,11 @@ fun StatisticsSection(
         ) {
             val isWide = maxWidth >= 500.dp
             val isCompact = maxWidth < 340.dp
-            val ringSize = if (isWide) 130.dp else if (isCompact) 100.dp else 116.dp
-            val canvasSize = if (isWide) 120.dp else if (isCompact) 92.dp else 108.dp
-            val strokeWidthDp = if (isWide) 11.dp else if (isCompact) 8.dp else 10.dp
-            val centerTotalSp = if (isWide) 24.sp else if (isCompact) 19.sp else 22.sp
-            val centerLabelSp = if (isWide) 10.sp else if (isCompact) 8.sp else 9.sp
+            val ringSize = if (isWide) 140.dp else if (isCompact) 110.dp else 126.dp
+            val canvasSize = if (isWide) 128.dp else if (isCompact) 100.dp else 116.dp
+            val strokeWidthDp = if (isWide) 12.dp else if (isCompact) 9.dp else 11.dp
+            val centerTotalSp = if (isWide) 28.sp else if (isCompact) 22.sp else 26.sp
+            val centerLabelSp = if (isWide) 12.sp else if (isCompact) 10.sp else 11.sp
 
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 // Top Header Row: Dashboard Title & Pulse Dot
@@ -165,7 +165,8 @@ fun StatisticsSection(
                         Text(
                             text = AppStrings.get("dashboard_title", currentLang),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Black,
                             color = if (isDarkMode) Color.White else SlateTextPrimary
                         )
                     }
@@ -179,18 +180,18 @@ fun StatisticsSection(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                         ) {
                             Text(
                                 text = "${stats.total} ",
                                 fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 color = Color(0xFF00838F)
                             )
                             Text(
                                 text = AppStrings.get("registered_system", currentLang),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF006064)
                             )
                         }
@@ -397,7 +398,7 @@ private fun DashboardMetricRow(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (isWide) 32.dp else 28.dp)
+                        .size(if (isWide) 36.dp else 32.dp)
                         .clip(iconShape)
                         .background(iconBg),
                     contentAlignment = Alignment.Center
@@ -406,14 +407,14 @@ private fun DashboardMetricRow(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(if (isWide) 18.dp else 16.dp)
+                        modifier = Modifier.size(if (isWide) 20.dp else 18.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(9.dp))
                 Text(
                     text = label,
-                    fontSize = if (isWide) 12.sp else 11.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = if (isWide) 13.5.sp else 12.5.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                     color = if (isDarkMode) Color(0xFFE2E8F0) else SlateTextPrimary,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -424,8 +425,8 @@ private fun DashboardMetricRow(
 
             Text(
                 text = count,
-                fontSize = if (isWide) 15.sp else 14.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = if (isWide) 17.5.sp else 16.5.sp,
+                fontWeight = FontWeight.Black,
                 color = accentColor
             )
         }
