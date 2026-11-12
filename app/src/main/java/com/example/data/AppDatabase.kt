@@ -64,68 +64,68 @@ abstract class AppDatabase : RoomDatabase() {
                 val seedPersonnel = listOf(
                     Personnel(
                         fullName = "عبد الرحمن بلقاسمي",
-                        rank = "ملازم أول",
+                        rank = "ملازم أول - Lieutenant",
                         registrationNumber = "DZ-160492",
                         startDateMillis = getOffsetDateMillis(-7),
                         returnDateMillis = getOffsetDateMillis(3), // باقي 3 أيام على الدخول (بالبيت)
                         isReturnedToDuty = false,
                         leaveType = "عطلة سنوية",
-                        wilaya = "16 - الجزائر",
+                        wilaya = "16 - الجزائر - Alger",
                         notes = "الكتيبة الأولى - السرية الثانية"
                     ),
                     Personnel(
                         fullName = "محمد الأمين يحياوي",
-                        rank = "مساعد رئيسي",
+                        rank = "مساعد رئيسي - Adjudant-Major",
                         registrationNumber = "DZ-318920",
                         startDateMillis = getOffsetDateMillis(-4),
                         returnDateMillis = getOffsetDateMillis(6), // باقي 6 أيام على الدخول (بالبيت)
                         isReturnedToDuty = false,
                         leaveType = "إجازة",
-                        wilaya = "31 - وهران",
+                        wilaya = "31 - وهران - Oran",
                         notes = "قسم التسيير الإداري"
                     ),
                     Personnel(
                         fullName = "خالد بن عيسى الدراجي",
-                        rank = "رقيب أول",
+                        rank = "رقيب أول - Sergent-Chef",
                         registrationNumber = "DZ-254100",
                         startDateMillis = getOffsetDateMillis(-10),
                         returnDateMillis = getOffsetDateMillis(0), // الدخول اليوم!
                         isReturnedToDuty = false,
                         leaveType = "إجازة قصيرة",
-                        wilaya = "25 - قسنطينة",
+                        wilaya = "25 - قسنطينة - Constantine",
                         notes = "سلاح الإشارة والمواصلات"
                     ),
                     Personnel(
                         fullName = "ياسين بوجمعة صوالحي",
-                        rank = "مساعد أول",
+                        rank = "مساعد أول - Adjudant-Chef",
                         registrationNumber = "DZ-057812",
                         startDateMillis = getOffsetDateMillis(-12),
                         returnDateMillis = getOffsetDateMillis(-2), // متأخر بيومين عن الدخول!
                         isReturnedToDuty = false,
                         leaveType = "نقاهة",
-                        wilaya = "05 - باتنة",
+                        wilaya = "05 - باتنة - Batna",
                         notes = "فصيل الحراسة والتدخل"
                     ),
                     Personnel(
                         fullName = "حمزة بن زروال الماجري",
-                        rank = "عريف أول",
+                        rank = "عريف أول - Caporal-Chef",
                         registrationNumber = "DZ-194321",
                         startDateMillis = getOffsetDateMillis(-45),
                         returnDateMillis = getOffsetDateMillis(-35), // حاضر بالخدمة منذ 35 يوماً
                         isReturnedToDuty = true,
                         leaveType = "عطلة سنوية",
-                        wilaya = "19 - سطيف",
+                        wilaya = "19 - سطيف - Sétif",
                         notes = "الإسناد اللوجيستي"
                     ),
                     Personnel(
                         fullName = "فاروق لعريبي الورتيلاني",
-                        rank = "نقيب",
+                        rank = "نقيب - Capitaine",
                         registrationNumber = "DZ-098871",
                         startDateMillis = getOffsetDateMillis(3), // إجازة مبرمجة تبدأ بعد 3 أيام
                         returnDateMillis = getOffsetDateMillis(13),
                         isReturnedToDuty = false,
                         leaveType = "إجازة",
-                        wilaya = "09 - البليدة",
+                        wilaya = "09 - البليدة - Blida",
                         notes = "قيادة الأركان"
                     )
                 )
@@ -135,79 +135,79 @@ abstract class AppDatabase : RoomDatabase() {
                     LeaveRecord(
                         personnelId = 1,
                         personnelName = "عبد الرحمن بلقاسمي",
-                        rank = "ملازم أول",
+                        rank = "ملازم أول - Lieutenant",
                         registrationNumber = "DZ-160492",
                         leaveType = "عطلة سنوية",
                         startDateMillis = getOffsetDateMillis(-7),
                         returnDateMillis = getOffsetDateMillis(3),
                         durationDays = 10,
                         statusText = "جارية (بالبيت)",
-                        destinationWilaya = "16 - الجزائر",
+                        destinationWilaya = "16 - الجزائر - Alger",
                         notes = "عطلة النصف الأول من السنة"
                     ),
                     LeaveRecord(
                         personnelId = 2,
                         personnelName = "محمد الأمين يحياوي",
-                        rank = "مساعد رئيسي",
+                        rank = "مساعد رئيسي - Adjudant-Major",
                         registrationNumber = "DZ-318920",
                         leaveType = "إجازة",
                         startDateMillis = getOffsetDateMillis(-4),
                         returnDateMillis = getOffsetDateMillis(6),
                         durationDays = 10,
                         statusText = "جارية (بالبيت)",
-                        destinationWilaya = "31 - وهران",
+                        destinationWilaya = "31 - وهران - Oran",
                         notes = "إجازة عادية"
                     ),
                     LeaveRecord(
                         personnelId = 3,
                         personnelName = "خالد بن عيسى الدراجي",
-                        rank = "رقيب أول",
+                        rank = "رقيب أول - Sergent-Chef",
                         registrationNumber = "DZ-254100",
                         leaveType = "إجازة قصيرة",
                         startDateMillis = getOffsetDateMillis(-10),
                         returnDateMillis = getOffsetDateMillis(0),
                         durationDays = 10,
                         statusText = "الدخول اليوم",
-                        destinationWilaya = "25 - قسنطينة",
+                        destinationWilaya = "25 - قسنطينة - Constantine",
                         notes = "إجازة مستحقة"
                     ),
                     LeaveRecord(
                         personnelId = 4,
                         personnelName = "ياسين بوجمعة صوالحي",
-                        rank = "مساعد أول",
+                        rank = "مساعد أول - Adjudant-Chef",
                         registrationNumber = "DZ-057812",
                         leaveType = "نقاهة",
                         startDateMillis = getOffsetDateMillis(-12),
                         returnDateMillis = getOffsetDateMillis(-2),
                         durationDays = 10,
                         statusText = "متأخر عن الدخول",
-                        destinationWilaya = "05 - باتنة",
+                        destinationWilaya = "05 - باتنة - Batna",
                         notes = "فترة نقاهة طبية"
                     ),
                     LeaveRecord(
                         personnelId = 5,
                         personnelName = "حمزة بن زروال الماجري",
-                        rank = "عريف أول",
+                        rank = "عريف أول - Caporal-Chef",
                         registrationNumber = "DZ-194321",
                         leaveType = "عطلة سنوية",
                         startDateMillis = getOffsetDateMillis(-45),
                         returnDateMillis = getOffsetDateMillis(-35),
                         durationDays = 10,
                         statusText = "مكتملة (مستأنف للعمل)",
-                        destinationWilaya = "19 - سطيف",
+                        destinationWilaya = "19 - سطيف - Sétif",
                         notes = "استأنف العمل بانتظام"
                     ),
                     LeaveRecord(
                         personnelId = 6,
                         personnelName = "فاروق لعريبي الورتيلاني",
-                        rank = "نقيب",
+                        rank = "نقيب - Capitaine",
                         registrationNumber = "DZ-098871",
                         leaveType = "إجازة",
                         startDateMillis = getOffsetDateMillis(3),
                         returnDateMillis = getOffsetDateMillis(13),
                         durationDays = 10,
                         statusText = "مبرمجة قريباً",
-                        destinationWilaya = "09 - البليدة",
+                        destinationWilaya = "09 - البليدة - Blida",
                         notes = "موافقة القيادة"
                     )
                 )

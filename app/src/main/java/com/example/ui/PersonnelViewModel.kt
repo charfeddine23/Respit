@@ -13,6 +13,8 @@ import com.example.data.LeaveStatus
 import com.example.data.Personnel
 import com.example.data.PersonnelRepository
 import com.example.data.SettingsManager
+import com.example.data.normalizeRank
+import com.example.data.normalizeWilaya
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.LeaveNotificationHelper
@@ -79,20 +81,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val currentThemeStyle = MutableStateFlow(settingsManager.themeStyle)
     val isDarkMode = MutableStateFlow(settingsManager.isDarkMode)
     val dutyThresholdDays = MutableStateFlow(settingsManager.dutyThresholdDays)
-    val isPinEnabled = MutableStateFlow(settingsManager.isPinEnabled)
-    val pinCode = MutableStateFlow(settingsManager.pinCode)
-    val securityLockType = MutableStateFlow(settingsManager.securityLockType)
-    val patternCode = MutableStateFlow(settingsManager.patternCode)
     val isBiometricEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
-    val isPasskeyEnabled = MutableStateFlow(settingsManager.isPasskeyEnabled)
-    val isLocked = MutableStateFlow(
-        settingsManager.isPinEnabled && (
-            (settingsManager.securityLockType == "PIN" && settingsManager.pinCode.isNotBlank()) ||
-            (settingsManager.securityLockType == "PATTERN" && settingsManager.patternCode.isNotBlank()) ||
-            settingsManager.pinCode.isNotBlank() ||
-            settingsManager.patternCode.isNotBlank()
-        )
-    )
+    val isPinEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
+    val pinCode = MutableStateFlow("")
+    val securityLockType = MutableStateFlow("BIOMETRIC")
+    val patternCode = MutableStateFlow("")
+    val isPasskeyEnabled = MutableStateFlow(false)
+    val isLocked = MutableStateFlow(settingsManager.isBiometricEnabled)
     val currentLanguage = MutableStateFlow(AppLanguage.fromCode(settingsManager.language))
     val isFocusMode = MutableStateFlow(settingsManager.isFocusMode)
 
@@ -569,66 +564,39 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         settingsManager.dutyThresholdDays = safeDays
     }
 
-    fun setPinCode(newPin: String, enabled: Boolean) {
-        settingsManager.pinCode = newPin
+    fun setBiometricLock(enabled: Boolean) {
+        settingsManager.isBiometricEnabled = enabled
         settingsManager.isPinEnabled = enabled
-        pinCode.value = newPin
+        isBiometricEnabled.value = enabled
         isPinEnabled.value = enabled
         if (!enabled) {
             isLocked.value = false
         }
+    }
+
+    fun setPinCode(newPin: String, enabled: Boolean) {
+        setBiometricLock(enabled)
     }
 
     fun setSecuritySettings(
         enabled: Boolean,
-        lockType: String,
-        pin: String,
-        pattern: String,
-        biometric: Boolean,
+        lockType: String = "BIOMETRIC",
+        pin: String = "",
+        pattern: String = "",
+        biometric: Boolean = enabled,
         passkey: Boolean = false
     ) {
-        settingsManager.isPinEnabled = enabled
-        settingsManager.securityLockType = lockType
-        settingsManager.pinCode = pin
-        settingsManager.patternCode = pattern
-        settingsManager.isBiometricEnabled = biometric
-        settingsManager.isPasskeyEnabled = passkey
-
-        isPinEnabled.value = enabled
-        securityLockType.value = lockType
-        pinCode.value = pin
-        patternCode.value = pattern
-        isBiometricEnabled.value = biometric
-        isPasskeyEnabled.value = passkey
-
-        if (!enabled) {
-            isLocked.value = false
-        }
+        setBiometricLock(enabled || biometric)
     }
 
     fun verifyPin(enteredPin: String): Boolean {
-        if (!isPinEnabled.value) {
-            isLocked.value = false
-            return true
-        }
-        val currentPin = settingsManager.pinCode
-        if (enteredPin == currentPin) {
-            isLocked.value = false
-            return true
-        }
-        return false
+        isLocked.value = false
+        return true
     }
 
     fun verifyPattern(enteredPattern: String): Boolean {
-        if (!isPinEnabled.value) {
-            isLocked.value = false
-            return true
-        }
-        if (enteredPattern == settingsManager.patternCode) {
-            isLocked.value = false
-            return true
-        }
-        return false
+        isLocked.value = false
+        return true
     }
 
     fun unlockWithBiometric(): Boolean {
@@ -642,7 +610,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun lockApp() {
-        if (isPinEnabled.value) {
+        if (isBiometricEnabled.value) {
             isLocked.value = true
         }
     }
@@ -697,13 +665,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val entity = Personnel(
                 id = id,
                 fullName = fullName,
-                rank = rank,
+                rank = normalizeRank(rank),
                 registrationNumber = registrationNumber,
                 startDateMillis = startDateMillis,
                 returnDateMillis = returnDateMillis,
                 isReturnedToDuty = isReturnedToDuty,
                 leaveType = leaveType,
-                wilaya = wilaya,
+                wilaya = normalizeWilaya(wilaya),
                 notes = notes
             )
             val savedEntity = if (id == 0L) {
@@ -777,68 +745,68 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val seed = listOf(
                 Personnel(
                     fullName = "عبد الرحمن بلقاسمي",
-                    rank = "ملازم أول",
+                    rank = "ملازم أول - Lieutenant",
                     registrationNumber = "DZ-160492",
                     startDateMillis = getOffsetDateMillis(-7),
                     returnDateMillis = getOffsetDateMillis(3),
                     isReturnedToDuty = false,
                     leaveType = "عطلة سنوية",
-                    wilaya = "16 - الجزائر",
+                    wilaya = "16 - الجزائر - Alger",
                     notes = "الكتيبة الأولى - السرية الثانية"
                 ),
                 Personnel(
                     fullName = "محمد الأمين يحياوي",
-                    rank = "مساعد رئيسي",
+                    rank = "مساعد رئيسي - Adjudant-Major",
                     registrationNumber = "DZ-318920",
                     startDateMillis = getOffsetDateMillis(-4),
                     returnDateMillis = getOffsetDateMillis(6),
                     isReturnedToDuty = false,
                     leaveType = "إجازة",
-                    wilaya = "31 - وهران",
+                    wilaya = "31 - وهران - Oran",
                     notes = "قسم التسيير الإداري"
                 ),
                 Personnel(
                     fullName = "خالد بن عيسى الدراجي",
-                    rank = "رقيب أول",
+                    rank = "رقيب أول - Sergent-Chef",
                     registrationNumber = "DZ-254100",
                     startDateMillis = getOffsetDateMillis(-10),
                     returnDateMillis = getOffsetDateMillis(0),
                     isReturnedToDuty = false,
                     leaveType = "إجازة قصيرة",
-                    wilaya = "25 - قسنطينة",
+                    wilaya = "25 - قسنطينة - Constantine",
                     notes = "سلاح الإشارة والمواصلات"
                 ),
                 Personnel(
                     fullName = "ياسين بوجمعة صوالحي",
-                    rank = "مساعد أول",
+                    rank = "مساعد أول - Adjudant-Chef",
                     registrationNumber = "DZ-057812",
                     startDateMillis = getOffsetDateMillis(-12),
                     returnDateMillis = getOffsetDateMillis(-2),
                     isReturnedToDuty = false,
                     leaveType = "نقاهة",
-                    wilaya = "05 - باتنة",
+                    wilaya = "05 - باتنة - Batna",
                     notes = "فصيل الحراسة والتدخل"
                 ),
                 Personnel(
                     fullName = "حمزة بن زروال الماجري",
-                    rank = "عريف أول",
+                    rank = "عريف أول - Caporal-Chef",
                     registrationNumber = "DZ-194321",
                     startDateMillis = getOffsetDateMillis(-60),
                     returnDateMillis = getOffsetDateMillis(-50),
                     isReturnedToDuty = true,
                     leaveType = "عطلة سنوية",
-                    wilaya = "19 - سطيف",
+                    wilaya = "19 - سطيف - Sétif",
                     notes = "الإسناد اللوجيستي (مستحق للإجازة)"
                 ),
                 Personnel(
                     fullName = "فاروق لعريبي الورتيلاني",
-                    rank = "نقيب",
+                    rank = "نقيب - Capitaine",
                     registrationNumber = "DZ-098871",
                     startDateMillis = getOffsetDateMillis(3),
                     returnDateMillis = getOffsetDateMillis(13),
                     isReturnedToDuty = false,
                     leaveType = "إجازة",
-                    wilaya = "09 - البليدة",
+                    wilaya = "09 - البليدة - Blida",
                     notes = "قيادة الأركان"
                 )
             )
@@ -908,11 +876,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 val fullName = obj.optString("fullName", "").ifBlank {
                     obj.optString("name", "غير محدد")
                 }
-                val rank = obj.optString("rank", "جندي")
+                val rank = normalizeRank(obj.optString("rank", "جندي - Djoundi / Soldat"))
                 val regNumber = obj.optString("registrationNumber", "").ifBlank {
                     obj.optString("regNumber", "DZ-000000")
                 }
-                val wilaya = obj.optString("wilaya", "16 - الجزائر")
+                val wilaya = normalizeWilaya(obj.optString("wilaya", "16 - الجزائر - Alger"))
                 val leaveType = obj.optString("leaveType", "عطلة سنوية")
                 val notes = obj.optString("notes", "")
                 val isReturnedToDuty = obj.optBoolean("isReturnedToDuty", false)
@@ -1066,68 +1034,68 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val seedP = listOf(
                 Personnel(
                     fullName = "عبد الرحمن بلقاسمي",
-                    rank = "ملازم أول",
+                    rank = "ملازم أول - Lieutenant",
                     registrationNumber = "DZ-160492",
                     startDateMillis = getOffsetDateMillis(-7),
                     returnDateMillis = getOffsetDateMillis(3),
                     isReturnedToDuty = false,
                     leaveType = "عطلة سنوية",
-                    wilaya = "16 - الجزائر",
+                    wilaya = "16 - الجزائر - Alger",
                     notes = "الكتيبة الأولى - السرية الثانية"
                 ),
                 Personnel(
                     fullName = "محمد الأمين يحياوي",
-                    rank = "مساعد رئيسي",
+                    rank = "مساعد رئيسي - Adjudant-Major",
                     registrationNumber = "DZ-318920",
                     startDateMillis = getOffsetDateMillis(-4),
                     returnDateMillis = getOffsetDateMillis(6),
                     isReturnedToDuty = false,
                     leaveType = "إجازة",
-                    wilaya = "31 - وهران",
+                    wilaya = "31 - وهران - Oran",
                     notes = "قسم التسيير الإداري"
                 ),
                 Personnel(
                     fullName = "خالد بن عيسى الدراجي",
-                    rank = "رقيب أول",
+                    rank = "رقيب أول - Sergent-Chef",
                     registrationNumber = "DZ-254100",
                     startDateMillis = getOffsetDateMillis(-10),
                     returnDateMillis = getOffsetDateMillis(0),
                     isReturnedToDuty = false,
                     leaveType = "إجازة قصيرة",
-                    wilaya = "25 - قسنطينة",
+                    wilaya = "25 - قسنطينة - Constantine",
                     notes = "سلاح الإشارة والمواصلات"
                 ),
                 Personnel(
                     fullName = "ياسين بوجمعة صوالحي",
-                    rank = "مساعد أول",
+                    rank = "مساعد أول - Adjudant-Chef",
                     registrationNumber = "DZ-057812",
                     startDateMillis = getOffsetDateMillis(-12),
                     returnDateMillis = getOffsetDateMillis(-2),
                     isReturnedToDuty = false,
                     leaveType = "نقاهة",
-                    wilaya = "05 - باتنة",
+                    wilaya = "05 - باتنة - Batna",
                     notes = "فصيل الحراسة والتدخل"
                 ),
                 Personnel(
                     fullName = "حمزة بن زروال الماجري",
-                    rank = "عريف أول",
+                    rank = "عريف أول - Caporal-Chef",
                     registrationNumber = "DZ-194321",
                     startDateMillis = getOffsetDateMillis(-45),
                     returnDateMillis = getOffsetDateMillis(-35),
                     isReturnedToDuty = true,
                     leaveType = "عطلة سنوية",
-                    wilaya = "19 - سطيف",
+                    wilaya = "19 - سطيف - Sétif",
                     notes = "الإسناد اللوجيستي"
                 ),
                 Personnel(
                     fullName = "فاروق لعريبي الورتيلاني",
-                    rank = "نقيب",
+                    rank = "نقيب - Capitaine",
                     registrationNumber = "DZ-098871",
                     startDateMillis = getOffsetDateMillis(3),
                     returnDateMillis = getOffsetDateMillis(13),
                     isReturnedToDuty = false,
                     leaveType = "إجازة",
-                    wilaya = "09 - البليدة",
+                    wilaya = "09 - البليدة - Blida",
                     notes = "قيادة الأركان"
                 )
             )
@@ -1136,79 +1104,79 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 LeaveRecord(
                     personnelId = 1,
                     personnelName = "عبد الرحمن بلقاسمي",
-                    rank = "ملازم أول",
+                    rank = "ملازم أول - Lieutenant",
                     registrationNumber = "DZ-160492",
                     leaveType = "عطلة سنوية",
                     startDateMillis = getOffsetDateMillis(-7),
                     returnDateMillis = getOffsetDateMillis(3),
                     durationDays = 10,
                     statusText = "جارية (بالبيت)",
-                    destinationWilaya = "16 - الجزائر",
+                    destinationWilaya = "16 - الجزائر - Alger",
                     notes = "عطلة النصف الأول من السنة"
                 ),
                 LeaveRecord(
                     personnelId = 2,
                     personnelName = "محمد الأمين يحياوي",
-                    rank = "مساعد رئيسي",
+                    rank = "مساعد رئيسي - Adjudant-Major",
                     registrationNumber = "DZ-318920",
                     leaveType = "إجازة",
                     startDateMillis = getOffsetDateMillis(-4),
                     returnDateMillis = getOffsetDateMillis(6),
                     durationDays = 10,
                     statusText = "جارية (بالبيت)",
-                    destinationWilaya = "31 - وهران",
+                    destinationWilaya = "31 - وهران - Oran",
                     notes = "إجازة عادية"
                 ),
                 LeaveRecord(
                     personnelId = 3,
                     personnelName = "خالد بن عيسى الدراجي",
-                    rank = "رقيب أول",
+                    rank = "رقيب أول - Sergent-Chef",
                     registrationNumber = "DZ-254100",
                     leaveType = "إجازة قصيرة",
                     startDateMillis = getOffsetDateMillis(-10),
                     returnDateMillis = getOffsetDateMillis(0),
                     durationDays = 10,
                     statusText = "الدخول اليوم",
-                    destinationWilaya = "25 - قسنطينة",
+                    destinationWilaya = "25 - قسنطينة - Constantine",
                     notes = "إجازة مستحقة"
                 ),
                 LeaveRecord(
                     personnelId = 4,
                     personnelName = "ياسين بوجمعة صوالحي",
-                    rank = "مساعد أول",
+                    rank = "مساعد أول - Adjudant-Chef",
                     registrationNumber = "DZ-057812",
                     leaveType = "نقاهة",
                     startDateMillis = getOffsetDateMillis(-12),
                     returnDateMillis = getOffsetDateMillis(-2),
                     durationDays = 10,
                     statusText = "متأخر عن الدخول",
-                    destinationWilaya = "05 - باتنة",
+                    destinationWilaya = "05 - باتنة - Batna",
                     notes = "فترة نقاهة طبية"
                 ),
                 LeaveRecord(
                     personnelId = 5,
                     personnelName = "حمزة بن زروال الماجري",
-                    rank = "عريف أول",
+                    rank = "عريف أول - Caporal-Chef",
                     registrationNumber = "DZ-194321",
                     leaveType = "عطلة سنوية",
                     startDateMillis = getOffsetDateMillis(-45),
                     returnDateMillis = getOffsetDateMillis(-35),
                     durationDays = 10,
                     statusText = "مكتملة (مستأنف للعمل)",
-                    destinationWilaya = "19 - سطيف",
+                    destinationWilaya = "19 - سطيف - Sétif",
                     notes = "استأنف العمل بانتظام"
                 ),
                 LeaveRecord(
                     personnelId = 6,
                     personnelName = "فاروق لعريبي الورتيلاني",
-                    rank = "نقيب",
+                    rank = "نقيب - Capitaine",
                     registrationNumber = "DZ-098871",
                     leaveType = "إجازة",
                     startDateMillis = getOffsetDateMillis(3),
                     returnDateMillis = getOffsetDateMillis(13),
                     durationDays = 10,
                     statusText = "مبرمجة قريباً",
-                    destinationWilaya = "09 - البليدة",
+                    destinationWilaya = "09 - البليدة - Blida",
                     notes = "موافقة القيادة"
                 )
             )

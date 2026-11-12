@@ -34,21 +34,36 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `verify exactly 15 military ranks as requested`() {
-    assertEquals(15, algerianRanks.size)
+  fun `verify exactly 16 military ranks bilingual as requested`() {
+    assertEquals(16, algerianRanks.size)
     val expectedRanks = listOf(
-      "جندي", "عريف", "عريف أول", "رقيب", "رقيب أول",
-      "مساعد", "مساعد أول", "مساعد رئيسي", "ملازم", "ملازم أول",
-      "نقيب", "رائد", "مقدم", "عقيد", "عميد"
+      "عميد - Général / Brigadier",
+      "عقيد - Colonel",
+      "مقدم - Lieutenant-Colonel",
+      "رائد - Commandant",
+      "نقيب - Capitaine",
+      "ملازم أول - Lieutenant",
+      "ملازم - Sous-Lieutenant",
+      "مرشح - Aspirant / Élève-Officier",
+      "مساعد رئيسي - Adjudant-Major",
+      "مساعد أول - Adjudant-Chef",
+      "مساعد - Adjudant",
+      "رقيب أول - Sergent-Chef",
+      "رقيب - Sergent",
+      "عريف أول - Caporal-Chef",
+      "عريف - Caporal",
+      "جندي - Djoundi / Soldat"
     )
     assertEquals(expectedRanks, algerianRanks)
   }
 
   @Test
-  fun `verify exactly 69 Algerian wilayas`() {
+  fun `verify exactly 69 Algerian wilayas with bilingual names`() {
     assertEquals(69, algerianWilayas.size)
     assertTrue(algerianWilayas.first().contains("أدرار"))
-    assertTrue(algerianWilayas.last().contains("دلس"))
+    assertTrue(algerianWilayas.first().contains("Adrar"))
+    assertTrue(algerianWilayas.last().contains("الأبيض سيدي الشيخ"))
+    assertTrue(algerianWilayas.last().contains("El Abiodh Sidi Cheikh"))
   }
 
   @Test

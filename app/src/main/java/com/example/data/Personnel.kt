@@ -31,7 +31,7 @@ data class Personnel(
     val returnDateMillis: Long,    // تاريخ الدخول (تاريخ العودة للعمل)
     val isReturnedToDuty: Boolean = false, // هل التحق بالخدمة ومستأنف للعمل
     val leaveType: String = "عطلة سنوية",
-    val wilaya: String = "16 - الجزائر",
+    val wilaya: String = "16 - الجزائر - Alger",
     val notes: String = ""
 ) {
     companion object {

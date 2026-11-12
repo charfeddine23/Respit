@@ -117,14 +117,15 @@ import com.example.data.AppThemeMode
 import com.example.data.Personnel
 import com.example.ui.PersonnelViewModel
 import com.example.ui.SortOption
+import androidx.fragment.app.FragmentActivity
 import com.example.ui.components.AddEditPersonnelDialog
 import com.example.ui.components.AppBottomNavigationPanel
 import com.example.ui.components.AppNavPage
+import com.example.ui.components.BiometricLockScreen
 import com.example.ui.components.DeveloperInfoDialog
 import com.example.ui.components.ExportDialog
 import com.example.ui.components.FilterSortDialog
 import com.example.ui.components.PersonnelCard
-import com.example.ui.components.PinLockScreen
 import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
@@ -142,7 +143,7 @@ import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private val viewModel: PersonnelViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -283,37 +284,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         }
     }
 
-    // If locked with Pattern or PIN, present full screen Security Lock Screen
+    // If locked with Biometric Lock, present modern full screen Biometric Lock Screen
     if (isLocked) {
-        PinLockScreen(
-            lockType = securityLockType,
-            onVerifyPin = { pin ->
-                val ok = viewModel.verifyPin(pin)
-                if (ok) {
-                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
-                }
-                ok
-            },
-            onVerifyPattern = { pattern ->
-                val ok = viewModel.verifyPattern(pattern)
-                if (ok) {
-                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
-                }
-                ok
-            },
-            isBiometricAvailable = isBiometricEnabled,
-            isPasskeyAvailable = isPasskeyEnabled,
-            onBiometricUnlock = {
-                val ok = viewModel.unlockWithBiometric()
-                if (ok) {
-                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
-                }
-            },
-            onPasskeyUnlock = {
-                val ok = viewModel.unlockWithPasskey()
-                if (ok) {
-                    Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
-                }
+        BiometricLockScreen(
+            onUnlockSuccess = {
+                viewModel.unlockWithBiometric()
+                Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang
@@ -418,16 +394,11 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Left Side (الجهة اليسرى تماماً): App Title Row with Logo & Version
+                                        // Left Side (الجهة اليسرى تماماً): App Title Row with Logo & Version (Non-clickable for theme)
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .clickable {
-                                                    viewModel.toggleTheme()
-                                                    val modeName = if (!isDarkMode) AppStrings.get("theme_dark", currentLang) else AppStrings.get("theme_light", currentLang)
-                                                    Toast.makeText(context, "${AppStrings.get("theme_title", currentLang)}: $modeName", Toast.LENGTH_SHORT).show()
-                                                }
                                                 .padding(vertical = 4.dp, horizontal = 2.dp)
                                                 .testTag("app_title_row")
                                         ) {
@@ -460,41 +431,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             )
                                         }
 
-                                        // Right Side (الجهة اليمنى): Quick Actions (Theme Toggle, Settings, Drawer Menu)
+                                        // Right Side (الجهة اليمنى): Quick Actions (Settings, Notifications, Drawer Menu)
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
-
-                                            // Quick Theme Toggle Button
-                                            Box(
-                                                modifier = Modifier.liquidGlassInteractive(
-                                                    shape = iconShape,
-                                                    glowColor = MaterialTheme.colorScheme.primary,
-                                                    isDark = isDarkMode,
-                                                    isNeumorphic = isNeumorphic
-                                                )
-                                            ) {
-                                                IconButton(
-                                                    onClick = {
-                                                        viewModel.toggleTheme()
-                                                        val modeName = if (!isDarkMode) AppStrings.get("theme_dark", currentLang) else AppStrings.get("theme_light", currentLang)
-                                                        Toast.makeText(context, "${AppStrings.get("theme_title", currentLang)}: $modeName", Toast.LENGTH_SHORT).show()
-                                                    },
-                                                    modifier = Modifier
-                                                        .size(40.dp)
-                                                        .clip(iconShape)
-                                                        .testTag("header_theme_toggle_button")
-                                                ) {
-                                                    Icon(
-                                                        imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                                        contentDescription = AppStrings.get("theme_title", currentLang),
-                                                        tint = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                }
-                                            }
 
                                             // Settings Dialog Button
                                             Box(

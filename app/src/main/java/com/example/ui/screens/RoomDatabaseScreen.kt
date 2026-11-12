@@ -1075,7 +1075,7 @@ private fun AddRoomLeaveDialog(
     var selectedPerson by remember { mutableStateOf(personnelList.firstOrNull()) }
     var leaveType by remember { mutableStateOf("عطلة سنوية") }
     var durationDaysStr by remember { mutableStateOf("10") }
-    var destinationWilaya by remember { mutableStateOf(selectedPerson?.wilaya ?: "16 - الجزائر") }
+    var destinationWilaya by remember { mutableStateOf(selectedPerson?.wilaya ?: "16 - الجزائر - Alger") }
     var notes by remember { mutableStateOf("") }
 
     AlertDialog(

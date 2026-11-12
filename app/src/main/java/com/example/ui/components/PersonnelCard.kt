@@ -292,8 +292,10 @@ fun PersonnelCard(
                                         tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
                                         modifier = Modifier.size(12.dp)
                                     )
+                                    val parts = personnel.wilaya.split(" - ")
+                                    val wilayaDisplay = if (parts.size >= 3) "${parts[0].trim()} - ${parts[1].trim()}" else personnel.wilaya
                                     Text(
-                                        text = personnel.wilaya.split("-").lastOrNull()?.trim() ?: personnel.wilaya,
+                                        text = wilayaDisplay,
                                         fontSize = 10.sp,
                                         color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                                         fontWeight = FontWeight.Medium

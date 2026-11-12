@@ -78,7 +78,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
-import com.example.ui.components.PatternLockView
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.util.AppLanguage
@@ -851,7 +850,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 6: Security & Privacy (Navigates to dedicated Security & Privacy Dialog)
+                // Section 6: Biometric App Lock (Modern Fingerprint / Device Credential)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -862,69 +861,93 @@ fun SettingsDialog(
                             if (isDarkMode) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) else Color(0x60CBD5E1),
                             RoundedCornerShape(20.dp)
                         )
-                        .clickable { showSecurityPrivacyDialog = true }
                         .padding(16.dp)
-                        .testTag("security_privacy_card")
+                        .testTag("biometric_lock_card")
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF00BCD4).copy(alpha = 0.18f))
-                                    .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = null,
-                                    tint = Color(0xFF00BCD4),
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF00BCD4).copy(alpha = 0.18f))
+                                        .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Fingerprint,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00BCD4),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "قفل التطبيق بالبصمة",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDarkMode) Color.White else SlateTextPrimary
+                                    )
+                                    Text(
+                                        text = if (biometricState) "المصادقة البيومترية مفعلة عند فتح التطبيق" else "قفل التطبيق معطل حالياً",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (biometricState) Color(0xFF10B981) else if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                                        fontSize = 11.sp
+                                    )
+                                }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = AppStrings.get("security_privacy_title", currentLanguage),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color.White else SlateTextPrimary
-                                )
-                                Text(
-                                    text = if (pinEnabledState) {
-                                        val method = if (selectedLockType == "PIN") AppStrings.get("lock_type_pin", currentLanguage) else AppStrings.get("lock_type_pattern", currentLanguage)
-                                        "${AppStrings.get("app_lock_active", currentLanguage)} ($method)"
-                                    } else {
-                                        AppStrings.get("app_lock_inactive", currentLanguage)
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (pinEnabledState) Color(0xFF10B981) else if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
-                                    fontSize = 11.sp
-                                )
-                            }
+
+                            Switch(
+                                checked = biometricState,
+                                onCheckedChange = { isChecked ->
+                                    biometricState = isChecked
+                                    pinEnabledState = isChecked
+                                    onSavePin("", isChecked)
+                                    onSaveSecurity("BIOMETRIC", "", "", isChecked, false, isChecked)
+                                    val msg = if (isChecked) "تم تفعيل قفل التطبيق بالبصمة بنجاح" else "تم إلغاء قفل التطبيق"
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFF00BCD4)
+                                ),
+                                modifier = Modifier.testTag("biometric_lock_toggle")
+                            )
                         }
 
-                        // Tap Indicator Badge
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF00BCD4).copy(alpha = 0.12f))
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = "إعدادات الأمان ›",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF00BCD4)
-                            )
+                        if (biometricState) {
+                            OutlinedButton(
+                                onClick = {
+                                    onLockNow()
+                                    onDismiss()
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFF00BCD4)),
+                                modifier = Modifier.fillMaxWidth().testTag("lock_now_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = Color(0xFF00BCD4),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = AppStrings.get("lock_now_btn", currentLanguage),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00BCD4)
+                                )
+                            }
                         }
                     }
                 }
@@ -1074,35 +1097,15 @@ fun SettingsDialog(
                 ) {
                     Button(
                         onClick = {
-                            if (pinEnabledState) {
-                                if (selectedLockType == "PIN" && enteredPin.length != 4) {
-                                    pinError = "PIN must be 4 digits"
-                                    return@Button
-                                }
-                                if (selectedLockType == "PATTERN" && patternState.isEmpty() && tempDrawnPattern.isNotEmpty()) {
-                                    patternState = tempDrawnPattern
-                                }
-                                onSavePin(enteredPin, true)
-                                onSaveSecurity(
-                                    selectedLockType,
-                                    enteredPin,
-                                    patternState,
-                                    biometricState,
-                                    passkeyState,
-                                    true
-                                )
-                            } else {
-                                onSavePin("", false)
-                                onSaveSecurity(
-                                    selectedLockType,
-                                    "",
-                                    "",
-                                    false,
-                                    false,
-                                    false
-                                )
-                            }
-
+                            onSavePin("", biometricState)
+                            onSaveSecurity(
+                                "BIOMETRIC",
+                                "",
+                                "",
+                                biometricState,
+                                false,
+                                biometricState
+                            )
                             onSelectThemeStyle(selectedThemeStyle)
                             onSaveThreshold(thresholdValue.toInt())
                             Toast.makeText(context, AppStrings.get("save_changes", currentLanguage), Toast.LENGTH_SHORT).show()
@@ -1143,35 +1146,5 @@ fun SettingsDialog(
                 }
             }
         }
-    }
-
-    if (showSecurityPrivacyDialog) {
-        SecurityPrivacyDialog(
-            isLockEnabled = pinEnabledState,
-            currentLockType = selectedLockType,
-            currentPin = enteredPin,
-            currentPattern = patternState,
-            isBiometricEnabled = biometricState,
-            isPasskeyEnabled = passkeyState,
-            onSaveSecuritySettings = { enabled, lockType, pin, pattern, biometric, passkey ->
-                pinEnabledState = enabled
-                selectedLockType = lockType
-                enteredPin = pin
-                patternState = pattern
-                biometricState = biometric
-                passkeyState = passkey
-                onSavePin(pin, enabled)
-                onSaveSecurity(lockType, pin, pattern, biometric, passkey, enabled)
-                showSecurityPrivacyDialog = false
-            },
-            onLockNow = {
-                onLockNow()
-                showSecurityPrivacyDialog = false
-                onDismiss()
-            },
-            isDarkMode = isDarkMode,
-            currentLang = currentLanguage,
-            onDismiss = { showSecurityPrivacyDialog = false }
-        )
     }
 }

@@ -39,6 +39,7 @@ class SettingsManager(context: Context) {
         private const val KEY_SECURITY_LOCK_TYPE = "pref_security_lock_type"
         private const val KEY_PATTERN_CODE = "pref_pattern_code"
         private const val KEY_BIOMETRIC_ENABLED = "pref_biometric_enabled"
+        private const val KEY_FINGERPRINT_ENABLED = "pref_fingerprint_enabled"
         private const val KEY_PASSKEY_ENABLED = "pref_passkey_enabled"
         private const val KEY_LANGUAGE = "pref_language"
         private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
@@ -109,6 +110,15 @@ class SettingsManager(context: Context) {
     var isBiometricEnabled: Boolean
         get() = prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_BIOMETRIC_ENABLED, value).apply()
+
+    var isFingerprintEnabled: Boolean
+        get() = prefs.getBoolean(KEY_FINGERPRINT_ENABLED, false) || prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
+        set(value) {
+            prefs.edit()
+                .putBoolean(KEY_FINGERPRINT_ENABLED, value)
+                .putBoolean(KEY_BIOMETRIC_ENABLED, value)
+                .apply()
+        }
 
     var isPasskeyEnabled: Boolean
         get() = prefs.getBoolean(KEY_PASSKEY_ENABLED, false)

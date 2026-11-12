@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,8 +22,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -65,6 +68,8 @@ import com.example.data.Personnel
 import com.example.data.algerianLeaveTypes
 import com.example.data.algerianRanks
 import com.example.data.algerianWilayas
+import com.example.data.normalizeRank
+import com.example.data.normalizeWilaya
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
@@ -113,8 +118,8 @@ fun AddEditPersonnelDialog(
     }
 
     var fullName by remember { mutableStateOf(personnelToEdit?.fullName ?: "") }
-    var rank by remember { mutableStateOf(personnelToEdit?.rank ?: algerianRanks.first()) }
-    var wilaya by remember { mutableStateOf(personnelToEdit?.wilaya ?: "16 - الجزائر") }
+    var rank by remember { mutableStateOf(personnelToEdit?.rank?.let { normalizeRank(it) } ?: algerianRanks.first()) }
+    var wilaya by remember { mutableStateOf(personnelToEdit?.wilaya?.let { normalizeWilaya(it) } ?: "16 - الجزائر - Alger") }
     var regNumber by remember { mutableStateOf(personnelToEdit?.registrationNumber ?: "") }
 
     var startDateMillis by remember {
@@ -134,6 +139,7 @@ fun AddEditPersonnelDialog(
 
     var rankDropdownExpanded by remember { mutableStateOf(false) }
     var wilayaDropdownExpanded by remember { mutableStateOf(false) }
+    var wilayaSearchQuery by remember { mutableStateOf("") }
     var typeDropdownExpanded by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -333,7 +339,7 @@ fun AddEditPersonnelDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 4. Wilaya Dropdown
+                // 4. Wilaya Dropdown (With Search & Filter Feature)
                 ExposedDropdownMenuBox(
                     expanded = wilayaDropdownExpanded,
                     onExpandedChange = { wilayaDropdownExpanded = !wilayaDropdownExpanded },
@@ -353,16 +359,102 @@ fun AddEditPersonnelDialog(
                     )
                     ExposedDropdownMenu(
                         expanded = wilayaDropdownExpanded,
-                        onDismissRequest = { wilayaDropdownExpanded = false }
+                        onDismissRequest = {
+                            wilayaDropdownExpanded = false
+                            wilayaSearchQuery = ""
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 340.dp)
                     ) {
-                        algerianWilayas.forEach { w ->
-                            DropdownMenuItem(
-                                text = { Text(w, fontWeight = if (w == wilaya) FontWeight.Bold else FontWeight.Normal) },
-                                onClick = {
-                                    wilaya = w
-                                    wilayaDropdownExpanded = false
-                                }
+                        // Quick Search Bar inside Wilaya Dropdown
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = wilayaSearchQuery,
+                                onValueChange = { wilayaSearchQuery = it },
+                                placeholder = {
+                                    Text(
+                                        when (currentLang) {
+                                            AppLanguage.FRENCH -> "Rechercher wilaya (nom/code)..."
+                                            AppLanguage.ENGLISH -> "Search province..."
+                                            else -> "ابحث عن الولاية (بالرقم أو الاسم)..."
+                                        },
+                                        fontSize = 12.sp
+                                    )
+                                },
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (wilayaSearchQuery.isNotEmpty()) {
+                                        IconButton(
+                                            onClick = { wilayaSearchQuery = "" },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Clear,
+                                                contentDescription = "مسح",
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("wilaya_dropdown_search_input"),
+                                shape = RoundedCornerShape(10.dp)
                             )
+                        }
+
+                        val filteredWilayas = remember(wilayaSearchQuery) {
+                            if (wilayaSearchQuery.isBlank()) {
+                                algerianWilayas
+                            } else {
+                                algerianWilayas.filter {
+                                    it.contains(wilayaSearchQuery.trim(), ignoreCase = true)
+                                }
+                            }
+                        }
+
+                        if (filteredWilayas.isEmpty()) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "لا توجد ولاية مطابقة",
+                                        color = Color.Gray,
+                                        fontSize = 13.sp
+                                    )
+                                },
+                                onClick = {},
+                                enabled = false
+                            )
+                        } else {
+                            filteredWilayas.forEach { w ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            w,
+                                            fontWeight = if (w == wilaya) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (w == wilaya) MaterialTheme.colorScheme.primary else Color.Unspecified
+                                        )
+                                    },
+                                    onClick = {
+                                        wilaya = w
+                                        wilayaDropdownExpanded = false
+                                        wilayaSearchQuery = ""
+                                    }
+                                )
+                            }
                         }
                     }
                 }
