@@ -307,11 +307,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         selectedNavPage = AppNavPage.DASHBOARD
     }
 
-    // ModalNavigationDrawer anchored on the RIGHT edge for right-side slide in
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+    // In Arabic, anchor ModalNavigationDrawer on the LEFT edge (LTR) so swiping left-to-right opens it from the left side
+    val drawerAnchorDirection = if (currentLang == AppLanguage.ARABIC) LayoutDirection.Ltr else LayoutDirection.Rtl
+    CompositionLocalProvider(LocalLayoutDirection provides drawerAnchorDirection) {
         ModalNavigationDrawer(
             drawerState = drawerState,
-            gesturesEnabled = true, // right-edge swipe gesture enabled
+            gesturesEnabled = true, // edge swipe gesture enabled
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.widthIn(max = 340.dp),
