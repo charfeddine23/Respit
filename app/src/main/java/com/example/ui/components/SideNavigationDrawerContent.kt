@@ -1,17 +1,18 @@
 package com.example.ui.components
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudSync
@@ -37,7 +40,6 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
@@ -55,6 +57,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -64,6 +67,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -71,7 +75,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -129,27 +132,50 @@ fun SideNavigationDrawerContent(
     onToggleDriveSync: (Boolean) -> Unit = {},
     lastDriveBackupTime: Long = 0L,
     onBackupToDrive: () -> Unit = {},
-    onRestoreFromDrive: () -> Unit = {}
+    onRestoreFromDrive: () -> Unit = {},
+    drawerIsOpen: Boolean = true
 ) {
     val context = LocalContext.current
-    val scrollState = rememberScrollState()
-    var isSettingsExpanded by rememberSaveable { mutableStateOf(false) }
-    val settingsArrowRotation by animateFloatAsState(
-        targetValue = if (isSettingsExpanded) 180f else 0f,
-        animationSpec = tween(250),
-        label = "drawerSettingsArrow"
-    )
+    var isSettingsPageOpen by rememberSaveable { mutableStateOf(false) }
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
-    Column(
+    LaunchedEffect(drawerIsOpen) {
+        if (!drawerIsOpen && isSettingsPageOpen) {
+            isSettingsPageOpen = false
+        }
+    }
+
+    BackHandler(enabled = drawerIsOpen && isSettingsPageOpen) {
+        isSettingsPageOpen = false
+    }
+
+    AnimatedContent(
+        targetState = isSettingsPageOpen,
+        transitionSpec = {
+            if (targetState) {
+                (slideInHorizontally(animationSpec = tween(250)) { it / 3 } + fadeIn(tween(220))) togetherWith
+                    (slideOutHorizontally(animationSpec = tween(220)) { -it / 4 } + fadeOut(tween(180)))
+            } else {
+                (slideInHorizontally(animationSpec = tween(250)) { -it / 3 } + fadeIn(tween(220))) togetherWith
+                    (slideOutHorizontally(animationSpec = tween(220)) { it / 4 } + fadeOut(tween(180)))
+            }
+        },
+        label = "drawerSettingsPageTransition",
         modifier = Modifier
             .fillMaxHeight()
             .fillMaxWidth()
             .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC))
-            .verticalScroll(scrollState)
-            .padding(16.dp)
             .testTag("side_navigation_drawer")
-    ) {
+    ) { inSettings ->
+        if (!inSettings) {
+            val menuScrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .verticalScroll(menuScrollState)
+                    .padding(16.dp)
+            ) {
         // 1. App Header with Glass Branding & Version Info
         Surface(
             shape = RoundedCornerShape(20.dp),
@@ -441,537 +467,63 @@ fun SideNavigationDrawerContent(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Inline Expandable General Settings Item (NO popup dialog!)
+        // General Settings Navigation Item -> opens dedicated Settings page inside the side panel
         Surface(
             shape = RoundedCornerShape(14.dp),
-            color = if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.9f),
+            color = if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.85f),
             border = BorderStroke(
-                if (isSettingsExpanded) 1.4.dp else 1.dp,
-                if (isSettingsExpanded) Color(0xFF059669).copy(alpha = 0.7f)
-                else if (isDarkMode) Color(0x33475569) else Color(0x3338BDF8)
+                1.dp,
+                if (isDarkMode) Color(0x33475569) else Color(0x3338BDF8)
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("drawer_settings_card")
+                .clickable { isSettingsPageOpen = true }
+                .testTag("drawer_settings_item")
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { isSettingsExpanded = !isSettingsExpanded }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                        .testTag("drawer_settings_item"),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF059669).copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF059669).copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                            tint = Color(0xFF059669),
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = AppStrings.get("settings", currentLang),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                        )
-                        Text(
-                            text = AppStrings.get("drawer_settings_sub", currentLang),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF334155),
-                            fontSize = 11.sp
-                        )
-                    }
-
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
+                        imageVector = Icons.Default.Settings,
                         contentDescription = null,
-                        tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
-                        modifier = Modifier
-                            .size(22.dp)
-                            .rotate(settingsArrowRotation)
+                        tint = Color(0xFF059669),
+                        modifier = Modifier.size(19.dp)
                     )
                 }
 
-                // Inline General Settings Content inside the side drawer panel itself
-                AnimatedVisibility(
-                    visible = isSettingsExpanded,
-                    enter = expandVertically(animationSpec = tween(250)) + fadeIn(),
-                    exit = shrinkVertically(animationSpec = tween(200)) + fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                if (isDarkMode) Color(0xFF0F172A).copy(alpha = 0.55f)
-                                else Color(0xFFF1F5F9).copy(alpha = 0.7f)
-                            )
-                            .padding(horizontal = 12.dp, vertical = 12.dp)
-                            .testTag("drawer_inline_settings_panel"),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // A. Theme Mode (Light / Dark)
-                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
-                            Text(
-                                text = AppStrings.get("theme_title", currentLang),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                AppThemeMode.entries.forEach { mode ->
-                                    val selected = currentThemeMode == mode
-                                    Surface(
-                                        onClick = { onSelectThemeMode(mode) },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(40.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = if (selected) {
-                                            if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
-                                        } else {
-                                            if (isDarkMode) Color(0x221E293B) else Color.White
-                                        },
-                                        border = BorderStroke(
-                                            if (selected) 1.5.dp else 1.dp,
-                                            if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1))
-                                        )
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = if (mode == AppThemeMode.LIGHT) AppStrings.get("theme_light_btn", currentLang) else AppStrings.get("theme_dark_btn", currentLang),
-                                                fontSize = 11.5.sp,
-                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A))
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                Spacer(modifier = Modifier.width(12.dp))
 
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(
-                                text = AppStrings.get("theme_style_title", currentLang),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                listOf(
-                                    AppThemeStyle.GLASSMORPHISM to AppStrings.get("theme_style_glass", currentLang),
-                                    AppThemeStyle.NEUMORPHISM to AppStrings.get("theme_style_neumorph", currentLang)
-                                ).forEach { (style, label) ->
-                                    val selected = currentThemeStyle == style
-                                    Surface(
-                                        onClick = { onSelectThemeStyle(style) },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(40.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = if (selected) {
-                                            if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
-                                        } else {
-                                            if (isDarkMode) Color(0x221E293B) else Color.White
-                                        },
-                                        border = BorderStroke(
-                                            if (selected) 1.5.dp else 1.dp,
-                                            if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1))
-                                        )
-                                    ) {
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier.padding(horizontal = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = label,
-                                                fontSize = 10.5.sp,
-                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A)),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // B. Focus Mode & Dynamic Animations Switches
-                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = Color(0xFF00BCD4),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = AppStrings.get("focus_mode_title", currentLang),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                                        )
-                                        Text(
-                                            text = AppStrings.get(
-                                                if (isFocusMode) "focus_mode_active" else "focus_mode_inactive",
-                                                currentLang
-                                            ),
-                                            fontSize = 10.sp,
-                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                        )
-                                    }
-                                }
-                                Switch(
-                                    checked = isFocusMode,
-                                    onCheckedChange = { onToggleFocusMode() },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFF00BCD4)
-                                    )
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = if (isDarkMode) Color(0x22475569) else Color(0x22CBD5E1))
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Speed,
-                                        contentDescription = null,
-                                        tint = Color(0xFFA855F7),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = AppStrings.get("dynamic_animations_title", currentLang),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                                        )
-                                        Text(
-                                            text = AppStrings.get(
-                                                if (isDynamicAnimationsEnabled) "dynamic_animations_active" else "dynamic_animations_disabled",
-                                                currentLang
-                                            ),
-                                            fontSize = 10.sp,
-                                            color = if (isDynamicAnimationsEnabled) Color(0xFF10B981) else Color(0xFFF59E0B)
-                                        )
-                                    }
-                                }
-                                Switch(
-                                    checked = isDynamicAnimationsEnabled,
-                                    onCheckedChange = { enabled ->
-                                        onToggleDynamicAnimations(enabled)
-                                        Toast.makeText(
-                                            context,
-                                            AppStrings.get(
-                                                if (enabled) "dynamic_animations_active" else "dynamic_animations_disabled",
-                                                currentLang
-                                            ),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFFA855F7)
-                                    )
-                                )
-                            }
-                        }
-
-                        // C. Duty Eligibility Threshold Slider
-                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = AppStrings.get("duty_threshold_title", currentLang),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = "$dutyThreshold ${AppStrings.get("days", currentLang)}",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = Color(0xFF00BCD4)
-                                )
-                            }
-                            Text(
-                                text = AppStrings.get("duty_threshold_desc", currentLang),
-                                fontSize = 10.sp,
-                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                            )
-                            Slider(
-                                value = dutyThreshold.toFloat(),
-                                onValueChange = { onSaveThreshold(it.toInt()) },
-                                valueRange = 10f..180f,
-                                steps = 33,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color(0xFF00BCD4),
-                                    activeTrackColor = Color(0xFF00BCD4)
-                                )
-                            )
-                        }
-
-                        // D. Biometric App Lock
-                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Fingerprint,
-                                        contentDescription = null,
-                                        tint = Color(0xFF00BCD4),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = AppStrings.get("biometric_lock_title", currentLang),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                                        )
-                                        Text(
-                                            text = AppStrings.get(
-                                                if (isBiometricEnabled) "biometric_lock_active_sub" else "biometric_lock_inactive_sub",
-                                                currentLang
-                                            ),
-                                            fontSize = 10.sp,
-                                            color = if (isBiometricEnabled) Color(0xFF10B981) else (if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
-                                        )
-                                    }
-                                }
-                                Switch(
-                                    checked = isBiometricEnabled,
-                                    onCheckedChange = { isChecked ->
-                                        onToggleBiometric(isChecked)
-                                        Toast.makeText(
-                                            context,
-                                            AppStrings.get(
-                                                if (isChecked) "biometric_lock_enabled_toast" else "biometric_lock_disabled_toast",
-                                                currentLang
-                                            ),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFF00BCD4)
-                                    ),
-                                    modifier = Modifier.testTag("drawer_biometric_lock_toggle")
-                                )
-                            }
-
-                            if (isBiometricEnabled) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedButton(
-                                    onClick = onLockNow,
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, Color(0xFF00BCD4)),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(40.dp)
-                                        .testTag("drawer_lock_now_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = null,
-                                        tint = Color(0xFF00BCD4),
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = AppStrings.get("lock_now_btn", currentLang),
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF00BCD4)
-                                    )
-                                }
-                            }
-                        }
-
-                        // E. Google Drive Backup & Restore
-                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CloudSync,
-                                        contentDescription = null,
-                                        tint = Color(0xFF4285F4),
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = AppStrings.get("drive_backup_title", currentLang),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                                        )
-                                        Text(
-                                            text = "${AppStrings.get("drive_last_backup", currentLang)} ${if (lastDriveBackupTime > 0L) sdf.format(Date(lastDriveBackupTime)) else AppStrings.get("drive_never", currentLang)}",
-                                            fontSize = 10.sp,
-                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                        )
-                                    }
-                                }
-                                Switch(
-                                    checked = isDriveSyncEnabled,
-                                    onCheckedChange = { onToggleDriveSync(it) },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFF4285F4)
-                                    )
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Button(
-                                    onClick = onBackupToDrive,
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF4285F4),
-                                        contentColor = Color.White
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp)
-                                ) {
-                                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(15.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = AppStrings.get("drive_backup_btn", currentLang),
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                OutlinedButton(
-                                    onClick = onRestoreFromDrive,
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, Color(0xFF4285F4).copy(alpha = 0.7f)),
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.CloudDownload,
-                                        contentDescription = null,
-                                        tint = Color(0xFF4285F4),
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = AppStrings.get("drive_restore_btn", currentLang),
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color(0xFF8AB4F8) else Color(0xFF1967D2),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-
-                        // F. Version & Developer Credit
-                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = AppStrings.get("app_version_label", currentLang),
-                                    fontSize = 11.sp,
-                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                )
-                                Text(
-                                    text = "v${BuildConfig.VERSION_NAME} (#${BuildConfig.VERSION_CODE})",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF00BCD4)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Developed by Charfeddine Kahlessenane",
-                                fontSize = 11.sp,
-                                fontStyle = FontStyle.Italic,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F)
-                            )
-                        }
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = AppStrings.get("settings", currentLang),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                    )
+                    Text(
+                        text = AppStrings.get("drawer_settings_sub", currentLang),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF334155),
+                        fontSize = 11.sp
+                    )
                 }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
+                    modifier = Modifier.size(22.dp)
+                )
             }
         }
 
@@ -1029,13 +581,563 @@ fun SideNavigationDrawerContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Respite Pulse",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color(0xFF94A3B8),
-            fontSize = 11.sp,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
+            Text(
+                text = "Respite Pulse",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF94A3B8),
+                fontSize = 11.sp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        }
+        } else {
+            // Dedicated General Settings Page inside the Side Panel (same drawer frame & styling)
+            val settingsScrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .verticalScroll(settingsScrollState)
+                    .padding(16.dp)
+                    .testTag("drawer_settings_page"),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Settings Page Header Card with Back Navigation
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (isDarkMode) Color(0xFF1E293B) else Color.White,
+                    border = BorderStroke(
+                        1.dp,
+                        Brush.linearGradient(
+                            if (isDarkMode) listOf(Color(0x40FFFFFF), Color(0x3310B981))
+                            else listOf(Color.White, Color(0x6610B981))
+                        )
+                    ),
+                    shadowElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { isSettingsPageOpen = false },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .testTag("drawer_settings_back_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = AppStrings.get("back", currentLang),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = AppStrings.get("settings", currentLang),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = AppStrings.get("drawer_settings_sub", currentLang),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                fontSize = 11.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                // A. Theme Mode (Light / Dark) & Design Style (Glass / Neumorph)
+                InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                    Text(
+                        text = AppStrings.get("theme_title", currentLang),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AppThemeMode.entries.forEach { mode ->
+                            val selected = currentThemeMode == mode
+                            Surface(
+                                onClick = { onSelectThemeMode(mode) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (selected) {
+                                    if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
+                                } else {
+                                    if (isDarkMode) Color(0x220F172A) else Color(0xFFF8FAFC)
+                                },
+                                border = BorderStroke(
+                                    if (selected) 1.5.dp else 1.dp,
+                                    if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1))
+                                )
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = if (mode == AppThemeMode.LIGHT) AppStrings.get("theme_light_btn", currentLang) else AppStrings.get("theme_dark_btn", currentLang),
+                                        fontSize = 12.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A))
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = AppStrings.get("theme_style_title", currentLang),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            AppThemeStyle.GLASSMORPHISM to AppStrings.get("theme_style_glass", currentLang),
+                            AppThemeStyle.NEUMORPHISM to AppStrings.get("theme_style_neumorph", currentLang)
+                        ).forEach { (style, label) ->
+                            val selected = currentThemeStyle == style
+                            Surface(
+                                onClick = { onSelectThemeStyle(style) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (selected) {
+                                    if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
+                                } else {
+                                    if (isDarkMode) Color(0x220F172A) else Color(0xFFF8FAFC)
+                                },
+                                border = BorderStroke(
+                                    if (selected) 1.5.dp else 1.dp,
+                                    if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1))
+                                )
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(horizontal = 6.dp)
+                                ) {
+                                    Text(
+                                        text = label,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A)),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // B. Focus Mode & Dynamic Animations Switches
+                InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color(0xFF00BCD4),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = AppStrings.get("focus_mode_title", currentLang),
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = AppStrings.get(
+                                        if (isFocusMode) "focus_mode_active" else "focus_mode_inactive",
+                                        currentLang
+                                    ),
+                                    fontSize = 10.5.sp,
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = isFocusMode,
+                            onCheckedChange = { onToggleFocusMode() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF00BCD4)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = if (isDarkMode) Color(0x22475569) else Color(0x22CBD5E1))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Speed,
+                                contentDescription = null,
+                                tint = Color(0xFFA855F7),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = AppStrings.get("dynamic_animations_title", currentLang),
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = AppStrings.get(
+                                        if (isDynamicAnimationsEnabled) "dynamic_animations_active" else "dynamic_animations_disabled",
+                                        currentLang
+                                    ),
+                                    fontSize = 10.5.sp,
+                                    color = if (isDynamicAnimationsEnabled) Color(0xFF10B981) else Color(0xFFF59E0B)
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = isDynamicAnimationsEnabled,
+                            onCheckedChange = { enabled ->
+                                onToggleDynamicAnimations(enabled)
+                                Toast.makeText(
+                                    context,
+                                    AppStrings.get(
+                                        if (enabled) "dynamic_animations_active" else "dynamic_animations_disabled",
+                                        currentLang
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFA855F7)
+                            )
+                        )
+                    }
+                }
+
+                // C. Duty Eligibility Threshold Slider
+                InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = AppStrings.get("duty_threshold_title", currentLang),
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "$dutyThreshold ${AppStrings.get("days", currentLang)}",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF00BCD4)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = AppStrings.get("duty_threshold_desc", currentLang),
+                        fontSize = 10.5.sp,
+                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                    )
+                    Slider(
+                        value = dutyThreshold.toFloat(),
+                        onValueChange = { onSaveThreshold(it.toInt()) },
+                        valueRange = 10f..180f,
+                        steps = 33,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF00BCD4),
+                            activeTrackColor = Color(0xFF00BCD4)
+                        )
+                    )
+                }
+
+                // D. Biometric App Lock
+                InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fingerprint,
+                                contentDescription = null,
+                                tint = Color(0xFF00BCD4),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = AppStrings.get("biometric_lock_title", currentLang),
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = AppStrings.get(
+                                        if (isBiometricEnabled) "biometric_lock_active_sub" else "biometric_lock_inactive_sub",
+                                        currentLang
+                                    ),
+                                    fontSize = 10.5.sp,
+                                    color = if (isBiometricEnabled) Color(0xFF10B981) else (if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = isBiometricEnabled,
+                            onCheckedChange = { isChecked ->
+                                onToggleBiometric(isChecked)
+                                Toast.makeText(
+                                    context,
+                                    AppStrings.get(
+                                        if (isChecked) "biometric_lock_enabled_toast" else "biometric_lock_disabled_toast",
+                                        currentLang
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF00BCD4)
+                            ),
+                            modifier = Modifier.testTag("drawer_biometric_lock_toggle")
+                        )
+                    }
+
+                    if (isBiometricEnabled) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedButton(
+                            onClick = onLockNow,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color(0xFF00BCD4)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("drawer_lock_now_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color(0xFF00BCD4),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = AppStrings.get("lock_now_btn", currentLang),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF00BCD4)
+                            )
+                        }
+                    }
+                }
+
+                // E. Google Drive Backup & Restore
+                InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudSync,
+                                contentDescription = null,
+                                tint = Color(0xFF4285F4),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = AppStrings.get("drive_backup_title", currentLang),
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = "${AppStrings.get("drive_last_backup", currentLang)} ${if (lastDriveBackupTime > 0L) sdf.format(Date(lastDriveBackupTime)) else AppStrings.get("drive_never", currentLang)}",
+                                    fontSize = 10.5.sp,
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = isDriveSyncEnabled,
+                            onCheckedChange = { onToggleDriveSync(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF4285F4)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onBackupToDrive,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF4285F4),
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = AppStrings.get("drive_backup_btn", currentLang),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onRestoreFromDrive,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color(0xFF4285F4).copy(alpha = 0.7f)),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CloudDownload,
+                                contentDescription = null,
+                                tint = Color(0xFF4285F4),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = AppStrings.get("drive_restore_btn", currentLang),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkMode) Color(0xFF8AB4F8) else Color(0xFF1967D2),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                // F. Version & Developer Credit
+                InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = AppStrings.get("app_version_label", currentLang),
+                            fontSize = 11.5.sp,
+                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        )
+                        Text(
+                            text = "v${BuildConfig.VERSION_NAME} (#${BuildConfig.VERSION_CODE})",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00BCD4)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Developed by Charfeddine Ka",
+                            fontSize = 11.5.sp,
+                            fontStyle = FontStyle.Italic,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { openDeveloperWhatsApp(context, currentLang) },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .testTag("drawer_developer_whatsapp_button")
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(26.dp),
+                                shape = CircleShape,
+                                color = Color(0xFF25D366).copy(alpha = if (isDarkMode) 0.18f else 0.12f),
+                                border = BorderStroke(1.dp, Color(0xFF25D366).copy(alpha = 0.45f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_whatsapp),
+                                        contentDescription = AppStrings.get("contact_whatsapp", currentLang),
+                                        tint = Color(0xFF25D366),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

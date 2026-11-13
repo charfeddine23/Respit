@@ -24,10 +24,12 @@ object AppStrings {
     private val stringsAr = mapOf(
         // Invariant App Title & Developer Info
         "app_title" to "Respite Pulse",
-        "developer_name" to "Developed by Charfeddine Kahlessenane",
+        "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "نظام تسيير إجازات وعطل الأفراد",
         "developer_role" to "المطور المعتمد",
         "app_system_desc" to "نظام متقدم لتسيير الإجازات والعطل",
+        "contact_whatsapp" to "تواصل عبر واتساب",
+        "whatsapp_open_error" to "تعذر فتح واتساب أو المتصفح",
 
         // Main Navigation & Header
         "menu" to "القائمة الرئيسية",
@@ -421,10 +423,12 @@ object AppStrings {
     private val stringsFr = mapOf(
         // Invariant App Title & Developer Info (EXACTLY preserved)
         "app_title" to "Respite Pulse",
-        "developer_name" to "Developed by Charfeddine Kahlessenane",
+        "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "Système de Gestion des Congés & Permissions",
         "developer_role" to "Développeur Officiel",
         "app_system_desc" to "Système avancé de gestion des congés et permissions",
+        "contact_whatsapp" to "Contacter sur WhatsApp",
+        "whatsapp_open_error" to "Impossible d'ouvrir WhatsApp ou le navigateur",
 
         // Main Navigation & Header
         "menu" to "Menu Principal",
@@ -818,10 +822,12 @@ object AppStrings {
     private val stringsEn = mapOf(
         // Invariant App Title & Developer Info (EXACTLY preserved)
         "app_title" to "Respite Pulse",
-        "developer_name" to "Developed by Charfeddine Kahlessenane",
+        "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "Personnel Leave & Duty Management System",
         "developer_role" to "Official Developer",
         "app_system_desc" to "Advanced leave and vacation management system",
+        "contact_whatsapp" to "Contact on WhatsApp",
+        "whatsapp_open_error" to "Unable to open WhatsApp or browser",
 
         // Main Navigation & Header
         "menu" to "Main Menu",

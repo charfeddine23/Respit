@@ -960,7 +960,7 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Section 7: Version Information & Developer Card (Developed by Charfeddine Kahlessenane STRICTLY PRESERVED)
+                // Section 7: Version Information & Developer Card (Developed by Charfeddine Ka)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1065,30 +1065,59 @@ fun SettingsDialog(
                                 .border(1.dp, Color(0xFF00BCD4).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFB2EBF2)),
-                                    contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = Color(0xFF00838F),
-                                        modifier = Modifier.size(20.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFB2EBF2)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = Color(0xFF00838F),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Developed by Charfeddine Ka",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontStyle = FontStyle.Italic,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00838F),
+                                        fontSize = 13.sp
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "Developed by Charfeddine Kahlessenane",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontStyle = FontStyle.Italic,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF00838F),
-                                    fontSize = 13.sp
-                                )
+                                IconButton(
+                                    onClick = { openDeveloperWhatsApp(context, currentLanguage) },
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Surface(
+                                        modifier = Modifier.size(26.dp),
+                                        shape = CircleShape,
+                                        color = Color(0xFF25D366).copy(alpha = if (isDarkMode) 0.18f else 0.12f),
+                                        border = BorderStroke(1.dp, Color(0xFF25D366).copy(alpha = 0.45f))
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_whatsapp),
+                                                contentDescription = AppStrings.get("contact_whatsapp", currentLanguage),
+                                                tint = Color(0xFF25D366),
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

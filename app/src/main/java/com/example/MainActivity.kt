@@ -60,7 +60,6 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Sort
@@ -129,7 +128,6 @@ import com.example.ui.components.DeveloperInfoDialog
 import com.example.ui.components.ExportDialog
 import com.example.ui.components.FilterSortDialog
 import com.example.ui.components.PersonnelCard
-import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
 import com.example.ui.screens.NotificationScreen
@@ -188,15 +186,10 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val isLocked by viewModel.isLocked.collectAsState()
     val currentThemeMode by viewModel.currentThemeMode.collectAsState()
     val currentThemeStyle by viewModel.currentThemeStyle.collectAsState()
-    val securityLockType by viewModel.securityLockType.collectAsState()
-    val patternCode by viewModel.patternCode.collectAsState()
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
-    val isPasskeyEnabled by viewModel.isPasskeyEnabled.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val isFocusMode by viewModel.isFocusMode.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
-    val isPinEnabled by viewModel.isPinEnabled.collectAsState()
-    val currentPin by viewModel.pinCode.collectAsState()
     val lastUndo by viewModel.lastUndoAction.collectAsState()
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
@@ -260,7 +253,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     var personnelToEdit by remember { mutableStateOf<Personnel?>(null) }
     var personnelToDelete by remember { mutableStateOf<Personnel?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
     var showDeveloperDialog by remember { mutableStateOf(false) }
     var showFilterSortDialog by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
@@ -391,7 +383,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             },
                             onRestoreFromDrive = {
                                 driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
-                            }
+                            },
+                            drawerIsOpen = drawerState.isOpen
                         )
                     }
                 }
@@ -465,34 +458,34 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             )
                                         }
 
-                                        // Right Side (الجهة اليمنى): Quick Actions (Settings, Notifications, Drawer Menu)
+                                        // Right Side: Quick Actions (Light/Dark Theme Toggle & Drawer Menu)
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
 
-                                            // Settings Dialog Button
+                                            // Light / Dark Mode Toggle Button
                                             Box(
                                                 modifier = Modifier.liquidGlassInteractive(
                                                     shape = iconShape,
-                                                    glowColor = MaterialTheme.colorScheme.primary,
+                                                    glowColor = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
                                                     isDark = isDarkMode,
                                                     isNeumorphic = isNeumorphic
                                                 )
                                             ) {
                                                 IconButton(
-                                                    onClick = { showSettingsDialog = true },
+                                                    onClick = { viewModel.toggleTheme() },
                                                     modifier = Modifier
-                                                        .size(40.dp)
+                                                        .size(48.dp)
                                                         .clip(iconShape)
-                                                        .testTag("header_settings_button")
+                                                        .testTag("header_theme_toggle")
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Settings,
-                                                        contentDescription = AppStrings.get("settings", currentLang),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(20.dp)
+                                                        imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                                        contentDescription = AppStrings.get(if (isDarkMode) "theme_light" else "theme_dark", currentLang),
+                                                        tint = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(21.dp)
                                                     )
                                                 }
                                             }
@@ -509,7 +502,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 IconButton(
                                                     onClick = { scope.launch { drawerState.open() } },
                                                     modifier = Modifier
-                                                        .size(40.dp)
+                                                        .size(48.dp)
                                                         .clip(iconShape)
                                                         .testTag("header_menu_button")
                                                 ) {
@@ -517,7 +510,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                         imageVector = Icons.Default.Menu,
                                                         contentDescription = AppStrings.get("toolbar_menu_desc", currentLang),
                                                         tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(20.dp)
+                                                        modifier = Modifier.size(21.dp)
                                                     )
                                                 }
                                             }
@@ -1465,47 +1458,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         DeveloperInfoDialog(
             currentLang = currentLang,
             onDismiss = { showDeveloperDialog = false }
-        )
-    }
-
-    // Settings Dialog with Google Drive Backup & Restore wired
-    if (showSettingsDialog) {
-        SettingsDialog(
-            isDarkMode = isDarkMode,
-            currentThemeMode = currentThemeMode,
-            onSelectThemeMode = { viewModel.setThemeMode(it) },
-            currentThemeStyle = currentThemeStyle,
-            onSelectThemeStyle = { viewModel.setThemeStyle(it) },
-            onToggleTheme = { viewModel.toggleTheme() },
-            isFocusMode = isFocusMode,
-            onToggleFocusMode = { viewModel.toggleFocusMode() },
-            currentThreshold = dutyThreshold,
-            onSaveThreshold = { viewModel.setDutyThreshold(it) },
-            isPinEnabled = isPinEnabled,
-            currentPin = currentPin,
-            onSavePin = { pin, enabled -> viewModel.setPinCode(pin, enabled) },
-            securityLockType = securityLockType,
-            currentPattern = patternCode,
-            isBiometricEnabled = isBiometricEnabled,
-            isPasskeyEnabled = isPasskeyEnabled,
-            onSaveSecurity = { type, pin, pattern, bio, passkey, enabled ->
-                viewModel.setSecuritySettings(enabled, type, pin, pattern, bio, passkey)
-            },
-            onLockNow = { viewModel.lockApp() },
-            currentLanguage = currentLang,
-            onSelectLanguage = { viewModel.setLanguage(it) },
-            isDriveSyncEnabled = isDriveSyncEnabled,
-            onToggleDriveSync = { viewModel.setDriveSyncEnabled(it) },
-            lastDriveBackupTime = lastDriveBackupTime,
-            onBackupToDrive = {
-                driveBackupLauncher.launch("respite_pulse_backup_${System.currentTimeMillis()}.json")
-            },
-            onRestoreFromDrive = {
-                driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
-            },
-            isDynamicAnimationsEnabled = isDynamicAnimationsEnabled,
-            onToggleDynamicAnimations = { viewModel.setDynamicAnimationsEnabled(it) },
-            onDismiss = { showSettingsDialog = false }
         )
     }
 
