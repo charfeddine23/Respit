@@ -1,8 +1,10 @@
 package com.example
 
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -115,6 +117,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.AppThemeMode
 import com.example.data.Personnel
+import com.example.data.formatRank
 import com.example.ui.PersonnelViewModel
 import com.example.ui.SortOption
 import androidx.fragment.app.FragmentActivity
@@ -276,11 +279,21 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         }
     }
 
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            viewModel.checkUpcomingNotifications()
+    LaunchedEffect(isLocked) {
+        if (!isLocked) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val granted = ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+                if (granted) {
+                    viewModel.checkUpcomingNotifications()
+                } else {
+                    notificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            } else {
+                viewModel.checkUpcomingNotifications()
+            }
         }
     }
 
@@ -346,10 +359,6 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             onToggleTheme = {
                                 viewModel.toggleTheme()
                             },
-                            onOpenSettings = {
-                                showSettingsDialog = true
-                                scope.launch { drawerState.close() }
-                            },
                             onOpenDeveloper = {
                                 showDeveloperDialog = true
                                 scope.launch { drawerState.close() }
@@ -357,6 +366,31 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             onResetSampleData = {
                                 showResetConfirmDialog = true
                                 scope.launch { drawerState.close() }
+                            },
+                            currentThemeMode = currentThemeMode,
+                            onSelectThemeMode = { viewModel.setThemeMode(it) },
+                            currentThemeStyle = currentThemeStyle,
+                            onSelectThemeStyle = { viewModel.setThemeStyle(it) },
+                            isFocusMode = isFocusMode,
+                            onToggleFocusMode = { viewModel.toggleFocusMode() },
+                            dutyThreshold = dutyThreshold,
+                            onSaveThreshold = { viewModel.setDutyThreshold(it) },
+                            isBiometricEnabled = isBiometricEnabled,
+                            onToggleBiometric = { enabled -> viewModel.setBiometricLock(enabled) },
+                            onLockNow = {
+                                scope.launch { drawerState.close() }
+                                viewModel.lockApp()
+                            },
+                            isDynamicAnimationsEnabled = isDynamicAnimationsEnabled,
+                            onToggleDynamicAnimations = { viewModel.setDynamicAnimationsEnabled(it) },
+                            isDriveSyncEnabled = isDriveSyncEnabled,
+                            onToggleDriveSync = { viewModel.setDriveSyncEnabled(it) },
+                            lastDriveBackupTime = lastDriveBackupTime,
+                            onBackupToDrive = {
+                                driveBackupLauncher.launch("respite_pulse_backup_${System.currentTimeMillis()}.json")
+                            },
+                            onRestoreFromDrive = {
+                                driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
                             }
                         )
                     }
@@ -415,7 +449,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             ) {
                                                 Image(
                                                     painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
-                                                    contentDescription = "أيقونة التطبيق",
+                                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
                                                     contentScale = ContentScale.Fit,
                                                     modifier = Modifier
                                                         .size(32.dp)
@@ -481,7 +515,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.Menu,
-                                                        contentDescription = "القائمة",
+                                                        contentDescription = AppStrings.get("toolbar_menu_desc", currentLang),
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(20.dp)
                                                     )
@@ -524,7 +558,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Add,
-                                                contentDescription = "إضافة فرد جديد",
+                                                contentDescription = AppStrings.get("add_personnel", currentLang),
                                                 tint = Color.White,
                                                 modifier = Modifier.size(30.dp)
                                             )
@@ -573,7 +607,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Add,
-                                                contentDescription = "إضافة فرد جديد",
+                                                contentDescription = AppStrings.get("add_personnel", currentLang),
                                                 tint = Color.White,
                                                 modifier = Modifier.size(28.dp)
                                             )
@@ -854,7 +888,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                             ) {
                                                                 Icon(
                                                                     imageVector = Icons.Default.Tune,
-                                                                    contentDescription = "الفلترة والترتيب",
+                                                                    contentDescription = AppStrings.get("filter_sort_btn", currentLang),
                                                                     tint = MaterialTheme.colorScheme.primary,
                                                                     modifier = Modifier.size(26.dp)
                                                                 )
@@ -1032,7 +1066,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(
                                                             context,
-                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
+                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.fullName}",
                                                             Toast.LENGTH_SHORT
                                                         ).show()
                                                     },
@@ -1176,7 +1210,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                             ) {
                                                                 Icon(
                                                                     imageVector = Icons.Default.Tune,
-                                                                    contentDescription = "الفلترة والترتيب",
+                                                                    contentDescription = AppStrings.get("filter_sort_btn", currentLang),
                                                                     tint = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
                                                                     modifier = Modifier.size(26.dp)
                                                                 )
@@ -1277,7 +1311,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                                     viewModel.confirmReturnToDuty(person.id)
                                                                     Toast.makeText(
                                                                         context,
-                                                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
+                                                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.fullName}",
                                                                         Toast.LENGTH_SHORT
                                                                     ).show()
                                                                 },
@@ -1310,7 +1344,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(
                                                             context,
-                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${person.rank} / ${person.fullName}",
+                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.fullName}",
                                                             Toast.LENGTH_SHORT
                                                         ).show()
                                                     },
@@ -1381,7 +1415,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                 Text(AppStrings.get("confirm_delete_title", currentLang), fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("${AppStrings.get("confirm_delete_message", currentLang)} ${target.rank} / ${target.fullName} (${target.registrationNumber})؟")
+                val qMark = if (currentLang == AppLanguage.ARABIC) "؟" else "?"
+                Text("${AppStrings.get("confirm_delete_message", currentLang)} ${formatRank(target.rank, currentLang)} / ${target.fullName} (${target.registrationNumber})$qMark")
             },
             confirmButton = {
                 TextButton(
@@ -1485,7 +1520,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             onImportJson = { jsonStr, replaceAll ->
                 viewModel.importPersonnelFromJson(jsonStr, replaceAll)
             },
-            onDismiss = { showExportDialog = false }
+            onDismiss = { showExportDialog = false },
+            currentLang = currentLang
         )
     }
 

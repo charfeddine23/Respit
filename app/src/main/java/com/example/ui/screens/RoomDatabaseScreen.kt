@@ -96,6 +96,9 @@ import androidx.compose.ui.unit.sp
 import com.example.data.AppThemeStyle
 import com.example.data.LeaveRecord
 import com.example.data.Personnel
+import com.example.data.formatLeaveType
+import com.example.data.formatRank
+import com.example.data.formatWilaya
 import com.example.ui.PersonnelViewModel
 import com.example.ui.theme.DynamicAuroraBackground
 import com.example.ui.theme.liquidGlass
@@ -177,7 +180,7 @@ fun RoomDatabaseScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
+                                    contentDescription = AppStrings.get("back", currentLang),
                                     tint = textPrimary
                                 )
                             }
@@ -328,7 +331,8 @@ fun RoomDatabaseScreen(
                                         query = searchQuery,
                                         onQueryChange = { searchQuery = it },
                                         placeholder = AppStrings.get("search_placeholder", currentLang),
-                                        isDarkMode = isDarkMode
+                                        isDarkMode = isDarkMode,
+                                        clearDesc = AppStrings.get("clear_icon_desc", currentLang)
                                     )
                                 }
 
@@ -339,7 +343,8 @@ fun RoomDatabaseScreen(
                                     personnelList.filter {
                                         it.fullName.lowercase(Locale.getDefault()).contains(q) ||
                                                 it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
-                                                it.rank.lowercase(Locale.getDefault()).contains(q)
+                                                it.rank.lowercase(Locale.getDefault()).contains(q) ||
+                                                formatRank(it.rank, currentLang).lowercase(Locale.getDefault()).contains(q)
                                     }
                                 }
 
@@ -378,6 +383,7 @@ fun RoomDatabaseScreen(
                                             onQueryChange = { searchQuery = it },
                                             placeholder = AppStrings.get("room_search_leaves", currentLang),
                                             isDarkMode = isDarkMode,
+                                            clearDesc = AppStrings.get("clear_icon_desc", currentLang),
                                             modifier = Modifier.weight(1f)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -404,7 +410,9 @@ fun RoomDatabaseScreen(
                                         it.personnelName.lowercase(Locale.getDefault()).contains(q) ||
                                                 it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
                                                 it.leaveType.lowercase(Locale.getDefault()).contains(q) ||
-                                                it.rank.lowercase(Locale.getDefault()).contains(q)
+                                                formatLeaveType(it.leaveType, currentLang).lowercase(Locale.getDefault()).contains(q) ||
+                                                it.rank.lowercase(Locale.getDefault()).contains(q) ||
+                                                formatRank(it.rank, currentLang).lowercase(Locale.getDefault()).contains(q)
                                     }
                                 }
 
@@ -492,7 +500,7 @@ fun RoomDatabaseScreen(
                     onConfirm = { newLeave ->
                         viewModel.insertLeaveRecord(newLeave)
                         showAddLeaveDialog = false
-                        Toast.makeText(context, "تم حفظ الإجازة في Room بنجاح", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.get("room_leave_saved_toast", currentLang), Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -549,7 +557,7 @@ private fun RoomDatabaseHeaderCard(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "SQLite Room Database",
+                            text = AppStrings.get("room_db_title", currentLang),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = textPrimary
@@ -568,7 +576,7 @@ private fun RoomDatabaseHeaderCard(
                     color = Color(0xFF10B981).copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = "KSP Active ✅",
+                        text = AppStrings.get("room_ksp_active", currentLang),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF10B981),
                         fontWeight = FontWeight.Bold,
@@ -698,6 +706,7 @@ private fun SearchBox(
     onQueryChange: (String) -> Unit,
     placeholder: String,
     isDarkMode: Boolean,
+    clearDesc: String = "Clear",
     modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
@@ -710,7 +719,7 @@ private fun SearchBox(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear", tint = Color(0xFF94A3B8), modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Default.Clear, contentDescription = clearDesc, tint = Color(0xFF94A3B8), modifier = Modifier.size(16.dp))
                 }
             }
         },
@@ -784,7 +793,7 @@ private fun RoomPersonnelRowCard(
                         color = Color(personnel.status.bgHexColor)
                     ) {
                         Text(
-                            text = personnel.status.labelAr,
+                            text = personnel.status.getCompactBadgeLabel(currentLang),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(personnel.status.hexColor),
                             fontWeight = FontWeight.Bold,
@@ -798,7 +807,7 @@ private fun RoomPersonnelRowCard(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${personnel.rank} • ${personnel.registrationNumber}",
+                        text = "${formatRank(personnel.rank, currentLang)} • ${personnel.registrationNumber}",
                         style = MaterialTheme.typography.labelSmall,
                         color = textSecondary
                     )
@@ -814,7 +823,7 @@ private fun RoomPersonnelRowCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${personnel.leaveType} (${personnel.totalLeaveDays} يوم) • العودة: ${personnel.formattedReturnDate}",
+                    text = "${formatLeaveType(personnel.leaveType, currentLang)} (${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}) • ${AppStrings.get("room_return_prefix", currentLang)} ${personnel.formattedReturnDate}",
                     style = MaterialTheme.typography.labelSmall,
                     color = textSecondary,
                     fontSize = 11.sp
@@ -824,7 +833,7 @@ private fun RoomPersonnelRowCard(
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = "Delete",
+                    contentDescription = AppStrings.get("delete", currentLang),
                     tint = Color(0xFFEF4444).copy(alpha = 0.8f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -889,7 +898,7 @@ private fun RoomLeaveRecordRowCard(
                         color = Color(0xFF7C3AED).copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = leave.leaveType,
+                            text = formatLeaveType(leave.leaveType, currentLang),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF7C3AED),
                             fontWeight = FontWeight.Bold,
@@ -902,7 +911,7 @@ private fun RoomLeaveRecordRowCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${leave.rank} • ${leave.registrationNumber}",
+                    text = "${formatRank(leave.rank, currentLang)} • ${leave.registrationNumber}",
                     style = MaterialTheme.typography.labelSmall,
                     color = textSecondary
                 )
@@ -918,7 +927,7 @@ private fun RoomLeaveRecordRowCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${leave.formattedStartDate} ➔ ${leave.formattedReturnDate} (${leave.durationDays} يوم)",
+                        text = "${leave.formattedStartDate} ➔ ${leave.formattedReturnDate} (${leave.durationDays} ${AppStrings.get("days", currentLang)})",
                         style = MaterialTheme.typography.labelSmall,
                         color = textSecondary,
                         fontSize = 11.sp
@@ -928,7 +937,7 @@ private fun RoomLeaveRecordRowCard(
                 if (leave.destinationWilaya.isNotBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "الوجهة: ${leave.destinationWilaya}",
+                        text = "${AppStrings.get("room_destination_prefix", currentLang)} ${formatWilaya(leave.destinationWilaya, currentLang, includeCode = false)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF0284C7),
                         fontSize = 11.sp
@@ -939,7 +948,7 @@ private fun RoomLeaveRecordRowCard(
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = "Delete",
+                    contentDescription = AppStrings.get("delete", currentLang),
                     tint = Color(0xFFEF4444).copy(alpha = 0.8f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -958,6 +967,7 @@ private fun RoomDiagnosticsCard(
     val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
     val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val recUnit = AppStrings.get("room_diag_records_unit", currentLang)
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -979,7 +989,7 @@ private fun RoomDiagnosticsCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Room SQLite Engine Diagnostics",
+                    text = AppStrings.get("room_diag_title", currentLang),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = textPrimary
@@ -988,16 +998,16 @@ private fun RoomDiagnosticsCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            DiagnosticRow("Database File", "personnel_leaves_db", textPrimary, textSecondary)
-            DiagnosticRow("Database Version", "4 (WAL Mode Enabled)", textPrimary, textSecondary)
-            DiagnosticRow("ORM Engine", "AndroidX Room 2.7.0 (KSP 2.3.5)", textPrimary, textSecondary)
-            DiagnosticRow("Concurrency", "Kotlin Coroutines & Flow (Dispatchers.IO)", textPrimary, textSecondary)
-            DiagnosticRow("Design Pattern", "Clean Repository Pattern (PersonnelRepository)", textPrimary, textSecondary)
-            DiagnosticRow("Tables Configured", "personnel, leave_records", textPrimary, textSecondary)
-            DiagnosticRow("Total Personnel Rows", "$personnelCount records", Color(0xFF10B981), textSecondary)
-            DiagnosticRow("Total Leaves Rows", "$leavesCount records", Color(0xFF7C3AED), textSecondary)
-            DiagnosticRow("Encryption & Sandbox", "Device-Private Sandbox (Secure Isolated Storage)", textPrimary, textSecondary)
-            DiagnosticRow("Cloud Dependency", "None (Zero Cloud Required - Pure Device Local)", Color(0xFF0284C7), textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_db_file", currentLang), "personnel_leaves_db", textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_version", currentLang), "4 (WAL Mode)", textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_orm", currentLang), "AndroidX Room 2.7.0 (KSP)", textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_concurrency", currentLang), "Coroutines & Flow (IO)", textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_pattern", currentLang), "Repository Pattern", textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_tables", currentLang), "personnel, leave_records", textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_personnel_rows", currentLang), "$personnelCount $recUnit", Color(0xFF10B981), textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_leaves_rows", currentLang), "$leavesCount $recUnit", Color(0xFF7C3AED), textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_sandbox", currentLang), AppStrings.get("room_diag_sandbox_val", currentLang), textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_cloud", currentLang), AppStrings.get("room_diag_local_only", currentLang), Color(0xFF0284C7), textSecondary)
         }
     }
 }
@@ -1092,7 +1102,7 @@ private fun AddRoomLeaveDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "اختر الفرد لتسجيل الإجازة:",
+                    text = AppStrings.get("room_select_person", currentLang),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFF64748B)
                 )
@@ -1119,7 +1129,7 @@ private fun AddRoomLeaveDialog(
                 OutlinedTextField(
                     value = leaveType,
                     onValueChange = { leaveType = it },
-                    label = { Text("نوع الإجازة") },
+                    label = { Text(AppStrings.get("leave_type", currentLang)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1127,7 +1137,7 @@ private fun AddRoomLeaveDialog(
                 OutlinedTextField(
                     value = durationDaysStr,
                     onValueChange = { durationDaysStr = it },
-                    label = { Text("مدة الإجازة بالأيام") },
+                    label = { Text(AppStrings.get("room_leave_duration_days", currentLang)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1135,7 +1145,7 @@ private fun AddRoomLeaveDialog(
                 OutlinedTextField(
                     value = destinationWilaya,
                     onValueChange = { destinationWilaya = it },
-                    label = { Text("الولاية / الوجهة") },
+                    label = { Text(AppStrings.get("room_destination_wilaya", currentLang)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1143,7 +1153,7 @@ private fun AddRoomLeaveDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("ملاحظات") },
+                    label = { Text(AppStrings.get("notes_plain", currentLang)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1155,8 +1165,8 @@ private fun AddRoomLeaveDialog(
                     val days = durationDaysStr.toLongOrNull() ?: 10L
                     val now = System.currentTimeMillis()
                     val end = now + days * 86400000L
-                    val pName = selectedPerson?.fullName ?: "فرد مسجل"
-                    val pRank = selectedPerson?.rank ?: "رتبة"
+                    val pName = selectedPerson?.fullName ?: "-"
+                    val pRank = selectedPerson?.rank ?: "جندي - Djoundi / Soldat"
                     val pReg = selectedPerson?.registrationNumber ?: "DZ-000000"
 
                     val record = LeaveRecord(
@@ -1168,7 +1178,7 @@ private fun AddRoomLeaveDialog(
                         startDateMillis = now,
                         returnDateMillis = end,
                         durationDays = days,
-                        statusText = "جارية (بالبيت)",
+                        statusText = AppStrings.get("badge_at_home", currentLang),
                         destinationWilaya = destinationWilaya,
                         notes = notes
                     )

@@ -17,8 +17,13 @@ import androidx.room.Room
 import com.example.data.AppDatabase
 import com.example.data.LeaveRecord
 import com.example.data.PersonnelRepository
+import com.example.data.formatLeaveType
+import com.example.data.formatRank
+import com.example.data.formatWilaya
+import com.example.util.AppLanguage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.robolectric.Robolectric
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -223,6 +228,45 @@ class ExampleRobolectricTest {
     assertEquals(10L, leavesList[0].durationDays)
 
     inMemoryDb.close()
+  }
+
+  @Test
+  fun `verify localized rank wilaya without code and countdown text`() {
+    val rankRaw = "ملازم أول - Lieutenant"
+    assertEquals("ملازم أول", formatRank(rankRaw, AppLanguage.ARABIC))
+    assertEquals("Lieutenant", formatRank(rankRaw, AppLanguage.FRENCH))
+    assertEquals("First Lieutenant", formatRank(rankRaw, AppLanguage.ENGLISH))
+
+    val wilayaRaw = "16 - الجزائر - Alger"
+    assertEquals("الجزائر", formatWilaya(wilayaRaw, AppLanguage.ARABIC, includeCode = false))
+    assertEquals("Alger", formatWilaya(wilayaRaw, AppLanguage.FRENCH, includeCode = false))
+    assertEquals("Alger", formatWilaya(wilayaRaw, AppLanguage.ENGLISH, includeCode = false))
+    assertEquals("16 - الجزائر", formatWilaya(wilayaRaw, AppLanguage.ARABIC, includeCode = true))
+
+    assertEquals("عطلة سنوية", formatLeaveType("عطلة سنوية", AppLanguage.ARABIC))
+    assertEquals("Congé annuel", formatLeaveType("عطلة سنوية", AppLanguage.FRENCH))
+    assertEquals("Annual Leave", formatLeaveType("عطلة سنوية", AppLanguage.ENGLISH))
+
+    val pAtHome = Personnel(
+      fullName = "Test",
+      rank = rankRaw,
+      registrationNumber = "DZ-100",
+      startDateMillis = getOffsetDateMillis(-2),
+      returnDateMillis = getOffsetDateMillis(4),
+      isReturnedToDuty = false
+    )
+    assertTrue(pAtHome.getCountdownText(AppLanguage.ARABIC).contains("4"))
+    assertTrue(pAtHome.getCountdownText(AppLanguage.FRENCH).contains("4 jours restants"))
+    assertTrue(pAtHome.getCountdownText(AppLanguage.ENGLISH).contains("4 days remaining"))
+  }
+
+  @Test
+  fun `verify MainActivity launches on SDK 34 without requestCode 16-bit crash`() {
+    val controller = Robolectric.buildActivity(MainActivity::class.java)
+    controller.create().start().resume()
+    val activity = controller.get()
+    assertTrue(!activity.isFinishing)
+    controller.pause().stop().destroy()
   }
 }
 

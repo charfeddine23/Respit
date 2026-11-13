@@ -27,18 +27,14 @@ object BiometricAuthHelper {
 
     fun authenticate(
         activity: FragmentActivity,
-        title: String = "المصادقة البيومترية",
-        subtitle: String = "استخدم بصمة الإصبع أو رمز حماية الجهاز لفتح التطبيق",
+        title: String = "Biometric Authentication",
+        subtitle: String = "Use your fingerprint or device credential to unlock",
+        defaultError: String = "Biometric authentication failed",
         onSuccess: () -> Unit,
         onError: (String) -> Unit = {},
         onFailed: () -> Unit = {}
     ) {
         val executor = ContextCompat.getMainExecutor(activity)
-        val authenticators = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            BIOMETRIC_STRONG or DEVICE_CREDENTIAL
-        } else {
-            BIOMETRIC_WEAK or BIOMETRIC_STRONG or DEVICE_CREDENTIAL
-        }
 
         val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
@@ -77,7 +73,7 @@ object BiometricAuthHelper {
         try {
             biometricPrompt.authenticate(promptInfo)
         } catch (e: Exception) {
-            onError(e.localizedMessage ?: "فشلت المصادقة البيومترية")
+            onError(e.localizedMessage ?: defaultError)
         }
     }
 }

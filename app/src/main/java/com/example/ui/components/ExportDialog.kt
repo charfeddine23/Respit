@@ -7,7 +7,6 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.util.AppLanguage
+import com.example.util.AppStrings
 
 @Composable
 fun ExportDialog(
@@ -67,7 +68,8 @@ fun ExportDialog(
     jsonContent: String,
     onExportPdf: () -> Unit,
     onImportJson: (jsonString: String, replaceAll: Boolean) -> Pair<Boolean, String>,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    currentLang: AppLanguage = AppLanguage.ARABIC
 ) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -108,7 +110,7 @@ fun ExportDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "النسخ الاحتياطي والبيانات",
+                        text = AppStrings.get("export_data", currentLang),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -117,7 +119,7 @@ fun ExportDialog(
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
+                            contentDescription = AppStrings.get("close", currentLang),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -136,7 +138,7 @@ fun ExportDialog(
                         onClick = { selectedTab = 0 },
                         text = {
                             Text(
-                                "تصدير البيانات (Export)",
+                                AppStrings.get("export_tab_label", currentLang),
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -146,7 +148,7 @@ fun ExportDialog(
                         onClick = { selectedTab = 1 },
                         text = {
                             Text(
-                                "استيراد البيانات (Import)",
+                                AppStrings.get("import_tab_label", currentLang),
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -158,7 +160,7 @@ fun ExportDialog(
                 if (selectedTab == 0) {
                     // EXPORT TAB
                     Text(
-                        text = "يمكنك حفظ جدول وسجلات الأفراد مباشرة بصيغة PDF أو Excel CSV أو مشاركة نسخة احتياطية كاملة بصيغة JSON.",
+                        text = AppStrings.get("export_desc", currentLang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -177,11 +179,11 @@ fun ExportDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PictureAsPdf,
-                            contentDescription = "حفظ PDF",
+                            contentDescription = AppStrings.get("export_pdf", currentLang),
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("حفظ ومشاركة الجدول كملف PDF", fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get("export_save_share_pdf", currentLang), fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -189,7 +191,7 @@ fun ExportDialog(
                     // Export to CSV
                     Button(
                         onClick = {
-                            shareText(context, csvContent, "تصدير جدول الإجازات (CSV)", "text/csv")
+                            shareText(context, csvContent, AppStrings.get("export_share_csv", currentLang))
                             onDismiss()
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -198,11 +200,11 @@ fun ExportDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
-                            contentDescription = "مشاركة CSV",
+                            contentDescription = AppStrings.get("export_share_csv", currentLang),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("مشاركة ملف Excel CSV", fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get("export_share_csv", currentLang), fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -210,7 +212,7 @@ fun ExportDialog(
                     // Export to JSON
                     OutlinedButton(
                         onClick = {
-                            shareText(context, jsonContent, "نسخة احتياطية JSON", "application/json")
+                            shareText(context, jsonContent, AppStrings.get("export_share_json", currentLang))
                             onDismiss()
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -218,11 +220,11 @@ fun ExportDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
-                            contentDescription = "مشاركة JSON",
+                            contentDescription = AppStrings.get("export_share_json", currentLang),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("مشاركة ملف JSON Backup")
+                        Text(AppStrings.get("export_share_json", currentLang))
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -231,7 +233,11 @@ fun ExportDialog(
                     OutlinedButton(
                         onClick = {
                             copyToClipboard(context, jsonContent, "JSON Backup")
-                            Toast.makeText(context, "تم نسخ محتوى JSON Backup إلى الحافظة", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                AppStrings.get("export_json_copied_toast", currentLang),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             onDismiss()
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -239,16 +245,16 @@ fun ExportDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "نسخ JSON",
+                            contentDescription = AppStrings.get("export_copy_json", currentLang),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("نسخ كود JSON Backup للحافظة")
+                        Text(AppStrings.get("export_copy_json", currentLang))
                     }
                 } else {
                     // IMPORT TAB
                     Text(
-                        text = "الصق محتوى النسخة الاحتياطية (JSON) لاستيراد الأفراد وسجلاتهم إلى التطبيق:",
+                        text = AppStrings.get("import_desc", currentLang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -267,7 +273,11 @@ fun ExportDialog(
                                 if (clip != null && clip.itemCount > 0) {
                                     val text = clip.getItemAt(0).text?.toString() ?: ""
                                     importJsonText = text
-                                    Toast.makeText(context, "تم لصق البيانات من الحافظة", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        AppStrings.get("import_pasted_toast", currentLang),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             },
                             shape = RoundedCornerShape(10.dp)
@@ -278,7 +288,7 @@ fun ExportDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("لصق من الحافظة", fontSize = 12.sp)
+                            Text(AppStrings.get("import_paste_btn", currentLang), fontSize = 12.sp)
                         }
                     }
 
@@ -316,14 +326,20 @@ fun ExportDialog(
                                     selected = !replaceAllMode,
                                     onClick = { replaceAllMode = false }
                                 )
-                                Text("دمج مع السجلات الحالية (إضافة)", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    AppStrings.get("import_mode_append", currentLang),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = replaceAllMode,
                                     onClick = { replaceAllMode = true }
                                 )
-                                Text("استبدال كافة السجلات الحالية بالكامل", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    AppStrings.get("import_mode_replace", currentLang),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }
@@ -334,7 +350,11 @@ fun ExportDialog(
                     Button(
                         onClick = {
                             if (importJsonText.isBlank()) {
-                                Toast.makeText(context, "يرجى لصق نص JSON أولاً", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    AppStrings.get("import_paste_first_toast", currentLang),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@Button
                             }
                             val (success, message) = onImportJson(importJsonText, replaceAllMode)
@@ -353,7 +373,7 @@ fun ExportDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("بدء استيراد البيانات", fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get("import_start_btn", currentLang), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -361,7 +381,7 @@ fun ExportDialog(
     }
 }
 
-private fun shareText(context: Context, text: String, title: String, mimeType: String) {
+private fun shareText(context: Context, text: String, title: String) {
     val sendIntent = Intent().apply {
         action = Intent.ACTION_SEND
         putExtra(Intent.EXTRA_TEXT, text)

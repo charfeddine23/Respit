@@ -2,6 +2,8 @@ package com.example.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.util.AppLanguage
+import com.example.util.AppStrings
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -17,7 +19,23 @@ enum class LeaveStatus(
     RETURNING_TODAY("الدخول اليوم 🔔", 0xFFD97706, 0xFFFEF3C7),
     OVERDUE("متأخر عن الدخول ⚠️", 0xFFDC2626, 0xFFFEE2E2),
     UPCOMING("إجازة مبرمجة ⏳", 0xFF7C3AED, 0xFFEDE9FE),
-    ON_DUTY("حاضر بالخدمة 🎖️", 0xFF059669, 0xFFD1FAE5)
+    ON_DUTY("حاضر بالخدمة 🎖️", 0xFF059669, 0xFFD1FAE5);
+
+    fun getLabel(lang: AppLanguage): String = when (this) {
+        AT_HOME -> AppStrings.get("status_at_home", lang)
+        RETURNING_TODAY -> AppStrings.get("status_returning_today", lang)
+        OVERDUE -> AppStrings.get("status_overdue", lang)
+        UPCOMING -> AppStrings.get("status_upcoming", lang)
+        ON_DUTY -> AppStrings.get("status_on_duty", lang)
+    }
+
+    fun getCompactBadgeLabel(lang: AppLanguage): String = when (this) {
+        AT_HOME -> AppStrings.get("badge_at_home", lang)
+        RETURNING_TODAY -> AppStrings.get("badge_returning_today", lang)
+        OVERDUE -> AppStrings.get("badge_overdue", lang)
+        UPCOMING -> AppStrings.get("badge_upcoming", lang)
+        ON_DUTY -> AppStrings.get("badge_on_duty", lang)
+    }
 }
 
 @Entity(tableName = "personnel")
@@ -160,6 +178,36 @@ data class Personnel(
                 LeaveStatus.ON_DUTY -> "حاضر بالخدمة (منقضي $daysSinceDutyReturn يوم)"
             }
         }
+
+    fun getCountdownText(lang: AppLanguage): String {
+        if (lang == AppLanguage.ARABIC) return countdownTextAr
+        return when (status) {
+            LeaveStatus.AT_HOME -> {
+                val rem = daysRemainingToReturn
+                when {
+                    rem <= 0 -> if (lang == AppLanguage.FRENCH) "Reprise aujourd'hui" else "Return today"
+                    rem == 1L -> if (lang == AppLanguage.FRENCH) "1 jour restant avant reprise" else "1 day remaining until return"
+                    else -> if (lang == AppLanguage.FRENCH) "$rem jours restants avant reprise" else "$rem days remaining until return"
+                }
+            }
+            LeaveStatus.RETURNING_TODAY -> if (lang == AppLanguage.FRENCH) "La date de reprise est aujourd'hui !" else "Return to duty is today!"
+            LeaveStatus.OVERDUE -> {
+                val ov = daysOverdue
+                when {
+                    ov <= 0 -> if (lang == AppLanguage.FRENCH) "Délai de reprise dépassé" else "Return deadline passed"
+                    ov == 1L -> if (lang == AppLanguage.FRENCH) "En retard de 1 jour !" else "Overdue by 1 day!"
+                    else -> if (lang == AppLanguage.FRENCH) "En retard de $ov jours !" else "Overdue by $ov days!"
+                }
+            }
+            LeaveStatus.UPCOMING -> {
+                val today = toStartOfDay(System.currentTimeMillis())
+                val start = toStartOfDay(startDateMillis)
+                val daysUntil = TimeUnit.MILLISECONDS.toDays(start - today)
+                if (lang == AppLanguage.FRENCH) "Début du congé dans $daysUntil jour(s)" else "Leave starts in $daysUntil day(s)"
+            }
+            LeaveStatus.ON_DUTY -> if (lang == AppLanguage.FRENCH) "Présent au service ($daysSinceDutyReturn j écoulés)" else "On active duty ($daysSinceDutyReturn days elapsed)"
+        }
+    }
 
     val formattedStartDate: String
         get() {

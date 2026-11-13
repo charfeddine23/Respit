@@ -68,6 +68,9 @@ import com.example.data.Personnel
 import com.example.data.algerianLeaveTypes
 import com.example.data.algerianRanks
 import com.example.data.algerianWilayas
+import com.example.data.formatLeaveType
+import com.example.data.formatRank
+import com.example.data.formatWilaya
 import com.example.data.normalizeRank
 import com.example.data.normalizeWilaya
 import com.example.ui.theme.SlateTextPrimary
@@ -291,7 +294,7 @@ fun AddEditPersonnelDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = rank,
+                        value = formatRank(rank, currentLang),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(AppStrings.get("rank_label", currentLang)) },
@@ -308,7 +311,12 @@ fun AddEditPersonnelDialog(
                     ) {
                         algerianRanks.forEach { r ->
                             DropdownMenuItem(
-                                text = { Text(r, fontWeight = if (r == rank) FontWeight.Bold else FontWeight.Normal) },
+                                text = {
+                                    Text(
+                                        text = formatRank(r, currentLang),
+                                        fontWeight = if (r == rank) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
                                 onClick = {
                                     rank = r
                                     rankDropdownExpanded = false
@@ -346,10 +354,10 @@ fun AddEditPersonnelDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = wilaya,
+                        value = formatWilaya(wilaya, currentLang, includeCode = true),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text(AppStrings.get("wilaya_label", currentLang)) },
+                        label = { Text(AppStrings.get("wilaya_label", currentLang).replace(":", "")) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = wilayaDropdownExpanded) },
                         colors = inputColors,
                         modifier = Modifier
@@ -378,11 +386,7 @@ fun AddEditPersonnelDialog(
                                 onValueChange = { wilayaSearchQuery = it },
                                 placeholder = {
                                     Text(
-                                        when (currentLang) {
-                                            AppLanguage.FRENCH -> "Rechercher wilaya (nom/code)..."
-                                            AppLanguage.ENGLISH -> "Search province..."
-                                            else -> "ابحث عن الولاية (بالرقم أو الاسم)..."
-                                        },
+                                        AppStrings.get("wilaya_search_placeholder", currentLang),
                                         fontSize = 12.sp
                                     )
                                 },
@@ -403,7 +407,7 @@ fun AddEditPersonnelDialog(
                                         ) {
                                             Icon(
                                                 Icons.Default.Clear,
-                                                contentDescription = "مسح",
+                                                contentDescription = AppStrings.get("clear_icon_desc", currentLang),
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -416,12 +420,14 @@ fun AddEditPersonnelDialog(
                             )
                         }
 
-                        val filteredWilayas = remember(wilayaSearchQuery) {
+                        val filteredWilayas = remember(wilayaSearchQuery, currentLang) {
                             if (wilayaSearchQuery.isBlank()) {
                                 algerianWilayas
                             } else {
+                                val q = wilayaSearchQuery.trim()
                                 algerianWilayas.filter {
-                                    it.contains(wilayaSearchQuery.trim(), ignoreCase = true)
+                                    it.contains(q, ignoreCase = true) ||
+                                        formatWilaya(it, currentLang, includeCode = true).contains(q, ignoreCase = true)
                                 }
                             }
                         }
@@ -430,7 +436,7 @@ fun AddEditPersonnelDialog(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        "لا توجد ولاية مطابقة",
+                                        AppStrings.get("wilaya_not_found", currentLang),
                                         color = Color.Gray,
                                         fontSize = 13.sp
                                     )
@@ -443,7 +449,7 @@ fun AddEditPersonnelDialog(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            w,
+                                            formatWilaya(w, currentLang, includeCode = true),
                                             fontWeight = if (w == wilaya) FontWeight.Bold else FontWeight.Normal,
                                             color = if (w == wilaya) MaterialTheme.colorScheme.primary else Color.Unspecified
                                         )
@@ -468,7 +474,7 @@ fun AddEditPersonnelDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = leaveType,
+                        value = formatLeaveType(leaveType, currentLang),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(AppStrings.get("leave_type_label", currentLang)) },
@@ -485,7 +491,12 @@ fun AddEditPersonnelDialog(
                     ) {
                         algerianLeaveTypes.forEach { lt ->
                             DropdownMenuItem(
-                                text = { Text(lt, fontWeight = if (lt == leaveType) FontWeight.Bold else FontWeight.Normal) },
+                                text = {
+                                    Text(
+                                        formatLeaveType(lt, currentLang),
+                                        fontWeight = if (lt == leaveType) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
                                 onClick = {
                                     leaveType = lt
                                     typeDropdownExpanded = false

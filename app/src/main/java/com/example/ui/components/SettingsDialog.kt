@@ -892,13 +892,16 @@ fun SettingsDialog(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "قفل التطبيق بالبصمة",
+                                        text = AppStrings.get("biometric_lock_title", currentLanguage),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDarkMode) Color.White else SlateTextPrimary
                                     )
                                     Text(
-                                        text = if (biometricState) "المصادقة البيومترية مفعلة عند فتح التطبيق" else "قفل التطبيق معطل حالياً",
+                                        text = AppStrings.get(
+                                            if (biometricState) "biometric_lock_active_sub" else "biometric_lock_inactive_sub",
+                                            currentLanguage
+                                        ),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (biometricState) Color(0xFF10B981) else if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                                         fontSize = 11.sp
@@ -913,7 +916,10 @@ fun SettingsDialog(
                                     pinEnabledState = isChecked
                                     onSavePin("", isChecked)
                                     onSaveSecurity("BIOMETRIC", "", "", isChecked, false, isChecked)
-                                    val msg = if (isChecked) "تم تفعيل قفل التطبيق بالبصمة بنجاح" else "تم إلغاء قفل التطبيق"
+                                    val msg = AppStrings.get(
+                                        if (isChecked) "biometric_lock_enabled_toast" else "biometric_lock_disabled_toast",
+                                        currentLanguage
+                                    )
                                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                 },
                                 colors = SwitchDefaults.colors(

@@ -128,7 +128,7 @@ fun DeveloperInfoDialog(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
-                        contentDescription = "شعار التطبيق",
+                        contentDescription = AppStrings.get("app_icon_desc", currentLang),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .size(68.dp)

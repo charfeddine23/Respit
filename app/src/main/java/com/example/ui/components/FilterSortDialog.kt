@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.data.formatRank
 import com.example.ui.DashboardStats
 import com.example.ui.SortOption
 import com.example.ui.theme.SlateTextPrimary
@@ -197,7 +198,7 @@ fun FilterSortDialog(
                     // 2. Leave Status Filter Section
                     Column {
                         Text(
-                            text = AppStrings.get("status_all", currentLang) + ":",
+                            text = AppStrings.get("status_col_header", currentLang),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF00BCD4)
@@ -260,7 +261,7 @@ fun FilterSortDialog(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         val rankOptions = listOf("ALL" to AppStrings.get("all_ranks", currentLang)) +
-                                uniqueRanks.map { it to it }
+                                uniqueRanks.map { it to formatRank(it, currentLang) }
 
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),

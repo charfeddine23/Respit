@@ -73,8 +73,9 @@ fun BiometricLockScreen(
         if (activity != null) {
             BiometricAuthHelper.authenticate(
                 activity = activity,
-                title = AppStrings.get("biometric_prompt_title", currentLang).ifBlank { "المصادقة البيومترية" },
-                subtitle = AppStrings.get("biometric_prompt_subtitle", currentLang).ifBlank { "المس مستشعر البصمة أو أدخل رمز الجهاز لفتح التطبيق" },
+                title = AppStrings.get("biometric_prompt_title", currentLang),
+                subtitle = AppStrings.get("biometric_prompt_subtitle", currentLang),
+                defaultError = AppStrings.get("biometric_default_error", currentLang),
                 onSuccess = {
                     onUnlockSuccess()
                 },
@@ -82,7 +83,7 @@ fun BiometricLockScreen(
                     authErrorFeedback = err
                 },
                 onFailed = {
-                    authErrorFeedback = "لم يتم التعرف على البصمة، يرجى المحاولة مجدداً"
+                    authErrorFeedback = AppStrings.get("biometric_auth_failed", currentLang)
                 }
             )
         } else {
@@ -157,7 +158,7 @@ fun BiometricLockScreen(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
-                            contentDescription = "شعار التطبيق",
+                            contentDescription = AppStrings.get("app_icon_desc", currentLang),
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
                                 .size(50.dp)
@@ -178,7 +179,7 @@ fun BiometricLockScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "تطبيق Respite Pulse محمي بنظام البصمة",
+                    text = AppStrings.get("biometric_screen_protected", currentLang),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimary,
@@ -188,7 +189,7 @@ fun BiometricLockScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "يرجى المصادقة عبر بصمة الإصبع أو رمز حماية الجهاز للمتابعة",
+                    text = AppStrings.get("biometric_screen_instruction", currentLang),
                     fontSize = 13.sp,
                     color = textSecondary,
                     textAlign = TextAlign.Center,
@@ -224,12 +225,12 @@ fun BiometricLockScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Fingerprint,
-                        contentDescription = "بصمة",
+                        contentDescription = AppStrings.get("biometric_title", currentLang),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.size(10.dp))
                     Text(
-                        text = "فتح القفل بالبصمة / رمز الجهاز",
+                        text = AppStrings.get("biometric_unlock_device_btn", currentLang),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold
                     )

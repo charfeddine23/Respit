@@ -1,8 +1,14 @@
 package com.example.ui.components
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,6 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -23,55 +30,72 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.BuildConfig
 import com.example.R
+import com.example.data.AppThemeMode
+import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
 import com.example.ui.theme.liquidGlassInteractive
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SideNavigationDrawerContent(
@@ -86,11 +110,36 @@ fun SideNavigationDrawerContent(
     onOpenBackup: () -> Unit,
     onOpenRoomDatabase: () -> Unit,
     onToggleTheme: () -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenDeveloper: () -> Unit,
-    onResetSampleData: () -> Unit
+    onResetSampleData: () -> Unit,
+    currentThemeMode: AppThemeMode = if (isDarkMode) AppThemeMode.DARK else AppThemeMode.LIGHT,
+    onSelectThemeMode: (AppThemeMode) -> Unit = {},
+    currentThemeStyle: AppThemeStyle = AppThemeStyle.GLASSMORPHISM,
+    onSelectThemeStyle: (AppThemeStyle) -> Unit = {},
+    isFocusMode: Boolean = false,
+    onToggleFocusMode: () -> Unit = {},
+    dutyThreshold: Int = 45,
+    onSaveThreshold: (Int) -> Unit = {},
+    isBiometricEnabled: Boolean = false,
+    onToggleBiometric: (Boolean) -> Unit = {},
+    onLockNow: () -> Unit = {},
+    isDynamicAnimationsEnabled: Boolean = true,
+    onToggleDynamicAnimations: (Boolean) -> Unit = {},
+    isDriveSyncEnabled: Boolean = false,
+    onToggleDriveSync: (Boolean) -> Unit = {},
+    lastDriveBackupTime: Long = 0L,
+    onBackupToDrive: () -> Unit = {},
+    onRestoreFromDrive: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
+    var isSettingsExpanded by rememberSaveable { mutableStateOf(false) }
+    val settingsArrowRotation by animateFloatAsState(
+        targetValue = if (isSettingsExpanded) 180f else 0f,
+        animationSpec = tween(250),
+        label = "drawerSettingsArrow"
+    )
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
     Column(
         modifier = Modifier
@@ -101,11 +150,11 @@ fun SideNavigationDrawerContent(
             .padding(16.dp)
             .testTag("side_navigation_drawer")
     ) {
-        // 1. App Header with Glass Branding & 60 FPS Badge
+        // 1. App Header with Glass Branding & Version Info
         Surface(
             shape = RoundedCornerShape(20.dp),
             color = if (isDarkMode) Color(0xFF1E293B) else Color.White,
-            border = androidx.compose.foundation.BorderStroke(
+            border = BorderStroke(
                 1.dp,
                 Brush.linearGradient(
                     if (isDarkMode) listOf(Color(0x40FFFFFF), Color(0x3338BDF8))
@@ -128,7 +177,7 @@ fun SideNavigationDrawerContent(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.app_logo),
-                            contentDescription = "Logo",
+                            contentDescription = AppStrings.get("app_icon_desc", currentLang),
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
                                 .size(40.dp)
@@ -154,13 +203,12 @@ fun SideNavigationDrawerContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Version 1.42.2 Badge
                 Text(
-                    text = AppStrings.get("app_subtitle", currentLang),
+                    text = AppStrings.get("app_version", currentLang),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFCBD5E1),
+                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
                     fontSize = 11.sp
                 )
             }
@@ -172,7 +220,7 @@ fun SideNavigationDrawerContent(
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.85f),
-            border = androidx.compose.foundation.BorderStroke(
+            border = BorderStroke(
                 1.dp,
                 if (isDarkMode) Color(0x33475569) else Color(0x40BAE6FD)
             ),
@@ -201,7 +249,7 @@ fun SideNavigationDrawerContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    AppLanguage.values().forEach { lang ->
+                    AppLanguage.entries.forEach { lang ->
                         val isSelected = currentLang == lang
                         FilterChip(
                             selected = isSelected,
@@ -211,7 +259,9 @@ fun SideNavigationDrawerContent(
                                     text = lang.displayName,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                    color = if (isSelected) Color.White else if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF0F172A)
+                                    color = if (isSelected) Color.White else if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF0F172A),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             },
                             shape = RoundedCornerShape(10.dp),
@@ -252,16 +302,18 @@ fun SideNavigationDrawerContent(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            DrawerNavigationItem(
-                icon = Icons.AutoMirrored.Filled.Undo,
-                iconTint = Color(0xFFD97706),
-                title = AppStrings.get("undo_btn", currentLang),
-                subtitle = lastUndo?.description,
-                isDarkMode = isDarkMode,
-                onClick = onUndo,
-                testTag = "drawer_undo_item"
-            )
-            Spacer(modifier = Modifier.height(6.dp))
+            Column {
+                DrawerNavigationItem(
+                    icon = Icons.AutoMirrored.Filled.Undo,
+                    iconTint = Color(0xFFD97706),
+                    title = AppStrings.get("undo_btn", currentLang),
+                    subtitle = lastUndo?.getDescription(currentLang),
+                    isDarkMode = isDarkMode,
+                    onClick = onUndo,
+                    testTag = "drawer_undo_item"
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+            }
         }
 
         // Notification Check Item
@@ -320,7 +372,7 @@ fun SideNavigationDrawerContent(
         Surface(
             shape = RoundedCornerShape(14.dp),
             color = if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.85f),
-            border = androidx.compose.foundation.BorderStroke(
+            border = BorderStroke(
                 1.dp,
                 if (isDarkMode) Color(0x33475569) else Color(0x3338BDF8)
             ),
@@ -336,7 +388,10 @@ fun SideNavigationDrawerContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -386,16 +441,539 @@ fun SideNavigationDrawerContent(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Settings Item
-        DrawerNavigationItem(
-            icon = Icons.Default.Settings,
-            iconTint = Color(0xFF059669),
-            title = AppStrings.get("settings", currentLang),
-            subtitle = AppStrings.get("drawer_settings_sub", currentLang),
-            isDarkMode = isDarkMode,
-            onClick = onOpenSettings,
-            testTag = "drawer_settings_item"
-        )
+        // Inline Expandable General Settings Item (NO popup dialog!)
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.9f),
+            border = BorderStroke(
+                if (isSettingsExpanded) 1.4.dp else 1.dp,
+                if (isSettingsExpanded) Color(0xFF059669).copy(alpha = 0.7f)
+                else if (isDarkMode) Color(0x33475569) else Color(0x3338BDF8)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("drawer_settings_card")
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isSettingsExpanded = !isSettingsExpanded }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .testTag("drawer_settings_item"),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF059669).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = Color(0xFF059669),
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = AppStrings.get("settings", currentLang),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = AppStrings.get("drawer_settings_sub", currentLang),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF334155),
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
+                        modifier = Modifier
+                            .size(22.dp)
+                            .rotate(settingsArrowRotation)
+                    )
+                }
+
+                // Inline General Settings Content inside the side drawer panel itself
+                AnimatedVisibility(
+                    visible = isSettingsExpanded,
+                    enter = expandVertically(animationSpec = tween(250)) + fadeIn(),
+                    exit = shrinkVertically(animationSpec = tween(200)) + fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isDarkMode) Color(0xFF0F172A).copy(alpha = 0.55f)
+                                else Color(0xFFF1F5F9).copy(alpha = 0.7f)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
+                            .testTag("drawer_inline_settings_panel"),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // A. Theme Mode (Light / Dark)
+                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                            Text(
+                                text = AppStrings.get("theme_title", currentLang),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                AppThemeMode.entries.forEach { mode ->
+                                    val selected = currentThemeMode == mode
+                                    Surface(
+                                        onClick = { onSelectThemeMode(mode) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(40.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (selected) {
+                                            if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
+                                        } else {
+                                            if (isDarkMode) Color(0x221E293B) else Color.White
+                                        },
+                                        border = BorderStroke(
+                                            if (selected) 1.5.dp else 1.dp,
+                                            if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1))
+                                        )
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = if (mode == AppThemeMode.LIGHT) AppStrings.get("theme_light_btn", currentLang) else AppStrings.get("theme_dark_btn", currentLang),
+                                                fontSize = 11.5.sp,
+                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A))
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = AppStrings.get("theme_style_title", currentLang),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    AppThemeStyle.GLASSMORPHISM to AppStrings.get("theme_style_glass", currentLang),
+                                    AppThemeStyle.NEUMORPHISM to AppStrings.get("theme_style_neumorph", currentLang)
+                                ).forEach { (style, label) ->
+                                    val selected = currentThemeStyle == style
+                                    Surface(
+                                        onClick = { onSelectThemeStyle(style) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(40.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (selected) {
+                                            if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
+                                        } else {
+                                            if (isDarkMode) Color(0x221E293B) else Color.White
+                                        },
+                                        border = BorderStroke(
+                                            if (selected) 1.5.dp else 1.dp,
+                                            if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1))
+                                        )
+                                    ) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 10.5.sp,
+                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (selected) Color(0xFF00BCD4) else (if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF0F172A)),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // B. Focus Mode & Dynamic Animations Switches
+                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00BCD4),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = AppStrings.get("focus_mode_title", currentLang),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                        )
+                                        Text(
+                                            text = AppStrings.get(
+                                                if (isFocusMode) "focus_mode_active" else "focus_mode_inactive",
+                                                currentLang
+                                            ),
+                                            fontSize = 10.sp,
+                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+                                Switch(
+                                    checked = isFocusMode,
+                                    onCheckedChange = { onToggleFocusMode() },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF00BCD4)
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = if (isDarkMode) Color(0x22475569) else Color(0x22CBD5E1))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Speed,
+                                        contentDescription = null,
+                                        tint = Color(0xFFA855F7),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = AppStrings.get("dynamic_animations_title", currentLang),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                        )
+                                        Text(
+                                            text = AppStrings.get(
+                                                if (isDynamicAnimationsEnabled) "dynamic_animations_active" else "dynamic_animations_disabled",
+                                                currentLang
+                                            ),
+                                            fontSize = 10.sp,
+                                            color = if (isDynamicAnimationsEnabled) Color(0xFF10B981) else Color(0xFFF59E0B)
+                                        )
+                                    }
+                                }
+                                Switch(
+                                    checked = isDynamicAnimationsEnabled,
+                                    onCheckedChange = { enabled ->
+                                        onToggleDynamicAnimations(enabled)
+                                        Toast.makeText(
+                                            context,
+                                            AppStrings.get(
+                                                if (enabled) "dynamic_animations_active" else "dynamic_animations_disabled",
+                                                currentLang
+                                            ),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFFA855F7)
+                                    )
+                                )
+                            }
+                        }
+
+                        // C. Duty Eligibility Threshold Slider
+                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = AppStrings.get("duty_threshold_title", currentLang),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = "$dutyThreshold ${AppStrings.get("days", currentLang)}",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF00BCD4)
+                                )
+                            }
+                            Text(
+                                text = AppStrings.get("duty_threshold_desc", currentLang),
+                                fontSize = 10.sp,
+                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            )
+                            Slider(
+                                value = dutyThreshold.toFloat(),
+                                onValueChange = { onSaveThreshold(it.toInt()) },
+                                valueRange = 10f..180f,
+                                steps = 33,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color(0xFF00BCD4),
+                                    activeTrackColor = Color(0xFF00BCD4)
+                                )
+                            )
+                        }
+
+                        // D. Biometric App Lock
+                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Fingerprint,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00BCD4),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = AppStrings.get("biometric_lock_title", currentLang),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                        )
+                                        Text(
+                                            text = AppStrings.get(
+                                                if (isBiometricEnabled) "biometric_lock_active_sub" else "biometric_lock_inactive_sub",
+                                                currentLang
+                                            ),
+                                            fontSize = 10.sp,
+                                            color = if (isBiometricEnabled) Color(0xFF10B981) else (if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B))
+                                        )
+                                    }
+                                }
+                                Switch(
+                                    checked = isBiometricEnabled,
+                                    onCheckedChange = { isChecked ->
+                                        onToggleBiometric(isChecked)
+                                        Toast.makeText(
+                                            context,
+                                            AppStrings.get(
+                                                if (isChecked) "biometric_lock_enabled_toast" else "biometric_lock_disabled_toast",
+                                                currentLang
+                                            ),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF00BCD4)
+                                    ),
+                                    modifier = Modifier.testTag("drawer_biometric_lock_toggle")
+                                )
+                            }
+
+                            if (isBiometricEnabled) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedButton(
+                                    onClick = onLockNow,
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, Color(0xFF00BCD4)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp)
+                                        .testTag("drawer_lock_now_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00BCD4),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("lock_now_btn", currentLang),
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00BCD4)
+                                    )
+                                }
+                            }
+                        }
+
+                        // E. Google Drive Backup & Restore
+                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4285F4),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = AppStrings.get("drive_backup_title", currentLang),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                        )
+                                        Text(
+                                            text = "${AppStrings.get("drive_last_backup", currentLang)} ${if (lastDriveBackupTime > 0L) sdf.format(Date(lastDriveBackupTime)) else AppStrings.get("drive_never", currentLang)}",
+                                            fontSize = 10.sp,
+                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+                                Switch(
+                                    checked = isDriveSyncEnabled,
+                                    onCheckedChange = { onToggleDriveSync(it) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF4285F4)
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Button(
+                                    onClick = onBackupToDrive,
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4285F4),
+                                        contentColor = Color.White
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                ) {
+                                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = AppStrings.get("drive_backup_btn", currentLang),
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = onRestoreFromDrive,
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, Color(0xFF4285F4).copy(alpha = 0.7f)),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4285F4),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = AppStrings.get("drive_restore_btn", currentLang),
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDarkMode) Color(0xFF8AB4F8) else Color(0xFF1967D2),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+
+                        // F. Version & Developer Credit
+                        InlineSettingsSectionCard(isDarkMode = isDarkMode) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = AppStrings.get("app_version_label", currentLang),
+                                    fontSize = 11.sp,
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                                Text(
+                                    text = "v${BuildConfig.VERSION_NAME} (#${BuildConfig.VERSION_CODE})",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00BCD4)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Developed by Charfeddine Kahlessenane",
+                                fontSize = 11.sp,
+                                fontStyle = FontStyle.Italic,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F)
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(6.dp))
 
@@ -462,6 +1040,26 @@ fun SideNavigationDrawerContent(
 }
 
 @Composable
+private fun InlineSettingsSectionCard(
+    isDarkMode: Boolean,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (isDarkMode) Color(0xFF1E293B) else Color.White,
+        border = BorderStroke(
+            0.8.dp,
+            if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            content()
+        }
+    }
+}
+
+@Composable
 private fun DrawerNavigationItem(
     icon: ImageVector,
     iconTint: Color,
@@ -474,7 +1072,7 @@ private fun DrawerNavigationItem(
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.85f),
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
             if (isDarkMode) Color(0x33475569) else Color(0x3338BDF8)
         ),
@@ -549,7 +1147,9 @@ private fun SidebarStatBadge(
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkMode) color else Color(0xFF0F172A)
+                color = if (isDarkMode) color else Color(0xFF0F172A),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

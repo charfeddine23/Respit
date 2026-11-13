@@ -13,6 +13,9 @@ import com.example.data.LeaveStatus
 import com.example.data.Personnel
 import com.example.data.PersonnelRepository
 import com.example.data.SettingsManager
+import com.example.data.formatLeaveType
+import com.example.data.formatRank
+import com.example.data.formatWilaya
 import com.example.data.normalizeRank
 import com.example.data.normalizeWilaya
 import com.example.util.AppLanguage
@@ -64,6 +67,14 @@ sealed class UndoAction(val description: String) {
     data class Added(val id: Long) : UndoAction("تراجع عن إضافة فرد")
     data class ReturnedToDuty(val previous: Personnel) : UndoAction("تراجع عن استئناف العمل")
     data class Imported(val previousList: List<Personnel>) : UndoAction("تراجع عن استيراد البيانات")
+
+    fun getDescription(lang: AppLanguage): String = when (this) {
+        is Deleted -> AppStrings.get("undo_deleted", lang)
+        is Updated -> AppStrings.get("undo_updated", lang)
+        is Added -> AppStrings.get("undo_added", lang)
+        is ReturnedToDuty -> AppStrings.get("undo_returned", lang)
+        is Imported -> AppStrings.get("undo_imported", lang)
+    }
 }
 
 class PersonnelViewModel(application: Application) : AndroidViewModel(application) {
@@ -172,7 +183,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         val status: String,
         val wilaya: String,
         val sort: SortOption,
-        val threshold: Int
+        val threshold: Int,
+        val lang: AppLanguage
     )
 
     private val filterParams = combine(
@@ -180,9 +192,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         selectedRank,
         selectedStatus,
         selectedWilaya,
-        combine(sortOption, dutyThresholdDays) { s, t -> Pair(s, t) }
-    ) { query, rankFilter, statusFilter, wilayaFilter, (sort, threshold) ->
-        FilterParams(query, rankFilter, statusFilter, wilayaFilter, sort, threshold)
+        combine(sortOption, dutyThresholdDays, currentLanguage) { s, t, l -> Triple(s, t, l) }
+    ) { query, rankFilter, statusFilter, wilayaFilter, (sort, threshold, lang) ->
+        FilterParams(query, rankFilter, statusFilter, wilayaFilter, sort, threshold, lang)
     }
 
     val filteredPersonnel: StateFlow<List<Personnel>> = combine(
@@ -198,7 +210,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 it.fullName.lowercase(Locale.getDefault()).contains(q) ||
                         it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
                         it.rank.lowercase(Locale.getDefault()).contains(q) ||
-                        it.wilaya.lowercase(Locale.getDefault()).contains(q)
+                        formatRank(it.rank, params.lang).lowercase(Locale.getDefault()).contains(q) ||
+                        it.wilaya.lowercase(Locale.getDefault()).contains(q) ||
+                        formatWilaya(it.wilaya, params.lang, includeCode = true).lowercase(Locale.getDefault()).contains(q)
             }
         }
 
@@ -342,6 +356,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val returnDay = Personnel.toStartOfDay(p.returnDateMillis)
             val daysUntilStart = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(startDay - today)
             val daysUntilReturn = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(returnDay - today)
+            val localizedRank = formatRank(p.rank, lang)
+            val localizedLeaveType = formatLeaveType(p.leaveType, lang)
 
             // 1. Returning Today
             if (!p.isReturnedToDuty && p.status == LeaveStatus.RETURNING_TODAY) {
@@ -353,9 +369,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "موعد الدخول واستئناف العمل اليوم"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "${p.rank} ${p.fullName} doit reprendre le service aujourd'hui (${sdf.format(Date(p.returnDateMillis))})."
-                        AppLanguage.ENGLISH -> "${p.rank} ${p.fullName} is scheduled to resume duty today (${sdf.format(Date(p.returnDateMillis))})."
-                        else -> "على ${p.rank} / ${p.fullName} الالتحاق واستئناف الخدمة اليوم (${sdf.format(Date(p.returnDateMillis))})."
+                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} doit reprendre le service aujourd'hui (${sdf.format(Date(p.returnDateMillis))})."
+                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} is scheduled to resume duty today (${sdf.format(Date(p.returnDateMillis))})."
+                        else -> "على $localizedRank / ${p.fullName} الالتحاق واستئناف الخدمة اليوم (${sdf.format(Date(p.returnDateMillis))})."
                     }
                     result.add(
                         AppNotification(
@@ -382,9 +398,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "تنبيه: تأخر عن موعد الدخول"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "${p.rank} ${p.fullName} a dépassé la date de retour (${p.daysOverdue} jours de retard)."
-                        AppLanguage.ENGLISH -> "${p.rank} ${p.fullName} is overdue for duty return (${p.daysOverdue} days overdue)."
-                        else -> "تأخر ${p.rank} / ${p.fullName} عن موعد الالتحاق المقرر (${p.countdownTextAr})."
+                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a dépassé la date de retour (${p.getCountdownText(lang)})."
+                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} is overdue for duty return (${p.getCountdownText(lang)})."
+                        else -> "تأخر $localizedRank / ${p.fullName} عن موعد الالتحاق المقرر (${p.getCountdownText(lang)})."
                     }
                     result.add(
                         AppNotification(
@@ -410,11 +426,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         AppLanguage.ENGLISH -> "Duty Return Approaching"
                         else -> "تنبيه: اقتراب موعد استئناف العمل"
                     }
-                    val timeNotice = if (daysUntilReturn == 1L) "غداً" else "خلال يومين"
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "Il reste $daysUntilReturn jour(s) pour ${p.rank} ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
-                        AppLanguage.ENGLISH -> "$daysUntilReturn day(s) remaining for ${p.rank} ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
-                        else -> "متبقي $daysUntilReturn يوم ($timeNotice) لعودة ${p.rank} / ${p.fullName} للعمل (${sdf.format(Date(p.returnDateMillis))})."
+                        AppLanguage.FRENCH -> "Il reste $daysUntilReturn jour(s) pour $localizedRank ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
+                        AppLanguage.ENGLISH -> "$daysUntilReturn day(s) remaining for $localizedRank ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
+                        else -> {
+                            val timeNotice = if (daysUntilReturn == 1L) "متبقي يوم واحد (غداً)" else "متبقي يومان (خلال يومين)"
+                            "$timeNotice لعودة $localizedRank / ${p.fullName} للعمل (${sdf.format(Date(p.returnDateMillis))})."
+                        }
                     }
                     result.add(
                         AppNotification(
@@ -441,9 +459,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "تنبيه: موعد انطلاق الإجازة"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "${p.rank} ${p.fullName} commence son congé le ${sdf.format(Date(p.startDateMillis))} (${p.leaveType})."
-                        AppLanguage.ENGLISH -> "${p.rank} ${p.fullName} starts leave on ${sdf.format(Date(p.startDateMillis))} (${p.leaveType})."
-                        else -> "يبدأ ${p.rank} / ${p.fullName} إجازته (${p.leaveType}) بتاريخ ${sdf.format(Date(p.startDateMillis))}."
+                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} commence son congé le ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
+                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} starts leave on ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
+                        else -> "يبدأ $localizedRank / ${p.fullName} إجازته ($localizedLeaveType) بتاريخ ${sdf.format(Date(p.startDateMillis))}."
                     }
                     result.add(
                         AppNotification(
@@ -470,9 +488,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "استحقاق إجازة جديدة"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "${p.rank} ${p.fullName} a accompli ${p.daysSinceDutyReturn} jours de service (seuil: $threshold jours)."
-                        AppLanguage.ENGLISH -> "${p.rank} ${p.fullName} has completed ${p.daysSinceDutyReturn} duty days (threshold: $threshold days)."
-                        else -> "قضى ${p.rank} / ${p.fullName} مدة ${p.daysSinceDutyReturn} يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold يوم)."
+                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a accompli ${p.daysSinceDutyReturn} jours de service (seuil : $threshold jours)."
+                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} has completed ${p.daysSinceDutyReturn} duty days (threshold: $threshold days)."
+                        else -> "قضى $localizedRank / ${p.fullName} مدة ${p.daysSinceDutyReturn} يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold يوم)."
                     }
                     result.add(
                         AppNotification(
@@ -727,7 +745,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun exportPdf(context: Context) {
         val list = if (filteredPersonnel.value.isNotEmpty()) filteredPersonnel.value else allPersonnel.value
-        PdfExporter.generateAndSharePdf(context, list)
+        PdfExporter.generateAndSharePdf(context, list, currentLanguage.value)
     }
 
     fun resetToSampleData() {
@@ -815,13 +833,28 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun generateCsvContent(): String {
+        val lang = currentLanguage.value
         val list = allPersonnel.value
         val sb = StringBuilder()
         sb.append('\uFEFF')
-        sb.append("الرتبة,الاسم واللقب,الولاية,رقم التسجيل,تاريخ الإستفادة,تاريخ الدخول,مدة الإجازة (يوم),الوضعية الحالية,الأيام المتبقية أو المنقضية,ملاحظات\r\n")
+        val hRank = AppStrings.get("pdf_col_rank", lang)
+        val hName = AppStrings.get("pdf_col_name", lang)
+        val hWilaya = AppStrings.get("pdf_col_wilaya", lang)
+        val hReg = AppStrings.get("pdf_col_reg", lang)
+        val hStart = AppStrings.get("pdf_col_start", lang)
+        val hReturn = AppStrings.get("pdf_col_return", lang)
+        val hDuration = "${AppStrings.get("leave_duration", lang).trimEnd(':', ' ')} (${AppStrings.get("days", lang)})"
+        val hStatus = AppStrings.get("status_col_header", lang).trimEnd(':', ' ')
+        val hCountdown = AppStrings.get("pdf_col_status", lang)
+        val hNotes = AppStrings.get("notes_plain", lang)
+        sb.append("\"$hRank\",\"$hName\",\"$hWilaya\",\"$hReg\",\"$hStart\",\"$hReturn\",\"$hDuration\",\"$hStatus\",\"$hCountdown\",\"$hNotes\"\r\n")
         list.forEach { p ->
             val notesClean = p.notes.replace("\"", "\"\"")
-            sb.append("\"${p.rank}\",\"${p.fullName}\",\"${p.wilaya}\",\"${p.registrationNumber}\",\"${p.formattedStartDate}\",\"${p.formattedReturnDate}\",${p.totalLeaveDays},\"${p.status.labelAr}\",\"${p.countdownTextAr}\",\"$notesClean\"\r\n")
+            val rFormatted = formatRank(p.rank, lang)
+            val wFormatted = formatWilaya(p.wilaya, lang, includeCode = false)
+            val sFormatted = p.status.getCompactBadgeLabel(lang)
+            val cFormatted = p.getCountdownText(lang)
+            sb.append("\"$rFormatted\",\"${p.fullName}\",\"$wFormatted\",\"${p.registrationNumber}\",\"${p.formattedStartDate}\",\"${p.formattedReturnDate}\",${p.totalLeaveDays},\"$sFormatted\",\"$cFormatted\",\"$notesClean\"\r\n")
         }
         return sb.toString()
     }
@@ -853,6 +886,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun importPersonnelFromJson(jsonString: String, replaceAll: Boolean = false): Pair<Boolean, String> {
+        val lang = currentLanguage.value
         return try {
             val trimmed = jsonString.trim()
             val array = if (trimmed.startsWith("{")) {
@@ -865,7 +899,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 JSONArray(trimmed)
             }
             if (array.length() == 0) {
-                return Pair(false, "الملف أو النص لا يحتوي على أي سجلات.")
+                return Pair(false, AppStrings.get("import_empty_error", lang))
             }
 
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -933,9 +967,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
 
-            Pair(true, "تم استيراد ${importedList.size} فرد بنجاح!")
+            Pair(true, "${AppStrings.get("import_success_prefix", lang)} ${importedList.size} ${AppStrings.get("import_records_unit", lang)}")
         } catch (e: Exception) {
-            Pair(false, "خطأ في قراءة ملف JSON: ${e.localizedMessage ?: "بيانات غير صالحة"}")
+            Pair(false, "${AppStrings.get("import_json_error", lang)} ${e.localizedMessage ?: AppStrings.get("import_invalid_data", lang)}")
         }
     }
 
@@ -986,17 +1020,12 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val currentLeaves = allLeaves.value
             val existingIds = currentLeaves.map { it.personnelId }.toSet()
 
+            val lang = currentLanguage.value
             val newLeaves = mutableListOf<LeaveRecord>()
             for (p in list) {
                 // Generate a leave entry for each personnel in leave or with duty return
                 val dur = p.totalLeaveDays
-                val statusStr = when {
-                    p.isReturnedToDuty -> "مكتملة (مستأنف للعمل)"
-                    p.status == LeaveStatus.AT_HOME -> "جارية (بالبيت)"
-                    p.status == LeaveStatus.RETURNING_TODAY -> "الدخول اليوم"
-                    p.status == LeaveStatus.OVERDUE -> "متأخر عن الدخول"
-                    else -> "إجازة مبرمجة"
-                }
+                val statusStr = p.status.getCompactBadgeLabel(lang)
                 newLeaves.add(
                     LeaveRecord(
                         personnelId = p.id,

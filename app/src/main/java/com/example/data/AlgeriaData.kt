@@ -1,5 +1,7 @@
 package com.example.data
 
+import com.example.util.AppLanguage
+
 val algerianRanks = listOf(
     "عميد - Général / Brigadier",
     "عقيد - Colonel",
@@ -17,6 +19,25 @@ val algerianRanks = listOf(
     "عريف أول - Caporal-Chef",
     "عريف - Caporal",
     "جندي - Djoundi / Soldat"
+)
+
+private val rankEnglishMap = mapOf(
+    "عميد - Général / Brigadier" to "Brigadier General",
+    "عقيد - Colonel" to "Colonel",
+    "مقدم - Lieutenant-Colonel" to "Lieutenant Colonel",
+    "رائد - Commandant" to "Major",
+    "نقيب - Capitaine" to "Captain",
+    "ملازم أول - Lieutenant" to "First Lieutenant",
+    "ملازم - Sous-Lieutenant" to "Second Lieutenant",
+    "مرشح - Aspirant / Élève-Officier" to "Officer Cadet",
+    "مساعد رئيسي - Adjudant-Major" to "Sergeant Major",
+    "مساعد أول - Adjudant-Chef" to "Chief Warrant Officer",
+    "مساعد - Adjudant" to "Warrant Officer",
+    "رقيب أول - Sergent-Chef" to "Staff Sergeant",
+    "رقيب - Sergent" to "Sergeant",
+    "عريف أول - Caporal-Chef" to "Master Corporal",
+    "عريف - Caporal" to "Corporal",
+    "جندي - Djoundi / Soldat" to "Soldier"
 )
 
 val algerianLeaveTypes = listOf(
@@ -142,7 +163,11 @@ fun normalizeRank(raw: String?): String {
     val exact = algerianRanks.find { it.equals(trimmed, ignoreCase = true) }
     if (exact != null) return exact
 
-    // 2. Match Arabic portion or French portion
+    // 2. Match English rank name
+    val enMatch = rankEnglishMap.entries.find { it.value.equals(trimmed, ignoreCase = true) }?.key
+    if (enMatch != null) return enMatch
+
+    // 3. Match Arabic portion or French portion
     val match = algerianRanks.find { item ->
         val arPart = item.substringBefore(" - ").trim()
         val frPart = item.substringAfter(" - ").trim()
@@ -153,4 +178,68 @@ fun normalizeRank(raw: String?): String {
     if (match != null) return match
 
     return trimmed
+}
+
+/**
+ * Formats a rank for display in the selected UI language:
+ * - ARABIC -> Arabic rank only
+ * - FRENCH -> French rank only
+ * - ENGLISH -> English rank translation
+ */
+fun formatRank(rawRank: String?, lang: AppLanguage): String {
+    val canonical = normalizeRank(rawRank)
+    return when (lang) {
+        AppLanguage.ARABIC -> canonical.substringBefore(" - ").trim()
+        AppLanguage.FRENCH -> canonical.substringAfter(" - ", canonical).trim()
+        AppLanguage.ENGLISH -> rankEnglishMap[canonical] ?: canonical.substringAfter(" - ", canonical).trim()
+    }
+}
+
+/**
+ * Formats a Wilaya for display in the selected UI language.
+ * By default (`includeCode = false`), returns only the province name without its code number.
+ */
+fun formatWilaya(rawWilaya: String?, lang: AppLanguage, includeCode: Boolean = false): String {
+    val canonical = normalizeWilaya(rawWilaya)
+    val parts = canonical.split(" - ").map { it.trim() }
+    return if (parts.size >= 3) {
+        val code = parts[0]
+        val localizedName = if (lang == AppLanguage.ARABIC) parts[1] else parts[2]
+        if (includeCode) "$code - $localizedName" else localizedName
+    } else if (parts.size == 2) {
+        if (includeCode) canonical else parts[1]
+    } else {
+        canonical
+    }
+}
+
+/**
+ * Formats an Algerian leave type for display in the selected UI language.
+ */
+fun formatLeaveType(rawType: String?, lang: AppLanguage): String {
+    val t = rawType?.trim() ?: ""
+    return when (lang) {
+        AppLanguage.ARABIC -> when {
+            t.equals("Permission", ignoreCase = true) || t.equals("Leave", ignoreCase = true) -> "إجازة"
+            t.equals("Permission courte", ignoreCase = true) || t.equals("Short Leave", ignoreCase = true) -> "إجازة قصيرة"
+            t.equals("Congé annuel", ignoreCase = true) || t.equals("Annual Leave", ignoreCase = true) -> "عطلة سنوية"
+            t.equals("Convalescence", ignoreCase = true) || t.equals("Convalescence Leave", ignoreCase = true) -> "نقاهة"
+            t.isBlank() -> "عطلة سنوية"
+            else -> t
+        }
+        AppLanguage.FRENCH -> when (t) {
+            "إجازة", "Leave" -> "Permission"
+            "إجازة قصيرة", "Short Leave" -> "Permission courte"
+            "عطلة سنوية", "Annual Leave", "" -> "Congé annuel"
+            "نقاهة", "Convalescence Leave" -> "Convalescence"
+            else -> t
+        }
+        AppLanguage.ENGLISH -> when (t) {
+            "إجازة", "Permission" -> "Leave"
+            "إجازة قصيرة", "Permission courte" -> "Short Leave"
+            "عطلة سنوية", "Congé annuel", "" -> "Annual Leave"
+            "نقاهة", "Convalescence" -> "Convalescence Leave"
+            else -> t
+        }
+    }
 }
