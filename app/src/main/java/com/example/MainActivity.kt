@@ -124,7 +124,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -132,8 +132,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -1698,129 +1699,138 @@ private fun HeaderUpdateDownloadButton(
         remember { mutableStateOf(0.8f) }
     }
 
-    val shape = if (isNeumorphic) CircleShape else RoundedCornerShape(14.dp)
+    // Match adjacent header_theme_toggle & header_menu_button exact shape and 48.dp size
+    val shape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
     val isReady = updateState is AppUpdateState.ReadyToInstall
     val isDownloading = updateState is AppUpdateState.Downloading
+    val accentGlow = if (isReady) Color(0xFF10B981) else Color(0xFF00E5FF)
 
-    Surface(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onClick()
-        },
-        interactionSource = interactionSource,
-        shape = shape,
-        color = if (isDarkMode) Color(0xD9102038) else Color(0xF5FFFFFF),
-        shadowElevation = 6.dp,
+    Box(
         modifier = Modifier
             .size(48.dp)
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
             }
-            .drawBehind {
-                val cornerPx = if (isNeumorphic) size.minDimension / 2f else 14.dp.toPx()
-                val glowColors = if (isReady) {
+            .liquidGlassInteractive(
+                shape = shape,
+                glowColor = accentGlow,
+                isDark = isDarkMode,
+                isNeumorphic = isNeumorphic
+            )
+            .drawWithContent {
+                drawContent()
+                val strokePx = 1.6.dp.toPx()
+                val insetPx = 1.4.dp.toPx()
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                val radius = size.minDimension / 2f
+                val rad = Math.toRadians(ringRotation.toDouble())
+                val dx = (cos(rad) * radius).toFloat()
+                val dy = (sin(rad) * radius).toFloat()
+
+                val ringColors = if (isReady) {
                     listOf(
-                        Color(0xFF10B981).copy(alpha = 0.90f * haloPulse),
-                        Color(0xFF34D399).copy(alpha = 0.65f * haloPulse),
-                        Color(0xFF00E5FF).copy(alpha = 0.75f * haloPulse),
-                        Color(0xFF10B981).copy(alpha = 0.90f * haloPulse)
+                        Color(0xFF10B981).copy(alpha = 0.92f * haloPulse),
+                        Color(0xFF34D399).copy(alpha = 0.55f * haloPulse),
+                        Color(0xFF00E5FF).copy(alpha = 0.85f * haloPulse)
                     )
                 } else {
                     listOf(
-                        Color(0xFF00E5FF).copy(alpha = 0.90f * haloPulse),
-                        Color(0xFF3B82F6).copy(alpha = 0.75f * haloPulse),
-                        Color(0xFF10B981).copy(alpha = 0.85f * haloPulse),
-                        Color(0xFF00E5FF).copy(alpha = 0.90f * haloPulse)
+                        Color(0xFF00E5FF).copy(alpha = 0.92f * haloPulse),
+                        Color(0xFF3B82F6).copy(alpha = 0.55f * haloPulse),
+                        Color(0xFF10B981).copy(alpha = 0.85f * haloPulse)
                     )
                 }
+                val ringBrush = Brush.linearGradient(
+                    colors = ringColors,
+                    start = Offset(cx + dx, cy + dy),
+                    end = Offset(cx - dx, cy - dy)
+                )
 
-                rotate(degrees = ringRotation) {
+                if (isNeumorphic) {
+                    drawCircle(
+                        brush = ringBrush,
+                        radius = radius - insetPx,
+                        center = Offset(cx, cy),
+                        style = Stroke(width = strokePx)
+                    )
+                } else {
+                    val crPx = (12.dp.toPx() - insetPx).coerceAtLeast(2f)
                     drawRoundRect(
-                        brush = Brush.sweepGradient(glowColors),
-                        topLeft = Offset(-2.dp.toPx(), -2.dp.toPx()),
-                        size = Size(size.width + 4.dp.toPx(), size.height + 4.dp.toPx()),
-                        cornerRadius = CornerRadius(cornerPx + 2.dp.toPx(), cornerPx + 2.dp.toPx()),
-                        style = Stroke(width = 3.dp.toPx())
+                        brush = ringBrush,
+                        topLeft = Offset(insetPx, insetPx),
+                        size = Size(size.width - insetPx * 2f, size.height - insetPx * 2f),
+                        cornerRadius = CornerRadius(crPx, crPx),
+                        style = Stroke(width = strokePx)
                     )
                 }
             }
-            .testTag("header_update_download_button")
+            .clip(shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClickLabel = contentDescription
+            ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
+            .testTag("header_update_download_button"),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        if (isReady) {
-                            listOf(
-                                Color(0xFF10B981).copy(alpha = if (isDarkMode) 0.24f else 0.14f),
-                                Color(0xFF00BCD4).copy(alpha = if (isDarkMode) 0.16f else 0.08f)
-                            )
-                        } else {
-                            listOf(
-                                Color(0xFF00E5FF).copy(alpha = if (isDarkMode) 0.22f else 0.14f),
-                                Color(0xFF3B82F6).copy(alpha = if (isDarkMode) 0.16f else 0.08f)
-                            )
-                        }
+        when {
+            isDownloading -> {
+                val dlState = updateState as AppUpdateState.Downloading
+                if (dlState.totalBytes > 0L) {
+                    CircularProgressIndicator(
+                        progress = { dlState.progress.coerceIn(0f, 1f) },
+                        color = Color(0xFF00E5FF),
+                        trackColor = Color(0xFF00E5FF).copy(alpha = 0.22f),
+                        strokeWidth = 2.4.dp,
+                        modifier = Modifier.size(26.dp)
                     )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            when {
-                isDownloading -> {
-                    val dlState = updateState as AppUpdateState.Downloading
-                    if (dlState.totalBytes > 0L) {
-                        CircularProgressIndicator(
-                            progress = { dlState.progress.coerceIn(0f, 1f) },
-                            color = Color(0xFF00E5FF),
-                            trackColor = Color(0xFF00E5FF).copy(alpha = 0.22f),
-                            strokeWidth = 2.6.dp,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    } else {
-                        CircularProgressIndicator(
-                            color = Color(0xFF00E5FF),
-                            strokeWidth = 2.6.dp,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = contentDescription,
-                        tint = Color(0xFF00E5FF),
-                        modifier = Modifier
-                            .size(16.dp)
-                            .graphicsLayer { translationY = arrowFloatY.dp.toPx() * 0.6f }
+                } else {
+                    CircularProgressIndicator(
+                        color = Color(0xFF00E5FF),
+                        strokeWidth = 2.4.dp,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
-                isReady -> {
-                    Icon(
-                        imageVector = Icons.Default.DownloadDone,
-                        contentDescription = contentDescription,
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                else -> {
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = contentDescription,
-                        tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                        modifier = Modifier
-                            .size(22.dp)
-                            .graphicsLayer { translationY = arrowFloatY.dp.toPx() }
-                    )
-                    // Subtle live dot in top-end corner
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(7.dp)
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF10B981))
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = contentDescription,
+                    tint = Color(0xFF00E5FF),
+                    modifier = Modifier
+                        .size(14.dp)
+                        .graphicsLayer { translationY = arrowFloatY.dp.toPx() * 0.5f }
+                )
+            }
+            isReady -> {
+                Icon(
+                    imageVector = Icons.Default.DownloadDone,
+                    contentDescription = contentDescription,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(21.dp)
+                )
+            }
+            else -> {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = contentDescription,
+                    tint = if (isDarkMode) Color(0xFF38BDF8) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(21.dp)
+                        .graphicsLayer { translationY = arrowFloatY.dp.toPx() }
+                )
+                // Subtle live dot neatly inside top-end corner
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .size(5.5.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF10B981))
+                )
             }
         }
     }

@@ -288,9 +288,12 @@ object AppStrings {
         "room_no_leaves" to "لا توجد سجلات إجازات محفوظة بعد",
         "room_no_leaves_desc" to "يتم تسجيل كل إجازة تلقائياً في هذا السجل الدائم بمجرد خروج أي فرد في إجازة، ولا يمكن حذفه أبداً.",
         "room_search_leaves" to "بحث في سجلات الإجازات...",
-        "room_new_leave_title" to "إضافة سجل إجازة جديد",
-        "room_permanent_archive_note" to "تسجيل تلقائي دائم عند كل إجازة • لا يقبل الحذف",
         "room_immutable_badge" to "سجل دائم",
+        "room_clear_biometric_badge" to "حماية مشددة • يتطلب التحقق بالبصمة",
+        "room_clear_verify_btn" to "التحقق بالبصمة والحذف",
+        "room_clear_biometric_title" to "تأكيد إفراغ جدول الأفراد",
+        "room_clear_biometric_subtitle" to "ضع بصمتك أو استخدم قفل الجهاز لتأكيد عملية الحذف النهائي",
+        "room_clear_biometric_unavailable" to "يجب تفعيل بصمة الإصبع أو قفل الشاشة في إعدادات الهاتف لإتمام الحذف",
 
         // Bottom Navigation Panel
         "nav_dashboard" to "الرئيسية",
@@ -726,9 +729,12 @@ object AppStrings {
         "room_no_leaves" to "Aucun enregistrement de congé",
         "room_no_leaves_desc" to "Chaque départ en congé est automatiquement enregistré ici de façon permanente et ne peut jamais être supprimé.",
         "room_search_leaves" to "Rechercher dans les congés...",
-        "room_new_leave_title" to "Nouveau congé",
-        "room_permanent_archive_note" to "Enregistrement auto permanent • Suppression impossible",
         "room_immutable_badge" to "Permanent",
+        "room_clear_biometric_badge" to "Action protégée • Empreinte requise",
+        "room_clear_verify_btn" to "Vérifier et vider",
+        "room_clear_biometric_title" to "Confirmer la suppression",
+        "room_clear_biometric_subtitle" to "Utilisez votre empreinte ou le code de l'appareil pour confirmer",
+        "room_clear_biometric_unavailable" to "Veuillez activer la biométrie ou le verrouillage de l'appareil pour confirmer",
 
         // Bottom Navigation Panel
         "nav_dashboard" to "Accueil",
@@ -1168,9 +1174,12 @@ object AppStrings {
         "room_no_leaves" to "No leave records archived yet",
         "room_no_leaves_desc" to "Every leave is automatically archived here when personnel go on leave and can never be deleted.",
         "room_search_leaves" to "Search leave records...",
-        "room_new_leave_title" to "Add New Leave Record",
-        "room_permanent_archive_note" to "Auto-recorded permanently • Cannot be deleted",
         "room_immutable_badge" to "Permanent",
+        "room_clear_biometric_badge" to "Protected Action • Biometric Required",
+        "room_clear_verify_btn" to "Verify & Clear",
+        "room_clear_biometric_title" to "Confirm Personnel Clear",
+        "room_clear_biometric_subtitle" to "Authenticate with your fingerprint or device lock to confirm",
+        "room_clear_biometric_unavailable" to "Enable fingerprint or device screen lock in settings to confirm deletion",
 
         // Bottom Navigation Panel
         "nav_dashboard" to "Dashboard",

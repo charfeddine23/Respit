@@ -20,10 +20,12 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -34,7 +36,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,6 +60,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,12 +78,16 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.BuildConfig
@@ -89,7 +95,9 @@ import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.AppUpdateManager
 import com.example.util.AppUpdateState
+import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 @Composable
 fun InAppUpdateDialog(
@@ -167,6 +175,8 @@ fun InAppUpdateDialog(
     val primaryColor = MaterialTheme.colorScheme.primary
     val accentCyan = Color(0xFF00BCD4)
     val cardShape = RoundedCornerShape(30.dp)
+    val density = LocalDensity.current
+    var cardSizePx by remember { mutableStateOf(IntSize.Zero) }
 
     Dialog(
         onDismissRequest = {
@@ -176,94 +186,142 @@ fun InAppUpdateDialog(
         },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
             dismissOnBackPress = updateState !is AppUpdateState.Downloading,
             dismissOnClickOutside = updateState !is AppUpdateState.Downloading
         )
     ) {
-        AnimatedVisibility(
-            visibleState = enterState,
-            enter = fadeIn(tween(240)) + scaleIn(
-                initialScale = 0.90f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
-            )
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    if (updateState !is AppUpdateState.Downloading) {
+                        onDismiss()
+                    }
+                },
+            contentAlignment = Alignment.Center
         ) {
-            // Centered floating dialog with smooth rounded gradient aura (NO full-screen layout, NO What's New page)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .widthIn(max = 370.dp)
-                    .testTag("in_app_update_dialog"),
-                contentAlignment = Alignment.Center
+            // Mathematically guarantee the rotating rounded square stays 100% unclipped on ALL 4 sides at every angle (0..360°)
+            val safeViewportMin = (min(maxWidth, maxHeight) - 24.dp).coerceAtLeast(220.dp)
+            val squareCornerRatio = 0.28f
+            val rotatedDiameterFactor = (sqrt(2f) * (0.5f - squareCornerRatio) + squareCornerRatio) * 2f
+            val outerGlowAllowance = 22.dp
+            val maxUnclippedSquareSide = ((safeViewportMin - outerGlowAllowance) / rotatedDiameterFactor)
+                .coerceIn(200.dp, 356.dp)
+            val cardWidth = (maxUnclippedSquareSide * 0.90f).coerceIn(246.dp, 316.dp)
+
+            AnimatedVisibility(
+                visibleState = enterState,
+                enter = fadeIn(tween(240)) + scaleIn(
+                    initialScale = 0.90f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ),
+                modifier = Modifier.align(Alignment.Center)
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp)
-                        .drawBehind {
-                            val haloAlpha = (if (isDarkMode) 0.56f else 0.36f) * glowPulse
-                            val sweepColors = listOf(
-                                Color(0xFF00E5FF).copy(alpha = haloAlpha),
-                                Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.92f),
-                                Color(0xFF818CF8).copy(alpha = haloAlpha * 0.88f),
-                                Color(0xFFF472B6).copy(alpha = haloAlpha * 0.85f),
-                                Color(0xFF10B981).copy(alpha = haloAlpha * 0.92f),
-                                Color(0xFF00E5FF).copy(alpha = haloAlpha)
-                            )
-
-                            rotate(degrees = haloOrbitAngle * 0.25f) {
-                                // Outer feathered rounded gradient glow
-                                val outerExpand = 10.dp.toPx()
-                                val outerRadius = 38.dp.toPx()
-                                drawRoundRect(
-                                    brush = Brush.sweepGradient(colors = sweepColors),
-                                    topLeft = Offset(-outerExpand, -outerExpand),
-                                    size = Size(size.width + outerExpand * 2f, size.height + outerExpand * 2f),
-                                    cornerRadius = CornerRadius(outerRadius, outerRadius),
-                                    style = Stroke(width = 18.dp.toPx())
-                                )
-                            }
-
-                            // Mid-layer rounded gradient bloom hugging the dialog edges
-                            val midExpand = 5.dp.toPx()
-                            val midRadius = 34.dp.toPx()
-                            drawRoundRect(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF00E5FF).copy(alpha = haloAlpha * 0.72f),
-                                        Color(0xFF3B82F6).copy(alpha = haloAlpha * 0.68f),
-                                        Color(0xFFA855F7).copy(alpha = haloAlpha * 0.64f),
-                                        Color(0xFF10B981).copy(alpha = haloAlpha * 0.72f)
-                                    )
-                                ),
-                                topLeft = Offset(-midExpand, -midExpand),
-                                size = Size(size.width + midExpand * 2f, size.height + midExpand * 2f),
-                                cornerRadius = CornerRadius(midRadius, midRadius),
-                                style = Stroke(width = 10.dp.toPx())
-                            )
-
-                            // Crisp inner gradient rim just outside the rounded border
-                            val rimExpand = 1.5.dp.toPx()
-                            val rimRadius = 31.dp.toPx()
-                            drawRoundRect(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.88f),
-                                        Color(0xFFF472B6).copy(alpha = haloAlpha * 0.75f),
-                                        Color(0xFF10B981).copy(alpha = haloAlpha * 0.88f)
-                                    )
-                                ),
-                                topLeft = Offset(-rimExpand, -rimExpand),
-                                size = Size(size.width + rimExpand * 2f, size.height + rimExpand * 2f),
-                                cornerRadius = CornerRadius(rimRadius, rimRadius),
-                                style = Stroke(width = 3.5.dp.toPx())
-                            )
-                        },
+                        .fillMaxSize()
+                        .testTag("in_app_update_dialog"),
                     contentAlignment = Alignment.Center
                 ) {
+                    // Full-screen unclipped backdrop layer centered identically to the card
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val haloAlpha = (if (isDarkMode) 0.56f else 0.36f) * glowPulse
+                        val sweepColors = listOf(
+                            Color(0xFF00E5FF).copy(alpha = haloAlpha),
+                            Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.92f),
+                            Color(0xFF818CF8).copy(alpha = haloAlpha * 0.88f),
+                            Color(0xFFF472B6).copy(alpha = haloAlpha * 0.85f),
+                            Color(0xFF10B981).copy(alpha = haloAlpha * 0.92f),
+                            Color(0xFF00E5FF).copy(alpha = haloAlpha)
+                        )
+
+                        val maxSquarePx = maxUnclippedSquareSide.toPx()
+                        val measuredSidePx = if (cardSizePx.width > 0 && cardSizePx.height > 0) {
+                            max(cardSizePx.width.toFloat(), cardSizePx.height.toFloat())
+                        } else {
+                            cardWidth.toPx()
+                        }
+                        // Clamp square side strictly under maxSquarePx so no rotated corner ever clips viewport edges
+                        val squareSidePx = measuredSidePx.coerceAtMost(maxSquarePx)
+                        val squareTopLeft = Offset(
+                            center.x - squareSidePx / 2f,
+                            center.y - squareSidePx / 2f
+                        )
+                        val squareCornerPx = squareSidePx * squareCornerRatio
+
+                        // Complete 360-degree rotating background rounded square (never clipped from any side)
+                        rotate(degrees = haloOrbitAngle, pivot = center) {
+                            // Soft outer atmospheric bloom around the rotating square
+                            drawRoundRect(
+                                brush = Brush.sweepGradient(colors = sweepColors, center = center),
+                                topLeft = Offset(
+                                    squareTopLeft.x - 5.dp.toPx(),
+                                    squareTopLeft.y - 5.dp.toPx()
+                                ),
+                                size = Size(squareSidePx + 10.dp.toPx(), squareSidePx + 10.dp.toPx()),
+                                cornerRadius = CornerRadius(squareCornerPx + 5.dp.toPx(), squareCornerPx + 5.dp.toPx()),
+                                style = Stroke(width = 10.dp.toPx()),
+                                alpha = 0.42f
+                            )
+                            // Crisp complete gradient square frame
+                            drawRoundRect(
+                                brush = Brush.sweepGradient(colors = sweepColors, center = center),
+                                topLeft = squareTopLeft,
+                                size = Size(squareSidePx, squareSidePx),
+                                cornerRadius = CornerRadius(squareCornerPx, squareCornerPx),
+                                style = Stroke(width = 3.dp.toPx()),
+                                alpha = 0.92f
+                            )
+                        }
+
+                        // Card-hugging smooth rounded gradient aura centered directly behind the Surface
+                        val cardW = if (cardSizePx.width > 0) cardSizePx.width.toFloat() else cardWidth.toPx()
+                        val cardH = if (cardSizePx.height > 0) cardSizePx.height.toFloat() else with(density) { 300.dp.toPx() }
+                        val cardCenterLeft = center.x - cardW / 2f
+                        val cardCenterTop = center.y - cardH / 2f
+
+                        val midExpand = 5.dp.toPx()
+                        val midRadius = 34.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF00E5FF).copy(alpha = haloAlpha * 0.72f),
+                                    Color(0xFF3B82F6).copy(alpha = haloAlpha * 0.68f),
+                                    Color(0xFFA855F7).copy(alpha = haloAlpha * 0.64f),
+                                    Color(0xFF10B981).copy(alpha = haloAlpha * 0.72f)
+                                )
+                            ),
+                            topLeft = Offset(cardCenterLeft - midExpand, cardCenterTop - midExpand),
+                            size = Size(cardW + midExpand * 2f, cardH + midExpand * 2f),
+                            cornerRadius = CornerRadius(midRadius, midRadius),
+                            style = Stroke(width = 9.dp.toPx())
+                        )
+
+                        val rimExpand = 1.5.dp.toPx()
+                        val rimRadius = 31.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.88f),
+                                    Color(0xFFF472B6).copy(alpha = haloAlpha * 0.75f),
+                                    Color(0xFF10B981).copy(alpha = haloAlpha * 0.88f)
+                                )
+                            ),
+                            topLeft = Offset(cardCenterLeft - rimExpand, cardCenterTop - rimExpand),
+                            size = Size(cardW + rimExpand * 2f, cardH + rimExpand * 2f),
+                            cornerRadius = CornerRadius(rimRadius, rimRadius),
+                            style = Stroke(width = 3.dp.toPx())
+                        )
+                    }
+
                     val containerBrush = when {
                         isNeumorphic && isDarkMode -> Brush.verticalGradient(
                             listOf(Color(0xFF172136), Color(0xFF0F172A))
@@ -303,13 +361,20 @@ fun InAppUpdateDialog(
                         color = Color.Transparent,
                         border = cardBorder,
                         shadowElevation = if (isNeumorphic) 12.dp else 18.dp,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .width(cardWidth)
+                            .onSizeChanged { cardSizePx = it }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
+                            )
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(containerBrush)
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                                .padding(horizontal = 18.dp, vertical = 18.dp)
                         ) {
                             // Top Corner Close Icon (non-intrusive so content sits symmetrically centered)
                             IconButton(
@@ -338,7 +403,7 @@ fun InAppUpdateDialog(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 12.dp, bottom = 4.dp),
+                                    .padding(top = 10.dp, bottom = 2.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 UpdateHeroEmblem(
@@ -352,10 +417,11 @@ fun InAppUpdateDialog(
                                     flamePulse = flamePulse
                                 )
 
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(14.dp))
 
                                 AnimatedContent(
                                     targetState = updateState,
+                                    contentAlignment = Alignment.Center,
                                     transitionSpec = {
                                         fadeIn(tween(240)) togetherWith fadeOut(tween(180))
                                     },
