@@ -9,6 +9,9 @@ import com.example.data.AppDatabase
 import com.example.data.AppNotification
 import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
+import com.example.data.DutyReferenceInfo
+import com.example.data.LeaveAnalyticsCalculator
+import com.example.data.LeaveAnalyticsReport
 import com.example.data.LeaveRecord
 import com.example.data.LeaveStatus
 import com.example.data.Personnel
@@ -190,6 +193,12 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val personnelCount: StateFlow<Int>
     val leavesCount: StateFlow<Int>
 
+    val selectedAnalyticsYear = MutableStateFlow(Calendar.getInstance().get(Calendar.YEAR))
+
+    fun setAnalyticsYear(year: Int) {
+        selectedAnalyticsYear.value = year
+    }
+
     init {
         val db = AppDatabase.getDatabase(application, viewModelScope)
         repository = PersonnelRepository(db.personnelDao(), db.leaveRecordDao())
@@ -202,6 +211,39 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         leavesCount = repository.leavesCount
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     }
+
+    val dutyReferenceMap: StateFlow<Map<Long, DutyReferenceInfo>> = combine(
+        allPersonnel,
+        allLeaves
+    ) { personnelList, leavesList ->
+        val now = System.currentTimeMillis()
+        personnelList.associate { p ->
+            p.id to p.computeDutyReferenceInfo(leavesList, now)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val analyticsReport: StateFlow<LeaveAnalyticsReport> = combine(
+        allPersonnel,
+        allLeaves,
+        selectedAnalyticsYear,
+        dutyThresholdDays
+    ) { personnelList, leavesList, year, threshold ->
+        LeaveAnalyticsCalculator.computeReport(
+            personnelList = personnelList,
+            allLeaves = leavesList,
+            selectedYear = year,
+            dutyThresholdDays = threshold
+        )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        LeaveAnalyticsCalculator.computeReport(
+            personnelList = emptyList(),
+            allLeaves = emptyList(),
+            selectedYear = Calendar.getInstance().get(Calendar.YEAR),
+            dutyThresholdDays = SettingsManager.DEFAULT_DUTY_THRESHOLD
+        )
+    )
 
     private data class FilterParams(
         val query: String,
@@ -225,8 +267,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     val filteredPersonnel: StateFlow<List<Personnel>> = combine(
         allPersonnel,
+        allLeaves,
         filterParams
-    ) { personnelList, params ->
+    ) { personnelList, leavesList, params ->
         var list = personnelList
 
         // Search query
@@ -250,7 +293,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         // Status filter
         if (params.status != "ALL") {
             if (params.status == "ELIGIBLE") {
-                list = list.filter { it.isEligibleForLeave(params.threshold) }
+                list = list.filter { it.isEligibleForLeave(params.threshold, leavesList) }
             } else {
                 list = list.filter { it.status.name == params.status }
             }
@@ -291,7 +334,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val stats: StateFlow<DashboardStats> = combine(allPersonnel, dutyThresholdDays) { list, threshold ->
+    val stats: StateFlow<DashboardStats> = combine(
+        allPersonnel,
+        allLeaves,
+        dutyThresholdDays
+    ) { list, leavesList, threshold ->
         val total = list.size
         var atHome = 0
         var returningToday = 0
@@ -307,7 +354,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 LeaveStatus.OVERDUE -> overdue++
                 LeaveStatus.ON_DUTY -> {
                     onDuty++
-                    if (p.isEligibleForLeave(threshold)) {
+                    if (p.isEligibleForLeave(threshold, leavesList)) {
                         eligible++
                     }
                 }
@@ -368,11 +415,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     val notifications: StateFlow<List<AppNotification>> = combine(
         allPersonnel,
+        allLeaves,
         pinnedNotificationIds,
         dismissedNotificationIds,
-        dutyThresholdDays,
-        currentLanguage
-    ) { list, pinned, dismissed, threshold, lang ->
+        combine(dutyThresholdDays, currentLanguage) { t, l -> t to l }
+    ) { list, leavesList, pinned, dismissed, (threshold, lang) ->
         val result = mutableListOf<AppNotification>()
         val today = Personnel.toStartOfDay(System.currentTimeMillis())
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -504,8 +551,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
 
-            // 5. Eligible for leave
-            if (p.isReturnedToDuty && p.daysSinceDutyReturn >= threshold) {
+            // 5. Eligible for leave (calculated from last leave returnDateMillis or addedAtMillis if no leave records exist)
+            val daysServedRef = p.computeDutyReferenceInfo(leavesList, today).daysSinceReference
+            if (p.isReturnedToDuty && daysServedRef >= threshold) {
                 val notifId = "eligible_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
@@ -514,9 +562,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "استحقاق إجازة جديدة"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a accompli ${p.daysSinceDutyReturn} jours de service (seuil : $threshold jours)."
-                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} has completed ${p.daysSinceDutyReturn} duty days (threshold: $threshold days)."
-                        else -> "قضى $localizedRank: ${p.fullName}، مدة ${p.daysSinceDutyReturn} يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold) يوم"
+                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a accompli $daysServedRef jours de service (seuil : $threshold jours)."
+                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} has completed $daysServedRef duty days (threshold: $threshold days)."
+                        else -> "قضى $localizedRank: ${p.fullName}، مدة $daysServedRef يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold) يوم"
                     }
                     result.add(
                         AppNotification(
@@ -699,13 +747,12 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         notes: String
     ) {
         viewModelScope.launch {
-            if (id != 0L) {
-                val previous = repository.getPersonnelById(id)
-                if (previous != null) {
-                    lastUndoAction.value = UndoAction.Updated(previous)
-                }
+            val previous = if (id != 0L) repository.getPersonnelById(id) else null
+            if (previous != null) {
+                lastUndoAction.value = UndoAction.Updated(previous)
             }
 
+            val preservedAddedAt = previous?.addedAtMillis?.takeIf { it > 0L } ?: System.currentTimeMillis()
             val entity = Personnel(
                 id = id,
                 fullName = fullName,
@@ -716,7 +763,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 isReturnedToDuty = isReturnedToDuty,
                 leaveType = leaveType,
                 wilaya = normalizeWilaya(wilaya),
-                notes = notes
+                notes = notes,
+                addedAtMillis = preservedAddedAt
             )
             if (id == 0L) {
                 val newId = repository.insert(entity)
@@ -931,7 +979,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             sb.append("    \"status\": \"${p.status.name}\",\n")
             sb.append("    \"countdownText\": \"${p.countdownTextAr}\",\n")
             sb.append("    \"leaveType\": \"${p.leaveType}\",\n")
-            sb.append("    \"notes\": \"${p.notes.replace("\"", "\\\"")}\"\n")
+            sb.append("    \"notes\": \"${p.notes.replace("\"", "\\\"")}\",\n")
+            sb.append("    \"addedAtMillis\": ${p.addedAtMillis}\n")
             sb.append("  }${if (i < list.size - 1) "," else ""}\n")
         }
         sb.append("]")
@@ -993,6 +1042,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 }
 
                 val id = if (replaceAll) obj.optLong("id", 0L) else 0L
+                val addedAt = obj.optLong("addedAtMillis", 0L).let { if (it > 0L) it else System.currentTimeMillis() }
 
                 importedList.add(
                     Personnel(
@@ -1005,7 +1055,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         isReturnedToDuty = isReturnedToDuty,
                         leaveType = leaveType,
                         wilaya = wilaya,
-                        notes = notes
+                        notes = notes,
+                        addedAtMillis = addedAt
                     )
                 )
             }

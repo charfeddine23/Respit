@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Badge
@@ -57,6 +57,7 @@ enum class AppNavPage {
     DASHBOARD,
     RECORDS,
     DATABASE,
+    ANALYTICS,
     NOTIFICATIONS
 }
 
@@ -143,17 +144,17 @@ fun AppBottomNavigationPanel(
                 testTag = "bottom_nav_database"
             )
 
-            // Tab 4: Notifications
+            // Tab 4: Analytical Dashboard (replaces Notifications, which moved to the Top Banner)
             BottomNavItem(
-                icon = Icons.Default.Notifications,
-                label = AppStrings.get("nav_notifications", currentLang),
-                isSelected = selectedPage == AppNavPage.NOTIFICATIONS,
-                badgeCount = notificationsCount,
+                icon = Icons.Default.BarChart,
+                label = AppStrings.get("nav_analytics", currentLang),
+                isSelected = selectedPage == AppNavPage.ANALYTICS,
+                badgeCount = 0,
                 isDarkMode = isDarkMode,
                 isNeumorphic = isNeumorphic,
                 animationsEnabled = animationsEnabled,
-                onClick = { onSelectPage(AppNavPage.NOTIFICATIONS) },
-                testTag = "bottom_nav_notifications"
+                onClick = { onSelectPage(AppNavPage.ANALYTICS) },
+                testTag = "bottom_nav_analytics"
             )
         }
     }

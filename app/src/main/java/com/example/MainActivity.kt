@@ -166,6 +166,7 @@ import com.example.ui.components.InAppUpdateDialog
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
+import com.example.ui.screens.AnalyticsDashboardScreen
 import com.example.ui.screens.NotificationScreen
 import com.example.ui.screens.RoomDatabaseScreen
 import com.example.ui.theme.CoralRedAccent
@@ -261,6 +262,7 @@ fun LeaveTrackerMainApp(
 
     val personnelList by viewModel.filteredPersonnel.collectAsState()
     val allPersonnelList by viewModel.allPersonnel.collectAsState()
+    val dutyReferenceMap by viewModel.dutyReferenceMap.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val uniqueRanks by viewModel.uniqueRanks.collectAsState()
 
@@ -324,7 +326,17 @@ fun LeaveTrackerMainApp(
     var showFilterSortDialog by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
     var selectedNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
+    var previousNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
+
+    val openNotificationsPage: () -> Unit = {
+        if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
+            previousNavPage = selectedNavPage
+            selectedNavPage = AppNavPage.NOTIFICATIONS
+        } else {
+            selectedNavPage = previousNavPage
+        }
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -340,6 +352,9 @@ fun LeaveTrackerMainApp(
 
     LaunchedEffect(openNotificationsSignal) {
         if (openNotificationsSignal > 0) {
+            if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
+                previousNavPage = selectedNavPage
+            }
             selectedNavPage = AppNavPage.NOTIFICATIONS
         }
     }
@@ -397,9 +412,9 @@ fun LeaveTrackerMainApp(
         return
     }
 
-    // Back navigation: Pop sub-screens back to Dashboard
+    // Back navigation: Pop sub-screens back to previous or Dashboard
     BackHandler(enabled = selectedNavPage != AppNavPage.DASHBOARD) {
-        selectedNavPage = AppNavPage.DASHBOARD
+        selectedNavPage = if (selectedNavPage == AppNavPage.NOTIFICATIONS) previousNavPage else AppNavPage.DASHBOARD
     }
 
     // In Arabic, anchor ModalNavigationDrawer on the LEFT edge (LTR) so swiping left-to-right opens it from the left side
@@ -429,6 +444,9 @@ fun LeaveTrackerMainApp(
                                 scope.launch { drawerState.close() }
                             },
                             onCheckNotifications = {
+                                if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
+                                    previousNavPage = selectedNavPage
+                                }
                                 selectedNavPage = AppNavPage.NOTIFICATIONS
                                 scope.launch { drawerState.close() }
                             },
@@ -517,6 +535,7 @@ fun LeaveTrackerMainApp(
                                         .fillMaxWidth()
                                         .statusBarsPadding()
                                 ) {
+                                    val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -524,49 +543,77 @@ fun LeaveTrackerMainApp(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Left Side (الجهة اليسرى تماماً): App Title Row with Logo & Version (Non-clickable for theme)
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .padding(vertical = 4.dp, horizontal = 2.dp)
-                                                .testTag("app_title_row")
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(38.dp)
-                                                    .liquidGlassInteractive(
-                                                        shape = if (isNeumorphic) RoundedCornerShape(12.dp) else RoundedCornerShape(10.dp),
-                                                        glowColor = MaterialTheme.colorScheme.primary,
-                                                        isDark = isDarkMode,
-                                                        isNeumorphic = isNeumorphic
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Image(
-                                                    painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
-                                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                                                    contentScale = ContentScale.Fit,
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .clip(RoundedCornerShape(8.dp))
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Text(
-                                                text = AppStrings.get("app_title", currentLang),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-
-                                        // Right Side: Quick Actions (Dynamic Update Arrow when available + Light/Dark Toggle & Drawer Menu)
+                                        // Left Side: Drawer Menu/Settings Button + App Title Row with Logo
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+                                            Box(
+                                                modifier = Modifier.liquidGlassInteractive(
+                                                    shape = iconShape,
+                                                    glowColor = MaterialTheme.colorScheme.primary,
+                                                    isDark = isDarkMode,
+                                                    isNeumorphic = isNeumorphic
+                                                )
+                                            ) {
+                                                IconButton(
+                                                    onClick = { scope.launch { drawerState.open() } },
+                                                    modifier = Modifier
+                                                        .size(48.dp)
+                                                        .clip(iconShape)
+                                                        .testTag("header_menu_button")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Menu,
+                                                        contentDescription = AppStrings.get("toolbar_menu_desc", currentLang),
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(21.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .padding(vertical = 4.dp, horizontal = 2.dp)
+                                                    .testTag("app_title_row")
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(38.dp)
+                                                        .liquidGlassInteractive(
+                                                            shape = if (isNeumorphic) RoundedCornerShape(12.dp) else RoundedCornerShape(10.dp),
+                                                            glowColor = MaterialTheme.colorScheme.primary,
+                                                            isDark = isDarkMode,
+                                                            isNeumorphic = isNeumorphic
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Image(
+                                                        painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
+                                                        contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                                        contentScale = ContentScale.Fit,
+                                                        modifier = Modifier
+                                                            .size(32.dp)
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = AppStrings.get("app_title", currentLang),
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+
+                                        // Right Side: Quick Actions (Dynamic Update Arrow when available + Light/Dark Toggle + Notifications in place of Settings button)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
                                             val hasAvailableUpdate = appUpdateState is AppUpdateState.UpdateAvailable ||
                                                 appUpdateState is AppUpdateState.Downloading ||
                                                 appUpdateState is AppUpdateState.ReadyToInstall
@@ -618,28 +665,46 @@ fun LeaveTrackerMainApp(
                                                 }
                                             }
 
-                                            // Drawer Menu Button
+                                            // Notifications Button (Moved to Top Banner in place of Settings/Menu button)
+                                            val isNotifOpen = selectedNavPage == AppNavPage.NOTIFICATIONS
                                             Box(
                                                 modifier = Modifier.liquidGlassInteractive(
                                                     shape = iconShape,
-                                                    glowColor = MaterialTheme.colorScheme.primary,
+                                                    glowColor = if (isNotifOpen || notificationsCount > 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
                                                     isDark = isDarkMode,
                                                     isNeumorphic = isNeumorphic
                                                 )
                                             ) {
                                                 IconButton(
-                                                    onClick = { scope.launch { drawerState.open() } },
+                                                    onClick = openNotificationsPage,
                                                     modifier = Modifier
                                                         .size(48.dp)
                                                         .clip(iconShape)
-                                                        .testTag("header_menu_button")
+                                                        .testTag("header_notifications_button")
                                                 ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Menu,
-                                                        contentDescription = AppStrings.get("toolbar_menu_desc", currentLang),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(21.dp)
-                                                    )
+                                                    BadgedBox(
+                                                        badge = {
+                                                            if (notificationsCount > 0) {
+                                                                Badge(
+                                                                    containerColor = Color(0xFFEF4444),
+                                                                    contentColor = Color.White
+                                                                ) {
+                                                                    Text(
+                                                                        text = if (notificationsCount > 99) "99+" else "$notificationsCount",
+                                                                        fontSize = 9.sp,
+                                                                        fontWeight = FontWeight.Bold
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = if (isNotifOpen) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                                            contentDescription = AppStrings.get("header_notifications_desc", currentLang),
+                                                            tint = if (isNotifOpen) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(21.dp)
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -781,10 +846,23 @@ fun LeaveTrackerMainApp(
                                                 onBack = { selectedNavPage = AppNavPage.DASHBOARD }
                                             )
                                         }
+                                        AppNavPage.ANALYTICS -> {
+                                            AnalyticsDashboardScreen(
+                                                viewModel = viewModel,
+                                                onBack = { selectedNavPage = AppNavPage.DASHBOARD },
+                                                onSelectPersonnel = { personnelId ->
+                                                    val p = allPersonnelList.find { it.id == personnelId }
+                                                    if (p != null) {
+                                                        personnelToEdit = p
+                                                        showAddEditDialog = true
+                                                    }
+                                                }
+                                            )
+                                        }
                                         AppNavPage.NOTIFICATIONS -> {
                                             NotificationScreen(
                                                 viewModel = viewModel,
-                                                onBack = { selectedNavPage = AppNavPage.DASHBOARD },
+                                                onBack = { selectedNavPage = previousNavPage },
                                                 onSelectPersonnel = { personnelId ->
                                                     val p = allPersonnelList.find { it.id == personnelId }
                                                     if (p != null) {
@@ -862,6 +940,9 @@ fun LeaveTrackerMainApp(
                                                 // 2. Coral Red Button: "تنبيهات عاجلة"
                                                 Surface(
                                                     onClick = {
+                                                        if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
+                                                            previousNavPage = selectedNavPage
+                                                        }
                                                         selectedNavPage = AppNavPage.NOTIFICATIONS
                                                     },
                                                     shape = RoundedCornerShape(16.dp),
@@ -1197,6 +1278,7 @@ fun LeaveTrackerMainApp(
                                                     isNeumorphic = isNeumorphic,
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
+                                                    effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
                                                     onConfirmDuty = {
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(
@@ -1444,6 +1526,7 @@ fun LeaveTrackerMainApp(
                                                                 isNeumorphic = isNeumorphic,
                                                                 animationsEnabled = isDynamicAnimationsEnabled,
                                                                 currentLang = currentLang,
+                                                                effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
                                                                 onConfirmDuty = {
                                                                     viewModel.confirmReturnToDuty(person.id)
                                                                     Toast.makeText(
@@ -1477,6 +1560,7 @@ fun LeaveTrackerMainApp(
                                                     isNeumorphic = isNeumorphic,
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
+                                                    effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
                                                     onConfirmDuty = {
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(

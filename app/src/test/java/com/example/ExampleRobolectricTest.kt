@@ -483,6 +483,232 @@ class ExampleRobolectricTest {
     assertTrue(sheet2.contains("orientation=\"landscape\""))
     assertTrue(sheet2.contains("DZ-880112"))
   }
+
+  @Test
+  fun `verify duty counting starts from last leave return date or addedAtMillis when no leaves exist`() {
+    val added50DaysAgo = getOffsetDateMillis(-50)
+    val lastLeaveStart = getOffsetDateMillis(-25)
+    val lastLeaveReturn15DaysAgo = getOffsetDateMillis(-15)
+    val today = getOffsetDateMillis(0)
+
+    // Case 1: Person has NO leave records in database -> count starts from addedAtMillis (50 days)
+    val personWithoutLeaves = Personnel(
+      id = 10L,
+      fullName = "عمر بن يوسف",
+      rank = "رقيب - Sergent",
+      registrationNumber = "DZ-101010",
+      startDateMillis = getOffsetDateMillis(-5),
+      returnDateMillis = getOffsetDateMillis(-2),
+      isReturnedToDuty = true,
+      addedAtMillis = added50DaysAgo
+    )
+    val noLeaveInfo = personWithoutLeaves.computeDutyReferenceInfo(emptyList(), today)
+    assertEquals(com.example.data.ReferenceDateSource.PERSONNEL_ADDED_DATE, noLeaveInfo.source)
+    assertEquals(added50DaysAgo, noLeaveInfo.referenceDateMillis)
+    assertEquals(50L, noLeaveInfo.daysSinceReference)
+    assertTrue(personWithoutLeaves.isEligibleForLeave(45, emptyList(), today))
+
+    // Case 2: Person HAS leave records -> count starts from returnDateMillis of latest leave (15 days)
+    val leaves = listOf(
+      LeaveRecord(
+        id = 1L,
+        personnelId = 99L, // even if personnelId changed, registrationNumber matches
+        personnelName = "عمر بن يوسف",
+        rank = "رقيب - Sergent",
+        registrationNumber = "DZ-101010",
+        leaveType = "إجازة",
+        startDateMillis = getOffsetDateMillis(-40),
+        returnDateMillis = getOffsetDateMillis(-30),
+        durationDays = 10L
+      ),
+      LeaveRecord(
+        id = 2L,
+        personnelId = 10L,
+        personnelName = "عمر بن يوسف",
+        rank = "رقيب - Sergent",
+        registrationNumber = "DZ-101010",
+        leaveType = "عطلة سنوية",
+        startDateMillis = lastLeaveStart,
+        returnDateMillis = lastLeaveReturn15DaysAgo,
+        durationDays = 10L
+      )
+    )
+    val withLeaveInfo = personWithoutLeaves.computeDutyReferenceInfo(leaves, today)
+    assertEquals(com.example.data.ReferenceDateSource.LAST_LEAVE_RETURN, withLeaveInfo.source)
+    assertEquals(lastLeaveReturn15DaysAgo, withLeaveInfo.referenceDateMillis)
+    assertEquals(15L, withLeaveInfo.daysSinceReference)
+    assertTrue(!personWithoutLeaves.isEligibleForLeave(45, leaves, today))
+  }
+
+  @Test
+  fun `verify LeaveAnalyticsCalculator monthly rank and per-personnel annual statistics`() {
+    fun dateInYear(year: Int, monthZeroBased: Int, day: Int): Long {
+      return Calendar.getInstance().apply {
+        set(Calendar.YEAR, year)
+        set(Calendar.MONTH, monthZeroBased)
+        set(Calendar.DAY_OF_MONTH, day)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+      }.timeInMillis
+    }
+
+    val targetYear = 2026
+    val today = dateInYear(2026, Calendar.JUNE, 20)
+
+    val p1 = Personnel(
+      id = 1L,
+      fullName = "أحمد منصور",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-111",
+      startDateMillis = dateInYear(2026, Calendar.MARCH, 1),
+      returnDateMillis = dateInYear(2026, Calendar.MARCH, 11),
+      isReturnedToDuty = true,
+      addedAtMillis = dateInYear(2025, Calendar.JANUARY, 10)
+    )
+    val p2 = Personnel(
+      id = 2L,
+      fullName = "سمير بن علي",
+      rank = "رقيب أول - Sergent-Chef",
+      registrationNumber = "DZ-222",
+      startDateMillis = dateInYear(2026, Calendar.JANUARY, 1),
+      returnDateMillis = dateInYear(2026, Calendar.JANUARY, 1),
+      isReturnedToDuty = true,
+      addedAtMillis = dateInYear(2026, Calendar.APRIL, 1) // 80 days before June 20
+    )
+
+    val leaves = listOf(
+      LeaveRecord(
+        id = 1L,
+        personnelId = 1L,
+        personnelName = p1.fullName,
+        rank = p1.rank,
+        registrationNumber = p1.registrationNumber,
+        leaveType = "إجازة",
+        startDateMillis = dateInYear(2026, Calendar.JANUARY, 5),
+        returnDateMillis = dateInYear(2026, Calendar.JANUARY, 12),
+        durationDays = 7L
+      ),
+      LeaveRecord(
+        id = 2L,
+        personnelId = 1L,
+        personnelName = p1.fullName,
+        rank = p1.rank,
+        registrationNumber = p1.registrationNumber,
+        leaveType = "عطلة سنوية",
+        startDateMillis = dateInYear(2026, Calendar.MARCH, 1),
+        returnDateMillis = dateInYear(2026, Calendar.MARCH, 11),
+        durationDays = 10L
+      ),
+      LeaveRecord(
+        id = 3L,
+        personnelId = 1L,
+        personnelName = p1.fullName,
+        rank = p1.rank,
+        registrationNumber = p1.registrationNumber,
+        leaveType = "نقاهة",
+        startDateMillis = dateInYear(2025, Calendar.DECEMBER, 1),
+        returnDateMillis = dateInYear(2025, Calendar.DECEMBER, 15),
+        durationDays = 14L
+      )
+    )
+
+    val report = com.example.data.LeaveAnalyticsCalculator.computeReport(
+      personnelList = listOf(p1, p2),
+      allLeaves = leaves,
+      selectedYear = targetYear,
+      dutyThresholdDays = 45,
+      todayMillis = today
+    )
+
+    assertEquals(2, report.totalLeavesInYear)
+    assertEquals(17L, report.totalDaysInYear)
+    assertEquals(1, report.monthlyStats[Calendar.JANUARY].leaveCount)
+    assertEquals(7L, report.monthlyStats[Calendar.JANUARY].totalDays)
+    assertEquals(1, report.monthlyStats[Calendar.MARCH].leaveCount)
+    assertEquals(10L, report.monthlyStats[Calendar.MARCH].totalDays)
+    assertEquals(1, report.rankStats.size)
+    assertEquals("نقيب - Capitaine", report.rankStats[0].rankRaw)
+    assertEquals(100f, report.rankStats[0].percentage, 0.01f)
+
+    val p1Annual = report.personnelAnnualStats.first { it.registrationNumber == "DZ-111" }
+    assertEquals(2, p1Annual.leavesCountInYear)
+    assertEquals(17L, p1Annual.totalDaysInYear)
+    assertEquals(com.example.data.ReferenceDateSource.LAST_LEAVE_RETURN, p1Annual.referenceSource)
+    assertEquals(dateInYear(2026, Calendar.MARCH, 11), p1Annual.referenceDateMillis)
+
+    val p2Annual = report.personnelAnnualStats.first { it.registrationNumber == "DZ-222" }
+    assertEquals(0, p2Annual.leavesCountInYear)
+    assertEquals(0L, p2Annual.totalDaysInYear)
+    assertEquals(com.example.data.ReferenceDateSource.PERSONNEL_ADDED_DATE, p2Annual.referenceSource)
+    assertEquals(80L, p2Annual.daysSinceReference)
+    assertTrue(p2Annual.isEligible)
+  }
+
+  @Test
+  fun `verify Room MIGRATION_4_5 preserves existing personnel and populates addedAtMillis`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val dbFile = context.getDatabasePath("test_mig_4_5.db")
+    if (dbFile.exists()) dbFile.delete()
+
+    val sqliteDb = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(dbFile, null)
+    sqliteDb.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS personnel (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        fullName TEXT NOT NULL,
+        rank TEXT NOT NULL,
+        registrationNumber TEXT NOT NULL,
+        startDateMillis INTEGER NOT NULL,
+        returnDateMillis INTEGER NOT NULL,
+        isReturnedToDuty INTEGER NOT NULL,
+        leaveType TEXT NOT NULL,
+        wilaya TEXT NOT NULL,
+        notes TEXT NOT NULL
+      )
+      """.trimIndent()
+    )
+    sqliteDb.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS leave_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        personnelId INTEGER NOT NULL,
+        personnelName TEXT NOT NULL,
+        rank TEXT NOT NULL,
+        registrationNumber TEXT NOT NULL,
+        leaveType TEXT NOT NULL,
+        startDateMillis INTEGER NOT NULL,
+        returnDateMillis INTEGER NOT NULL,
+        durationDays INTEGER NOT NULL,
+        statusText TEXT NOT NULL,
+        destinationWilaya TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        createdAtMillis INTEGER NOT NULL
+      )
+      """.trimIndent()
+    )
+    sqliteDb.execSQL(
+      """
+      INSERT INTO personnel (fullName, rank, registrationNumber, startDateMillis, returnDateMillis, isReturnedToDuty, leaveType, wilaya, notes)
+      VALUES ('ياسين بلقاسم', 'ملازم - Sous-Lieutenant', 'DZ-4040', 1000, 2000, 1, 'إجازة', '16 - الجزائر - Alger', '')
+      """.trimIndent()
+    )
+    sqliteDb.version = 4
+    sqliteDb.close()
+
+    val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, "test_mig_4_5.db")
+      .addMigrations(AppDatabase.MIGRATION_4_5)
+      .allowMainThreadQueries()
+      .build()
+
+    val list = runBlocking { migratedDb.personnelDao().getAllPersonnel().first() }
+    assertEquals(1, list.size)
+    assertEquals("ياسين بلقاسم", list[0].fullName)
+    assertTrue(list[0].addedAtMillis > 0L)
+    migratedDb.close()
+    dbFile.delete()
+  }
 }
 
 

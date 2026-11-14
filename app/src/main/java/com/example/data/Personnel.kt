@@ -38,6 +38,19 @@ enum class LeaveStatus(
     }
 }
 
+enum class ReferenceDateSource {
+    LAST_LEAVE_RETURN,
+    PERSONNEL_ADDED_DATE
+}
+
+data class DutyReferenceInfo(
+    val referenceDateMillis: Long,
+    val source: ReferenceDateSource,
+    val daysSinceReference: Long,
+    val lastLeaveStartMillis: Long? = null,
+    val lastLeaveReturnMillis: Long? = null
+)
+
 @Entity(tableName = "personnel")
 data class Personnel(
     @PrimaryKey(autoGenerate = true)
@@ -50,7 +63,8 @@ data class Personnel(
     val isReturnedToDuty: Boolean = false, // هل التحق بالخدمة ومستأنف للعمل
     val leaveType: String = "عطلة سنوية",
     val wilaya: String = "16 - الجزائر - Alger",
-    val notes: String = ""
+    val notes: String = "",
+    val addedAtMillis: Long = System.currentTimeMillis() // تاريخ إضافة الفرد في قاعدة البيانات
 ) {
     companion object {
         fun toStartOfDay(timeMillis: Long): Long {
@@ -63,6 +77,61 @@ data class Personnel(
             }
             return cal.timeInMillis
         }
+
+        fun findLeavesForPersonnel(person: Personnel, allLeaves: List<LeaveRecord>): List<LeaveRecord> {
+            val regNormalized = person.registrationNumber.trim()
+            return allLeaves.filter { leave ->
+                (person.id > 0L && leave.personnelId == person.id) ||
+                    (regNormalized.isNotBlank() && leave.registrationNumber.trim().equals(regNormalized, ignoreCase = true))
+            }
+        }
+    }
+
+    /**
+     * يحسب تاريخ بداية احتساب أيام الخدمة والاستحقاق:
+     * - يعتمد على تاريخ الدخول (العودة) من آخر عطلة مسجلة في قاعدة البيانات.
+     * - وإذا لم توجد أي عطلة سابقة للفرد في قاعدة البيانات، يبدأ الحساب من تاريخ إضافة الفرد.
+     */
+    fun computeDutyReferenceInfo(
+        allLeaves: List<LeaveRecord>,
+        todayMillis: Long = System.currentTimeMillis()
+    ): DutyReferenceInfo {
+        val personLeaves = findLeavesForPersonnel(this, allLeaves)
+        val lastLeave = personLeaves.maxWithOrNull(
+            compareBy<LeaveRecord> { it.returnDateMillis }.thenBy { it.createdAtMillis }
+        )
+        val todayStart = toStartOfDay(todayMillis)
+        return if (lastLeave != null) {
+            val refStart = toStartOfDay(lastLeave.returnDateMillis)
+            val days = TimeUnit.MILLISECONDS.toDays(todayStart - refStart).coerceAtLeast(0L)
+            DutyReferenceInfo(
+                referenceDateMillis = refStart,
+                source = ReferenceDateSource.LAST_LEAVE_RETURN,
+                daysSinceReference = days,
+                lastLeaveStartMillis = toStartOfDay(lastLeave.startDateMillis),
+                lastLeaveReturnMillis = refStart
+            )
+        } else {
+            val fallbackAdded = if (addedAtMillis > 0L) addedAtMillis else todayMillis
+            val refStart = toStartOfDay(fallbackAdded)
+            val days = TimeUnit.MILLISECONDS.toDays(todayStart - refStart).coerceAtLeast(0L)
+            DutyReferenceInfo(
+                referenceDateMillis = refStart,
+                source = ReferenceDateSource.PERSONNEL_ADDED_DATE,
+                daysSinceReference = days,
+                lastLeaveStartMillis = null,
+                lastLeaveReturnMillis = null
+            )
+        }
+    }
+
+    fun isEligibleForLeave(
+        thresholdDays: Int,
+        allLeaves: List<LeaveRecord>,
+        todayMillis: Long = System.currentTimeMillis()
+    ): Boolean {
+        if (!isReturnedToDuty) return false
+        return computeDutyReferenceInfo(allLeaves, todayMillis).daysSinceReference >= thresholdDays
     }
 
     // إجمالي مدة الإجازة بالأيام

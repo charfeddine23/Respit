@@ -98,10 +98,11 @@ fun PersonnelCard(
     isDarkMode: Boolean = false,
     isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
-    currentLang: AppLanguage = AppLanguage.ARABIC
+    currentLang: AppLanguage = AppLanguage.ARABIC,
+    effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn
 ) {
     val status = personnel.status
-    val isEligible = personnel.isEligibleForLeave(dutyThresholdDays)
+    val isEligible = personnel.isReturnedToDuty && effectiveDaysSinceDuty >= dutyThresholdDays
     val progress = personnel.leaveProgressFraction
 
     val animatedProgress = if (animationsEnabled && !personnel.isReturnedToDuty) {
@@ -218,9 +219,9 @@ fun PersonnelCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "${personnel.daysSinceDutyReturn}",
+                            text = "$effectiveDaysSinceDuty",
                             fontWeight = FontWeight.Black,
-                            fontSize = if (personnel.daysSinceDutyReturn >= 100) 14.sp else 17.sp,
+                            fontSize = if (effectiveDaysSinceDuty >= 100) 14.sp else 17.sp,
                             color = visual.color,
                             maxLines = 1
                         )
@@ -516,7 +517,7 @@ fun PersonnelCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "${AppStrings.get("days_served", currentLang)}: ${personnel.daysSinceDutyReturn} ${AppStrings.get("days", currentLang)}",
+                                    text = "${AppStrings.get("days_served", currentLang)}: $effectiveDaysSinceDuty ${AppStrings.get("days", currentLang)}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = EmeraldSuccess
