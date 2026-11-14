@@ -35,10 +35,13 @@ object ExcelXlsxExporter {
         lang: AppLanguage
     ) {
         val bytes = generateWorkbookBytes(personnelList, leaveRecords, lang)
-        context.contentResolver.openOutputStream(uri)?.use { out ->
-            out.write(bytes)
-            out.flush()
-        } ?: error("Unable to open output stream for selected destination")
+        val out = runCatching { context.contentResolver.openOutputStream(uri, "wt") }.getOrNull()
+            ?: context.contentResolver.openOutputStream(uri)
+            ?: error("Unable to open output stream for selected destination")
+        out.use { stream ->
+            stream.write(bytes)
+            stream.flush()
+        }
     }
 
     fun generateWorkbookBytes(
@@ -108,6 +111,9 @@ object ExcelXlsxExporter {
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
                   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+            <bookViews>
+                <workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="14000" activeTab="0"/>
+            </bookViews>
             <sheets>
                 <sheet name="${escapeXml(sheet1Name)}" sheetId="1" r:id="rId1"/>
                 <sheet name="${escapeXml(sheet2Name)}" sheetId="2" r:id="rId2"/>
@@ -256,6 +262,8 @@ object ExcelXlsxExporter {
                 <cellStyles count="1">
                     <cellStyle name="Normal" xfId="0" builtinId="0"/>
                 </cellStyles>
+                <dxfs count="0"/>
+                <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
             </styleSheet>
         """.trimIndent()
     }
@@ -297,7 +305,7 @@ object ExcelXlsxExporter {
         sb.append("""<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>""")
         sb.append("""<dimension ref="A1:$lastCol$lastRow"/>""")
         sb.append(
-            """<sheetViews><sheetView tabSelected="1" rightToLeft="$rtlFlag" workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>"""
+            """<sheetViews><sheetView tabSelected="1" rightToLeft="$rtlFlag" workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A4" sqref="A4"/></sheetView></sheetViews>"""
         )
         sb.append("""<sheetFormatPr defaultRowHeight="22"/>""")
         sb.append("<cols>")
@@ -363,8 +371,8 @@ object ExcelXlsxExporter {
         }
 
         sb.append("</sheetData>")
-        sb.append("""<mergeCells count="2"><mergeCell ref="A1:${lastCol}1"/><mergeCell ref="A2:${lastCol}2"/></mergeCells>""")
         sb.append("""<autoFilter ref="A3:$lastCol$lastRow"/>""")
+        sb.append("""<mergeCells count="2"><mergeCell ref="A1:${lastCol}1"/><mergeCell ref="A2:${lastCol}2"/></mergeCells>""")
         sb.append("""<pageMargins left="0.35" right="0.35" top="0.45" bottom="0.45" header="0.2" footer="0.2"/>""")
         sb.append("""<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0" horizontalDpi="300" verticalDpi="300"/>""")
         sb.append("""<headerFooter><oddFooter>&amp;CRespite Pulse — &amp;P / &amp;N</oddFooter></headerFooter>""")
@@ -408,7 +416,7 @@ object ExcelXlsxExporter {
         sb.append("""<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>""")
         sb.append("""<dimension ref="A1:$lastCol$lastRow"/>""")
         sb.append(
-            """<sheetViews><sheetView tabSelected="0" rightToLeft="$rtlFlag" workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>"""
+            """<sheetViews><sheetView tabSelected="0" rightToLeft="$rtlFlag" workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A4" sqref="A4"/></sheetView></sheetViews>"""
         )
         sb.append("""<sheetFormatPr defaultRowHeight="22"/>""")
         sb.append("<cols>")
@@ -468,8 +476,8 @@ object ExcelXlsxExporter {
         }
 
         sb.append("</sheetData>")
-        sb.append("""<mergeCells count="2"><mergeCell ref="A1:${lastCol}1"/><mergeCell ref="A2:${lastCol}2"/></mergeCells>""")
         sb.append("""<autoFilter ref="A3:$lastCol$lastRow"/>""")
+        sb.append("""<mergeCells count="2"><mergeCell ref="A1:${lastCol}1"/><mergeCell ref="A2:${lastCol}2"/></mergeCells>""")
         sb.append("""<pageMargins left="0.35" right="0.35" top="0.45" bottom="0.45" header="0.2" footer="0.2"/>""")
         sb.append("""<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0" horizontalDpi="300" verticalDpi="300"/>""")
         sb.append("""<headerFooter><oddFooter>&amp;CRespite Pulse — &amp;P / &amp;N</oddFooter></headerFooter>""")
@@ -478,7 +486,7 @@ object ExcelXlsxExporter {
     }
 
     private fun appendTextCell(sb: StringBuilder, ref: String, value: String, styleId: Int) {
-        sb.append("""<c r="$ref" t="inlineStr" s="$styleId"><is><t>${escapeXml(value)}</t></is></c>""")
+        sb.append("""<c r="$ref" t="inlineStr" s="$styleId"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>""")
     }
 
     private fun appendEmptyStyledCell(sb: StringBuilder, ref: String, styleId: Int) {
@@ -495,26 +503,46 @@ object ExcelXlsxExporter {
         value.replace("\u200E", "").replace("\u200F", "").trim()
 
     private fun sanitizeSheetName(name: String): String {
-        val cleaned = name.replace(Regex("[\\\\/?*\\[\\]:]"), " ").trim()
-        return cleaned.take(31).ifBlank { "Sheet" }
+        val cleaned = name
+            .replace(Regex("[\\\\/?*\\[\\]:]"), " ")
+            .trim()
+            .trim('\'')
+        if (cleaned.isBlank()) return "Sheet"
+        val out = StringBuilder(31)
+        var i = 0
+        while (i < cleaned.length) {
+            val cp = cleaned.codePointAt(i)
+            val count = Character.charCount(cp)
+            if (out.length + count > 31) break
+            out.appendCodePoint(cp)
+            i += count
+        }
+        return out.toString().trim().trim('\'').ifBlank { "Sheet" }
     }
 
     private fun escapeXml(input: String): String {
         val out = StringBuilder(input.length + 16)
-        for (ch in input) {
-            when (ch) {
-                '&' -> out.append("&amp;")
-                '<' -> out.append("&lt;")
-                '>' -> out.append("&gt;")
-                '"' -> out.append("&quot;")
-                '\'' -> out.append("&apos;")
+        var i = 0
+        while (i < input.length) {
+            val cp = input.codePointAt(i)
+            val charCount = Character.charCount(cp)
+            when (cp) {
+                '&'.code -> out.append("&amp;")
+                '<'.code -> out.append("&lt;")
+                '>'.code -> out.append("&gt;")
+                '"'.code -> out.append("&quot;")
+                '\''.code -> out.append("&apos;")
+                0x9, 0xA, 0xD -> out.appendCodePoint(cp)
                 else -> {
-                    val code = ch.code
-                    if (code == 0x9 || code == 0xA || code == 0xD || code >= 0x20) {
-                        out.append(ch)
+                    val isValidXml10 = (cp in 0x20..0xD7FF) ||
+                        (cp in 0xE000..0xFFFD) ||
+                        (cp in 0x10000..0x10FFFF)
+                    if (isValidXml10) {
+                        out.appendCodePoint(cp)
                     }
                 }
             }
+            i += charCount
         }
         return out.toString()
     }

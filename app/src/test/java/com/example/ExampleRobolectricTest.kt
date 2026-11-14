@@ -429,7 +429,7 @@ class ExampleRobolectricTest {
         isReturnedToDuty = false,
         leaveType = "عطلة سنوية",
         wilaya = "16 - الجزائر - Alger",
-        notes = "ملاحظة اختبارية"
+        notes = "ملاحظة اختبارية 🎖️\u0001\u000B"
       )
     )
     val leaves = listOf(
@@ -444,44 +444,103 @@ class ExampleRobolectricTest {
         returnDateMillis = ret,
         durationDays = 10L,
         statusText = "جارية (بالبيت)",
-        destinationWilaya = "16 - الجزائر - Alger"
+        destinationWilaya = "16 - الجزائر - Alger",
+        notes = "نص & \"اقتباس\" 'مفرد'"
       )
     )
 
-    val bytes = com.example.util.ExcelXlsxExporter.generateWorkbookBytes(
-      personnelList = personnel,
-      leaveRecords = leaves,
-      lang = AppLanguage.ARABIC
+    val expectedWorkbookOrder = listOf("bookViews", "sheets")
+    val expectedStylesOrder = listOf(
+      "fonts", "fills", "borders", "cellStyleXfs", "cellXfs", "cellStyles", "dxfs", "tableStyles"
     )
-    assertTrue(bytes.isNotEmpty())
+    val expectedWorksheetOrder = listOf(
+      "sheetPr", "dimension", "sheetViews", "sheetFormatPr", "cols",
+      "sheetData", "autoFilter", "mergeCells", "pageMargins", "pageSetup", "headerFooter"
+    )
 
-    val entries = mutableMapOf<String, String>()
-    java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(bytes)).use { zis ->
-      var entry = zis.nextEntry
-      while (entry != null) {
-        entries[entry.name] = zis.readBytes().toString(Charsets.UTF_8)
-        entry = zis.nextEntry
-      }
+    val dbf = javax.xml.parsers.DocumentBuilderFactory.newInstance().apply {
+      isNamespaceAware = true
     }
 
-    assertTrue(entries.containsKey("[Content_Types].xml"))
-    assertTrue(entries.containsKey("xl/workbook.xml"))
-    assertTrue(entries.containsKey("xl/styles.xml"))
-    assertTrue(entries.containsKey("xl/worksheets/sheet1.xml"))
-    assertTrue(entries.containsKey("xl/worksheets/sheet2.xml"))
+    fun childElementNames(xml: String): List<String> {
+      val doc = dbf.newDocumentBuilder().parse(org.xml.sax.InputSource(java.io.StringReader(xml)))
+      val children = doc.documentElement.childNodes
+      val names = mutableListOf<String>()
+      for (i in 0 until children.length) {
+        val node = children.item(i)
+        if (node is org.w3c.dom.Element) {
+          names.add(node.localName ?: node.nodeName)
+        }
+      }
+      return names
+    }
 
-    val sheet1 = entries["xl/worksheets/sheet1.xml"]!!
-    val sheet2 = entries["xl/worksheets/sheet2.xml"]!!
-    assertTrue(sheet1.contains("paperSize=\"9\""))
-    assertTrue(sheet1.contains("orientation=\"landscape\""))
-    assertTrue(sheet1.contains("fitToWidth=\"1\""))
-    assertTrue(sheet1.contains("rightToLeft=\"1\""))
-    assertTrue(sheet1.contains("DZ-880112"))
-    assertTrue(sheet1.contains("&amp; &lt;أمين&gt;"))
+    AppLanguage.entries.forEach { lang ->
+      listOf(
+        personnel to leaves,
+        emptyList<Personnel>() to emptyList()
+      ).forEach { (pList, lList) ->
+        val bytes = com.example.util.ExcelXlsxExporter.generateWorkbookBytes(
+          personnelList = pList,
+          leaveRecords = lList,
+          lang = lang
+        )
+        assertTrue(bytes.isNotEmpty())
 
-    assertTrue(sheet2.contains("paperSize=\"9\""))
-    assertTrue(sheet2.contains("orientation=\"landscape\""))
-    assertTrue(sheet2.contains("DZ-880112"))
+        val entries = mutableMapOf<String, String>()
+        java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(bytes)).use { zis ->
+          var entry = zis.nextEntry
+          while (entry != null) {
+            entries[entry.name] = zis.readBytes().toString(Charsets.UTF_8)
+            entry = zis.nextEntry
+          }
+        }
+
+        val requiredEntries = listOf(
+          "[Content_Types].xml",
+          "_rels/.rels",
+          "xl/workbook.xml",
+          "xl/_rels/workbook.xml.rels",
+          "xl/styles.xml",
+          "xl/worksheets/sheet1.xml",
+          "xl/worksheets/sheet2.xml"
+        )
+        requiredEntries.forEach { key ->
+          assertTrue("Missing $key", entries.containsKey(key))
+          // Ensure every XML entry is well-formed XML 1.0
+          dbf.newDocumentBuilder().parse(org.xml.sax.InputSource(java.io.StringReader(entries[key]!!)))
+        }
+
+        assertEquals(expectedWorkbookOrder, childElementNames(entries["xl/workbook.xml"]!!))
+        assertEquals(expectedStylesOrder, childElementNames(entries["xl/styles.xml"]!!))
+
+        val sheet1 = entries["xl/worksheets/sheet1.xml"]!!
+        val sheet2 = entries["xl/worksheets/sheet2.xml"]!!
+        assertEquals(expectedWorksheetOrder, childElementNames(sheet1))
+        assertEquals(expectedWorksheetOrder, childElementNames(sheet2))
+
+        val expectedRtl = if (lang.isRtl) "rightToLeft=\"1\"" else "rightToLeft=\"0\""
+        assertTrue(sheet1.contains("paperSize=\"9\""))
+        assertTrue(sheet1.contains("orientation=\"landscape\""))
+        assertTrue(sheet1.contains("fitToWidth=\"1\""))
+        assertTrue(sheet1.contains(expectedRtl))
+        assertTrue(sheet1.contains("<selection pane=\"bottomLeft\" activeCell=\"A4\" sqref=\"A4\"/>"))
+
+        assertTrue(sheet2.contains("paperSize=\"9\""))
+        assertTrue(sheet2.contains("orientation=\"landscape\""))
+        assertTrue(sheet2.contains("fitToWidth=\"1\""))
+        assertTrue(sheet2.contains(expectedRtl))
+
+        if (pList.isNotEmpty()) {
+          assertTrue(sheet1.contains("DZ-880112"))
+          assertTrue(sheet1.contains("&amp; &lt;أمين&gt;"))
+          assertTrue(sheet1.contains("🎖️"))
+          assertTrue(!sheet1.contains("\u0001"))
+          assertTrue(!sheet1.contains("\u000B"))
+          assertTrue(sheet2.contains("DZ-880112"))
+        }
+      }
+    }
   }
 
   @Test
