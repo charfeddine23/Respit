@@ -54,6 +54,18 @@ class PersonnelRepository(
         return leaveRecordDao.getLeavesForPersonnel(personnelId)
     }
 
+    suspend fun countExactLeave(personnelId: Long, startMillis: Long, returnMillis: Long): Int {
+        return leaveRecordDao.countExactLeave(personnelId, startMillis, returnMillis)
+    }
+
+    suspend fun countExactLeaveByReg(regNo: String, startMillis: Long, returnMillis: Long): Int {
+        return leaveRecordDao.countExactLeaveByReg(regNo, startMillis, returnMillis)
+    }
+
+    suspend fun updateLeaveStatus(personnelId: Long, startMillis: Long, returnMillis: Long, statusText: String) {
+        leaveRecordDao.updateLeaveStatus(personnelId, startMillis, returnMillis, statusText)
+    }
+
     suspend fun insertLeave(leave: LeaveRecord): Long {
         return leaveRecordDao.insert(leave)
     }
@@ -66,26 +78,13 @@ class PersonnelRepository(
         leaveRecordDao.update(leave)
     }
 
-    suspend fun deleteLeave(leave: LeaveRecord) {
-        leaveRecordDao.delete(leave)
-    }
-
-    suspend fun deleteLeaveById(id: Long) {
-        leaveRecordDao.deleteById(id)
-    }
-
-    suspend fun clearLeaves() {
-        leaveRecordDao.clearAll()
-    }
-
-    // --- Synchronous/Bulk Maintenance ---
+    // --- Synchronous/Bulk Maintenance (Never deletes leave_records) ---
     suspend fun clearAndReset(
         samplePersonnel: List<Personnel>,
         sampleLeaves: List<LeaveRecord> = emptyList()
     ) {
         personnelDao.clearAll()
         personnelDao.insertAll(samplePersonnel)
-        leaveRecordDao.clearAll()
         if (sampleLeaves.isNotEmpty()) {
             leaveRecordDao.insertAll(sampleLeaves)
         }

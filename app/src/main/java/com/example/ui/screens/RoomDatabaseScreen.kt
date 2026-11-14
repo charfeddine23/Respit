@@ -29,7 +29,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
@@ -37,15 +36,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.FlightTakeoff
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -160,7 +157,7 @@ fun RoomDatabaseScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = AppStrings.get("room_db_title", currentLang),
+                                        text = AppStrings.get("nav_database", currentLang),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = textPrimary
@@ -173,41 +170,51 @@ fun RoomDatabaseScreen(
                                 )
                             }
                         },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = onBack,
-                                modifier = Modifier.testTag("room_back_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = AppStrings.get("back", currentLang),
-                                    tint = textPrimary
-                                )
-                            }
-                        },
                         actions = {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.15f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f)),
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(3.dp),
                                 modifier = Modifier.padding(end = 12.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color(0xFF10B981).copy(alpha = 0.15f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF10B981))
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF10B981))
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "Room 2.7.0",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF10B981),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF10B981).copy(alpha = 0.14f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.25f)),
+                                    modifier = Modifier.testTag("room_ksp_badge")
+                                ) {
                                     Text(
-                                        text = "Room 2.7.0",
+                                        text = AppStrings.get("room_ksp_active", currentLang),
                                         style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
                                         color = Color(0xFF10B981),
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
                                 }
                             }
@@ -241,14 +248,6 @@ fun RoomDatabaseScreen(
                                 currentLang = currentLang,
                                 personnelCount = personnelCount,
                                 leavesCount = leavesCount,
-                                onSyncLeaves = {
-                                    viewModel.syncLeavesFromPersonnel()
-                                    Toast.makeText(context, AppStrings.get("room_sync_success", currentLang), Toast.LENGTH_SHORT).show()
-                                },
-                                onSeedData = {
-                                    viewModel.seedRoomWithDefaults()
-                                    Toast.makeText(context, AppStrings.get("reset_sample_success", currentLang), Toast.LENGTH_SHORT).show()
-                                },
                                 onClearData = {
                                     showClearDialog = true
                                 }
@@ -429,11 +428,7 @@ fun RoomDatabaseScreen(
                                         RoomLeaveRecordRowCard(
                                             leave = leave,
                                             isDarkMode = isDarkMode,
-                                            currentLang = currentLang,
-                                            onDelete = {
-                                                viewModel.deleteLeaveRecord(leave)
-                                                Toast.makeText(context, AppStrings.get("delete_success", currentLang), Toast.LENGTH_SHORT).show()
-                                            }
+                                            currentLang = currentLang
                                         )
                                     }
                                 }
@@ -515,13 +510,9 @@ private fun RoomDatabaseHeaderCard(
     currentLang: AppLanguage,
     personnelCount: Int,
     leavesCount: Int,
-    onSyncLeaves: () -> Unit,
-    onSeedData: () -> Unit,
     onClearData: () -> Unit
 ) {
     val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -534,68 +525,6 @@ private fun RoomDatabaseHeaderCard(
         modifier = Modifier.fillMaxWidth().testTag("room_header_card")
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0284C7).copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Dns,
-                            contentDescription = null,
-                            tint = Color(0xFF0284C7),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = AppStrings.get("room_db_title", currentLang),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = textPrimary
-                        )
-                        Text(
-                            text = "personnel_leaves_db • v4",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF0284C7),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = AppStrings.get("room_ksp_active", currentLang),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF10B981),
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = AppStrings.get("room_db_desc", currentLang),
-                style = MaterialTheme.typography.bodySmall,
-                color = textSecondary,
-                lineHeight = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
             // Stat counters
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -617,38 +546,44 @@ private fun RoomDatabaseHeaderCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Action buttons row
+            // Permanent auto-archive indicator + Clear Personnel Table button
             Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(
-                    onClick = onSyncLeaves,
+                Surface(
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF0284C7)
-                    ),
-                    modifier = Modifier.testTag("room_sync_leaves_btn")
+                    color = Color(0xFF10B981).copy(alpha = if (isDarkMode) 0.14f else 0.10f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.25f)),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Icon(imageVector = Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("room_sync_leaves", currentLang), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = AppStrings.get("room_permanent_archive_note", currentLang),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
+                            color = Color(0xFF10B981),
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
-                OutlinedButton(
-                    onClick = onSeedData,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF10B981)
-                    ),
-                    modifier = Modifier.testTag("room_seed_defaults_btn")
-                ) {
-                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("room_seed_btn", currentLang), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
+                Spacer(modifier = Modifier.width(8.dp))
 
                 OutlinedButton(
                     onClick = onClearData,
@@ -846,8 +781,7 @@ private fun RoomPersonnelRowCard(
 private fun RoomLeaveRecordRowCard(
     leave: LeaveRecord,
     isDarkMode: Boolean,
-    currentLang: AppLanguage,
-    onDelete: () -> Unit
+    currentLang: AppLanguage
 ) {
     val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
     val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
@@ -945,12 +879,17 @@ private fun RoomLeaveRecordRowCard(
                 }
             }
 
-            IconButton(onClick = onDelete) {
+            // Immutable leave record badge (cannot be deleted)
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF10B981).copy(alpha = 0.12f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.25f))
+            ) {
                 Icon(
-                    imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = AppStrings.get("delete", currentLang),
-                    tint = Color(0xFFEF4444).copy(alpha = 0.8f),
-                    modifier = Modifier.size(20.dp)
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = AppStrings.get("room_immutable_badge", currentLang),
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.padding(7.dp).size(15.dp)
                 )
             }
         }

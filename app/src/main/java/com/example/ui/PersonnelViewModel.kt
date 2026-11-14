@@ -710,16 +710,34 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 wilaya = normalizeWilaya(wilaya),
                 notes = notes
             )
-            val savedEntity = if (id == 0L) {
+            if (id == 0L) {
                 val newId = repository.insert(entity)
+                val insertedEntity = entity.copy(id = newId)
                 lastUndoAction.value = UndoAction.Added(newId)
+                if (!insertedEntity.isReturnedToDuty) {
+                    autoRecordLeaveIfNeeded(insertedEntity)
+                }
                 LeaveNotificationHelper.notifyLeaveApproved(
                     getApplication(),
-                    entity.copy(id = newId),
+                    insertedEntity,
                     currentLanguage.value.code
                 )
             } else {
+                val previous = repository.getPersonnelById(id)
                 repository.update(entity)
+                if (!entity.isReturnedToDuty) {
+                    val leaveChanged = previous == null ||
+                        previous.isReturnedToDuty ||
+                        previous.startDateMillis != entity.startDateMillis ||
+                        previous.returnDateMillis != entity.returnDateMillis ||
+                        previous.leaveType != entity.leaveType
+                    if (leaveChanged) {
+                        autoRecordLeaveIfNeeded(entity)
+                    }
+                } else if (previous != null && !previous.isReturnedToDuty) {
+                    // Preserve leave record and mark completed when transitioning to on-duty
+                    markLeaveRecordCompleted(entity)
+                }
                 LeaveNotificationHelper.notifyLeaveApproved(
                     getApplication(),
                     entity,
@@ -736,21 +754,30 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 lastUndoAction.value = UndoAction.ReturnedToDuty(previous)
             }
             repository.confirmReturnToDuty(id)
+            if (previous != null) {
+                markLeaveRecordCompleted(previous.copy(isReturnedToDuty = true))
+            }
         }
     }
 
     fun grantNewLeave(id: Long, startDateMillis: Long, returnDateMillis: Long) {
         viewModelScope.launch {
             val previous = repository.getPersonnelById(id)
+            repository.grantNewLeave(id, startDateMillis, returnDateMillis)
             if (previous != null) {
                 lastUndoAction.value = UndoAction.Updated(previous)
+                val updated = previous.copy(
+                    startDateMillis = startDateMillis,
+                    returnDateMillis = returnDateMillis,
+                    isReturnedToDuty = false
+                )
+                autoRecordLeaveIfNeeded(updated)
                 LeaveNotificationHelper.notifyLeaveApproved(
                     getApplication(),
-                    previous.copy(startDateMillis = startDateMillis, returnDateMillis = returnDateMillis),
+                    updated,
                     currentLanguage.value.code
                 )
             }
-            repository.grantNewLeave(id, startDateMillis, returnDateMillis)
         }
     }
 
@@ -983,6 +1010,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 } else {
                     repository.insertAll(importedList)
                 }
+                importedList.filter { !it.isReturnedToDuty }.forEach { p ->
+                    autoRecordLeaveIfNeeded(p)
+                }
             }
 
             Pair(true, "${AppStrings.get("import_success_prefix", lang)} ${importedList.size} ${AppStrings.get("import_records_unit", lang)}")
@@ -994,6 +1024,76 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     // ==========================================
     // Room Local Database Management Functions
     // ==========================================
+
+    private suspend fun autoRecordLeaveIfNeeded(person: Personnel) {
+        val existsForId = if (person.id > 0L) {
+            repository.countExactLeave(person.id, person.startDateMillis, person.returnDateMillis) > 0
+        } else {
+            false
+        }
+        val existsForReg = repository.countExactLeaveByReg(
+            person.registrationNumber,
+            person.startDateMillis,
+            person.returnDateMillis
+        ) > 0
+        if (!existsForId && !existsForReg) {
+            val lang = currentLanguage.value
+            val record = LeaveRecord(
+                personnelId = person.id,
+                personnelName = person.fullName,
+                rank = person.rank,
+                registrationNumber = person.registrationNumber,
+                leaveType = person.leaveType,
+                startDateMillis = person.startDateMillis,
+                returnDateMillis = person.returnDateMillis,
+                durationDays = person.totalLeaveDays,
+                statusText = person.status.getCompactBadgeLabel(lang),
+                destinationWilaya = person.wilaya,
+                notes = person.notes
+            )
+            repository.insertLeave(record)
+        }
+    }
+
+    private suspend fun markLeaveRecordCompleted(person: Personnel) {
+        val completedLabel = when (currentLanguage.value) {
+            AppLanguage.FRENCH -> "Terminé (Repris le service)"
+            AppLanguage.ENGLISH -> "Completed (Returned to duty)"
+            AppLanguage.ARABIC -> "مكتملة (مستأنف للعمل)"
+        }
+        val exists = repository.countExactLeave(person.id, person.startDateMillis, person.returnDateMillis) > 0
+        if (exists) {
+            repository.updateLeaveStatus(
+                person.id,
+                person.startDateMillis,
+                person.returnDateMillis,
+                completedLabel
+            )
+        } else {
+            val existsByReg = repository.countExactLeaveByReg(
+                person.registrationNumber,
+                person.startDateMillis,
+                person.returnDateMillis
+            ) > 0
+            if (!existsByReg) {
+                repository.insertLeave(
+                    LeaveRecord(
+                        personnelId = person.id,
+                        personnelName = person.fullName,
+                        rank = person.rank,
+                        registrationNumber = person.registrationNumber,
+                        leaveType = person.leaveType,
+                        startDateMillis = person.startDateMillis,
+                        returnDateMillis = person.returnDateMillis,
+                        durationDays = person.totalLeaveDays,
+                        statusText = completedLabel,
+                        destinationWilaya = person.wilaya,
+                        notes = person.notes
+                    )
+                )
+            }
+        }
+    }
 
     fun insertLeaveRecord(leave: LeaveRecord) {
         viewModelScope.launch {
@@ -1007,18 +1107,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun deleteLeaveRecord(leave: LeaveRecord) {
-        viewModelScope.launch {
-            repository.deleteLeave(leave)
-        }
-    }
-
-    fun deleteLeaveRecordById(id: Long) {
-        viewModelScope.launch {
-            repository.deleteLeaveById(id)
-        }
-    }
-
     fun deletePersonnelFromRoom(personnel: Personnel) {
         viewModelScope.launch {
             repository.delete(personnel)
@@ -1027,208 +1115,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun clearAllRoomData() {
         viewModelScope.launch {
+            // Only clear personnel table; leave records are permanent and can NEVER be deleted
             repository.clearPersonnel()
-            repository.clearLeaves()
-        }
-    }
-
-    fun syncLeavesFromPersonnel() {
-        viewModelScope.launch {
-            val list = allPersonnel.value
-            val currentLeaves = allLeaves.value
-            val existingIds = currentLeaves.map { it.personnelId }.toSet()
-
-            val lang = currentLanguage.value
-            val newLeaves = mutableListOf<LeaveRecord>()
-            for (p in list) {
-                // Generate a leave entry for each personnel in leave or with duty return
-                val dur = p.totalLeaveDays
-                val statusStr = p.status.getCompactBadgeLabel(lang)
-                newLeaves.add(
-                    LeaveRecord(
-                        personnelId = p.id,
-                        personnelName = p.fullName,
-                        rank = p.rank,
-                        registrationNumber = p.registrationNumber,
-                        leaveType = p.leaveType,
-                        startDateMillis = p.startDateMillis,
-                        returnDateMillis = p.returnDateMillis,
-                        durationDays = dur,
-                        statusText = statusStr,
-                        destinationWilaya = p.wilaya,
-                        notes = p.notes
-                    )
-                )
-            }
-            if (newLeaves.isNotEmpty()) {
-                repository.insertAllLeaves(newLeaves)
-            }
-        }
-    }
-
-    fun seedRoomWithDefaults() {
-        viewModelScope.launch {
-            fun getOffsetDateMillis(daysOffset: Int): Long {
-                val c = Calendar.getInstance()
-                c.add(Calendar.DAY_OF_YEAR, daysOffset)
-                c.set(Calendar.HOUR_OF_DAY, 0)
-                c.set(Calendar.MINUTE, 0)
-                c.set(Calendar.SECOND, 0)
-                c.set(Calendar.MILLISECOND, 0)
-                return c.timeInMillis
-            }
-
-            val seedP = listOf(
-                Personnel(
-                    fullName = "عبد الرحمن بلقاسمي",
-                    rank = "ملازم أول - Lieutenant",
-                    registrationNumber = "DZ-160492",
-                    startDateMillis = getOffsetDateMillis(-7),
-                    returnDateMillis = getOffsetDateMillis(3),
-                    isReturnedToDuty = false,
-                    leaveType = "عطلة سنوية",
-                    wilaya = "16 - الجزائر - Alger",
-                    notes = "الكتيبة الأولى - السرية الثانية"
-                ),
-                Personnel(
-                    fullName = "محمد الأمين يحياوي",
-                    rank = "مساعد رئيسي - Adjudant-Major",
-                    registrationNumber = "DZ-318920",
-                    startDateMillis = getOffsetDateMillis(-4),
-                    returnDateMillis = getOffsetDateMillis(6),
-                    isReturnedToDuty = false,
-                    leaveType = "إجازة",
-                    wilaya = "31 - وهران - Oran",
-                    notes = "قسم التسيير الإداري"
-                ),
-                Personnel(
-                    fullName = "خالد بن عيسى الدراجي",
-                    rank = "رقيب أول - Sergent-Chef",
-                    registrationNumber = "DZ-254100",
-                    startDateMillis = getOffsetDateMillis(-10),
-                    returnDateMillis = getOffsetDateMillis(0),
-                    isReturnedToDuty = false,
-                    leaveType = "إجازة قصيرة",
-                    wilaya = "25 - قسنطينة - Constantine",
-                    notes = "سلاح الإشارة والمواصلات"
-                ),
-                Personnel(
-                    fullName = "ياسين بوجمعة صوالحي",
-                    rank = "مساعد أول - Adjudant-Chef",
-                    registrationNumber = "DZ-057812",
-                    startDateMillis = getOffsetDateMillis(-12),
-                    returnDateMillis = getOffsetDateMillis(-2),
-                    isReturnedToDuty = false,
-                    leaveType = "نقاهة",
-                    wilaya = "05 - باتنة - Batna",
-                    notes = "فصيل الحراسة والتدخل"
-                ),
-                Personnel(
-                    fullName = "حمزة بن زروال الماجري",
-                    rank = "عريف أول - Caporal-Chef",
-                    registrationNumber = "DZ-194321",
-                    startDateMillis = getOffsetDateMillis(-45),
-                    returnDateMillis = getOffsetDateMillis(-35),
-                    isReturnedToDuty = true,
-                    leaveType = "عطلة سنوية",
-                    wilaya = "19 - سطيف - Sétif",
-                    notes = "الإسناد اللوجيستي"
-                ),
-                Personnel(
-                    fullName = "فاروق لعريبي الورتيلاني",
-                    rank = "نقيب - Capitaine",
-                    registrationNumber = "DZ-098871",
-                    startDateMillis = getOffsetDateMillis(3),
-                    returnDateMillis = getOffsetDateMillis(13),
-                    isReturnedToDuty = false,
-                    leaveType = "إجازة",
-                    wilaya = "09 - البليدة - Blida",
-                    notes = "قيادة الأركان"
-                )
-            )
-
-            val seedL = listOf(
-                LeaveRecord(
-                    personnelId = 1,
-                    personnelName = "عبد الرحمن بلقاسمي",
-                    rank = "ملازم أول - Lieutenant",
-                    registrationNumber = "DZ-160492",
-                    leaveType = "عطلة سنوية",
-                    startDateMillis = getOffsetDateMillis(-7),
-                    returnDateMillis = getOffsetDateMillis(3),
-                    durationDays = 10,
-                    statusText = "جارية (بالبيت)",
-                    destinationWilaya = "16 - الجزائر - Alger",
-                    notes = "عطلة النصف الأول من السنة"
-                ),
-                LeaveRecord(
-                    personnelId = 2,
-                    personnelName = "محمد الأمين يحياوي",
-                    rank = "مساعد رئيسي - Adjudant-Major",
-                    registrationNumber = "DZ-318920",
-                    leaveType = "إجازة",
-                    startDateMillis = getOffsetDateMillis(-4),
-                    returnDateMillis = getOffsetDateMillis(6),
-                    durationDays = 10,
-                    statusText = "جارية (بالبيت)",
-                    destinationWilaya = "31 - وهران - Oran",
-                    notes = "إجازة عادية"
-                ),
-                LeaveRecord(
-                    personnelId = 3,
-                    personnelName = "خالد بن عيسى الدراجي",
-                    rank = "رقيب أول - Sergent-Chef",
-                    registrationNumber = "DZ-254100",
-                    leaveType = "إجازة قصيرة",
-                    startDateMillis = getOffsetDateMillis(-10),
-                    returnDateMillis = getOffsetDateMillis(0),
-                    durationDays = 10,
-                    statusText = "الدخول اليوم",
-                    destinationWilaya = "25 - قسنطينة - Constantine",
-                    notes = "إجازة مستحقة"
-                ),
-                LeaveRecord(
-                    personnelId = 4,
-                    personnelName = "ياسين بوجمعة صوالحي",
-                    rank = "مساعد أول - Adjudant-Chef",
-                    registrationNumber = "DZ-057812",
-                    leaveType = "نقاهة",
-                    startDateMillis = getOffsetDateMillis(-12),
-                    returnDateMillis = getOffsetDateMillis(-2),
-                    durationDays = 10,
-                    statusText = "متأخر عن الدخول",
-                    destinationWilaya = "05 - باتنة - Batna",
-                    notes = "فترة نقاهة طبية"
-                ),
-                LeaveRecord(
-                    personnelId = 5,
-                    personnelName = "حمزة بن زروال الماجري",
-                    rank = "عريف أول - Caporal-Chef",
-                    registrationNumber = "DZ-194321",
-                    leaveType = "عطلة سنوية",
-                    startDateMillis = getOffsetDateMillis(-45),
-                    returnDateMillis = getOffsetDateMillis(-35),
-                    durationDays = 10,
-                    statusText = "مكتملة (مستأنف للعمل)",
-                    destinationWilaya = "19 - سطيف - Sétif",
-                    notes = "استأنف العمل بانتظام"
-                ),
-                LeaveRecord(
-                    personnelId = 6,
-                    personnelName = "فاروق لعريبي الورتيلاني",
-                    rank = "نقيب - Capitaine",
-                    registrationNumber = "DZ-098871",
-                    leaveType = "إجازة",
-                    startDateMillis = getOffsetDateMillis(3),
-                    returnDateMillis = getOffsetDateMillis(13),
-                    durationDays = 10,
-                    statusText = "مبرمجة قريباً",
-                    destinationWilaya = "09 - البليدة - Blida",
-                    notes = "موافقة القيادة"
-                )
-            )
-
-            repository.clearAndReset(seedP, seedL)
         }
     }
 

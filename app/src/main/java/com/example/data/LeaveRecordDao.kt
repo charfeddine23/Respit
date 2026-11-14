@@ -22,6 +22,15 @@ interface LeaveRecordDao {
     @Query("SELECT COUNT(*) FROM leave_records")
     fun getLeavesCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM leave_records WHERE personnelId = :personnelId AND startDateMillis = :startMillis AND returnDateMillis = :returnMillis")
+    suspend fun countExactLeave(personnelId: Long, startMillis: Long, returnMillis: Long): Int
+
+    @Query("SELECT COUNT(*) FROM leave_records WHERE registrationNumber = :regNo AND startDateMillis = :startMillis AND returnDateMillis = :returnMillis")
+    suspend fun countExactLeaveByReg(regNo: String, startMillis: Long, returnMillis: Long): Int
+
+    @Query("UPDATE leave_records SET statusText = :statusText WHERE personnelId = :personnelId AND startDateMillis = :startMillis AND returnDateMillis = :returnMillis")
+    suspend fun updateLeaveStatus(personnelId: Long, startMillis: Long, returnMillis: Long, statusText: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(leave: LeaveRecord): Long
 
@@ -30,13 +39,4 @@ interface LeaveRecordDao {
 
     @Update
     suspend fun update(leave: LeaveRecord)
-
-    @Delete
-    suspend fun delete(leave: LeaveRecord)
-
-    @Query("DELETE FROM leave_records WHERE id = :id")
-    suspend fun deleteById(id: Long)
-
-    @Query("DELETE FROM leave_records")
-    suspend fun clearAll()
 }

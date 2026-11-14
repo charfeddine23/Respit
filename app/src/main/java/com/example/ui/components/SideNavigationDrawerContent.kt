@@ -414,7 +414,7 @@ fun SideNavigationDrawerContent(
                 DrawerNavigationItem(
                     icon = Icons.Default.Storage,
                     iconTint = Color(0xFF0284C7),
-                    title = AppStrings.get("room_db_title", currentLang),
+                    title = AppStrings.get("nav_database", currentLang),
                     subtitle = AppStrings.get("room_db_sub", currentLang),
                     isDarkMode = isDarkMode,
                     haptic = haptic,

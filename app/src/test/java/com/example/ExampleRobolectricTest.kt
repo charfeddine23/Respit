@@ -336,6 +336,56 @@ class ExampleRobolectricTest {
     val sent = com.example.util.LeaveNotificationHelper.checkApproachingLeaves(app, list, "ar")
     assertEquals(2, sent)
   }
+
+  @Test
+  fun `verify leave records remain immutable even after personnel clearAndReset`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val inMemoryDb = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+
+    val repo = PersonnelRepository(inMemoryDb.personnelDao(), inMemoryDb.leaveRecordDao())
+    val start = getOffsetDateMillis(-5)
+    val ret = getOffsetDateMillis(5)
+
+    val p = Personnel(
+      fullName = "كريم بن صالح",
+      rank = "رائد - Commandant",
+      registrationNumber = "DZ-551122",
+      startDateMillis = start,
+      returnDateMillis = ret,
+      isReturnedToDuty = false,
+      leaveType = "عطلة سنوية",
+      wilaya = "16 - الجزائر - Alger"
+    )
+    val pid = repo.insert(p)
+    repo.insertLeave(
+      LeaveRecord(
+        personnelId = pid,
+        personnelName = p.fullName,
+        rank = p.rank,
+        registrationNumber = p.registrationNumber,
+        leaveType = p.leaveType,
+        startDateMillis = start,
+        returnDateMillis = ret,
+        durationDays = 10,
+        statusText = "في إجازة",
+        destinationWilaya = p.wilaya
+      )
+    )
+
+    assertEquals(1, repo.countExactLeave(pid, start, ret))
+    assertEquals(1, repo.countExactLeaveByReg("DZ-551122", start, ret))
+
+    // Clearing personnel table or calling clearAndReset must NEVER wipe leave records
+    repo.clearPersonnel()
+    repo.clearAndReset(emptyList())
+    val survivingLeaves = repo.allLeaves.first()
+    assertEquals(1, survivingLeaves.size)
+    assertEquals("كريم بن صالح", survivingLeaves[0].personnelName)
+
+    inMemoryDb.close()
+  }
 }
 
 
