@@ -186,13 +186,13 @@ object LeaveNotificationHelper {
         val title = when (appLang) {
             AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
             AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr / ${personnel.fullName}"
+            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
         }
 
         val summaryLine = when (appLang) {
             AppLanguage.FRENCH -> "$leaveTypeStr (${personnel.totalLeaveDays} j) — Départ le ${personnel.formattedStartDate}"
             AppLanguage.ENGLISH -> "$leaveTypeStr (${personnel.totalLeaveDays} d) — Starts ${personnel.formattedStartDate}"
-            AppLanguage.ARABIC -> "اعتماد $leaveTypeStr (${personnel.totalLeaveDays} يوم) ابتداءً من ${personnel.formattedStartDate}"
+            AppLanguage.ARABIC -> "اعتماد $leaveTypeStr مدتها (${personnel.totalLeaveDays}) يوم ابتداءً من ${personnel.formattedStartDate}"
         }
 
         val expandedBody = when (appLang) {
@@ -327,13 +327,13 @@ object LeaveNotificationHelper {
         val title = when (appLang) {
             AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
             AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr / ${personnel.fullName}"
+            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
         }
 
         val summary = when (appLang) {
             AppLanguage.FRENCH -> "Retard de ${personnel.daysOverdue} jour(s) • Reprise prévue : ${personnel.formattedReturnDate}"
             AppLanguage.ENGLISH -> "Overdue by ${personnel.daysOverdue} day(s) • Scheduled: ${personnel.formattedReturnDate}"
-            AppLanguage.ARABIC -> "متأخر بـ ${personnel.daysOverdue} يوم عن موعد الدخول المقرر (${personnel.formattedReturnDate})"
+            AppLanguage.ARABIC -> "تأخر عن موعد الدخول المقرر (${personnel.formattedReturnDate}) بـ (${personnel.daysOverdue}) يوم"
         }
 
         val body = when (appLang) {
@@ -413,7 +413,7 @@ object LeaveNotificationHelper {
         val title = when (appLang) {
             AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
             AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr / ${personnel.fullName}"
+            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
         }
 
         val summary = when (appLang) {
@@ -475,13 +475,13 @@ object LeaveNotificationHelper {
         val title = when (appLang) {
             AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
             AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr / ${personnel.fullName}"
+            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
         }
 
         val summary = when (appLang) {
             AppLanguage.FRENCH -> "Reprise du service prévue aujourd'hui ($wilayaStr)"
             AppLanguage.ENGLISH -> "Scheduled to resume duty today ($wilayaStr)"
-            AppLanguage.ARABIC -> "موعد الدخول واستئناف العمل اليوم ($wilayaStr)"
+            AppLanguage.ARABIC -> "موعد الالتحاق واستئناف الخدمة اليوم ($wilayaStr)"
         }
 
         val body = when (appLang) {
@@ -538,13 +538,13 @@ object LeaveNotificationHelper {
         val title = when (appLang) {
             AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
             AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr / ${personnel.fullName}"
+            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
         }
 
         val summary = when (appLang) {
             AppLanguage.FRENCH -> "Reprise dans $daysUntilReturn jour(s) • ${personnel.formattedReturnDate}"
             AppLanguage.ENGLISH -> "Returns in $daysUntilReturn day(s) • ${personnel.formattedReturnDate}"
-            AppLanguage.ARABIC -> "يتبقى $daysUntilReturn يوم على استئناف العمل (${personnel.formattedReturnDate})"
+            AppLanguage.ARABIC -> "بقي ($daysUntilReturn) يوم على استئناف الخدمة (${personnel.formattedReturnDate})"
         }
 
         val body = when (appLang) {

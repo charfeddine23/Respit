@@ -48,6 +48,7 @@ class SettingsManager(context: Context) {
         private const val KEY_DRIVE_SYNC_ENABLED = "pref_drive_sync_enabled"
         private const val KEY_LAST_DRIVE_BACKUP = "pref_last_drive_backup_time"
         private const val KEY_DYNAMIC_ANIMATIONS = "pref_dynamic_animations_enabled"
+        private const val KEY_NO_SCREENSHOT_ENABLED = "pref_no_screenshot_enabled"
         const val DEFAULT_DUTY_THRESHOLD = 45
     }
 
@@ -151,6 +152,10 @@ class SettingsManager(context: Context) {
     var isDynamicAnimationsEnabled: Boolean
         get() = prefs.getBoolean(KEY_DYNAMIC_ANIMATIONS, true) // default true for lively UI
         set(value) = prefs.edit().putBoolean(KEY_DYNAMIC_ANIMATIONS, value).apply()
+
+    var isNoScreenshotEnabled: Boolean
+        get() = prefs.getBoolean(KEY_NO_SCREENSHOT_ENABLED, false) // Disabled by default; toggle in Security Settings
+        set(value) = prefs.edit().putBoolean(KEY_NO_SCREENSHOT_ENABLED, value).apply()
 
     var recentSearches: List<String>
         get() {

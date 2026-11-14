@@ -386,6 +386,104 @@ class ExampleRobolectricTest {
 
     inMemoryDb.close()
   }
+
+  @Test
+  fun `verify No Screenshot FLAG_SECURE disabled by default and toggleable`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val settings = com.example.data.SettingsManager(context)
+    assertTrue(!settings.isNoScreenshotEnabled)
+
+    val controller = Robolectric.buildActivity(MainActivity::class.java)
+    controller.create().start().resume()
+    val activity = controller.get()
+    val hasSecureFlagInitially = (activity.window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE) != 0
+    assertTrue(!hasSecureFlagInitially)
+    controller.pause().stop().destroy()
+
+    settings.isNoScreenshotEnabled = true
+    assertTrue(settings.isNoScreenshotEnabled)
+
+    val securedController = Robolectric.buildActivity(MainActivity::class.java)
+    securedController.create().start().resume()
+    val securedActivity = securedController.get()
+    val hasSecureFlagWhenEnabled = (securedActivity.window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE) != 0
+    assertTrue(hasSecureFlagWhenEnabled)
+    securedController.pause().stop().destroy()
+
+    settings.isNoScreenshotEnabled = false
+    assertTrue(!settings.isNoScreenshotEnabled)
+  }
+
+  @Test
+  fun `verify ExcelXlsxExporter generates valid A4 landscape xlsx workbook`() {
+    val start = getOffsetDateMillis(-4)
+    val ret = getOffsetDateMillis(6)
+    val personnel = listOf(
+      Personnel(
+        id = 1L,
+        fullName = "سفيان بلقاسم & <أمين>",
+        rank = "نقيب - Capitaine",
+        registrationNumber = "DZ-880112",
+        startDateMillis = start,
+        returnDateMillis = ret,
+        isReturnedToDuty = false,
+        leaveType = "عطلة سنوية",
+        wilaya = "16 - الجزائر - Alger",
+        notes = "ملاحظة اختبارية"
+      )
+    )
+    val leaves = listOf(
+      LeaveRecord(
+        id = 1L,
+        personnelId = 1L,
+        personnelName = "سفيان بلقاسم",
+        rank = "نقيب - Capitaine",
+        registrationNumber = "DZ-880112",
+        leaveType = "عطلة سنوية",
+        startDateMillis = start,
+        returnDateMillis = ret,
+        durationDays = 10L,
+        statusText = "جارية (بالبيت)",
+        destinationWilaya = "16 - الجزائر - Alger"
+      )
+    )
+
+    val bytes = com.example.util.ExcelXlsxExporter.generateWorkbookBytes(
+      personnelList = personnel,
+      leaveRecords = leaves,
+      lang = AppLanguage.ARABIC
+    )
+    assertTrue(bytes.isNotEmpty())
+
+    val entries = mutableMapOf<String, String>()
+    java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(bytes)).use { zis ->
+      var entry = zis.nextEntry
+      while (entry != null) {
+        entries[entry.name] = zis.readBytes().toString(Charsets.UTF_8)
+        entry = zis.nextEntry
+      }
+    }
+
+    assertTrue(entries.containsKey("[Content_Types].xml"))
+    assertTrue(entries.containsKey("xl/workbook.xml"))
+    assertTrue(entries.containsKey("xl/styles.xml"))
+    assertTrue(entries.containsKey("xl/worksheets/sheet1.xml"))
+    assertTrue(entries.containsKey("xl/worksheets/sheet2.xml"))
+
+    val sheet1 = entries["xl/worksheets/sheet1.xml"]!!
+    val sheet2 = entries["xl/worksheets/sheet2.xml"]!!
+    assertTrue(sheet1.contains("paperSize=\"9\""))
+    assertTrue(sheet1.contains("orientation=\"landscape\""))
+    assertTrue(sheet1.contains("fitToWidth=\"1\""))
+    assertTrue(sheet1.contains("rightToLeft=\"1\""))
+    assertTrue(sheet1.contains("DZ-880112"))
+    assertTrue(sheet1.contains("&amp; &lt;أمين&gt;"))
+
+    assertTrue(sheet2.contains("paperSize=\"9\""))
+    assertTrue(sheet2.contains("orientation=\"landscape\""))
+    assertTrue(sheet2.contains("DZ-880112"))
+  }
 }
+
 
 

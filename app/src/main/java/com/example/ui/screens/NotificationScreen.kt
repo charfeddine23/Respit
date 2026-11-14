@@ -114,7 +114,6 @@ import com.example.data.Personnel
 import com.example.data.formatRank
 import com.example.data.formatWilaya
 import com.example.ui.PersonnelViewModel
-import com.example.ui.theme.DynamicAuroraBackground
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 
@@ -162,42 +161,20 @@ fun NotificationScreen(
         }
     }
 
-    val liveDotAlpha = if (isDynamicAnimationsEnabled && notifications.isNotEmpty()) {
-        val infiniteTransition = rememberInfiniteTransition(label = "notifLivePulse")
-        infiniteTransition.animateFloat(
-            initialValue = 0.35f,
-            targetValue = 1.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(950, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "notifLiveDot"
-        ).value
-    } else 1f
-
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            DynamicAuroraBackground(
-                isDark = isDarkMode,
-                isNeumorphic = isNeumorphic,
-                animationsEnabled = isDynamicAnimationsEnabled
-            )
-
-            Scaffold(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("notifications_scaffold")
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("notifications_scaffold"),
-                containerColor = Color.Transparent,
-                topBar = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
                         Surface(
                             shape = RoundedCornerShape(22.dp),
                             color = if (isDarkMode) Color(0xE8131D33) else Color(0xFAFFFFFF),
@@ -238,8 +215,7 @@ fun NotificationScreen(
                                                 .size(9.dp)
                                                 .clip(CircleShape)
                                                 .background(
-                                                    (if (urgentCount > 0) Color(0xFFEF4444) else Color(0xFF00BCD4))
-                                                        .copy(alpha = liveDotAlpha)
+                                                    if (urgentCount > 0) Color(0xFFEF4444) else Color(0xFF00BCD4)
                                                 )
                                         )
                                         Spacer(modifier = Modifier.width(7.dp))
@@ -318,14 +294,12 @@ fun NotificationScreen(
                             }
                         }
                     }
-                }
-            ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.TopCenter
-                ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -592,13 +566,12 @@ fun NotificationScreen(
                                     )
                                 }
                                 item {
-                                    Spacer(modifier = Modifier.height(78.dp))
+                                    Spacer(modifier = Modifier.height(16.dp))
                                 }
                             }
                         }
                     }
                 }
-            }
         }
     }
 

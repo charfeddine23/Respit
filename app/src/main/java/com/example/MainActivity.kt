@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -54,6 +55,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -113,6 +115,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -176,6 +179,7 @@ import com.example.ui.theme.liquidGlassInteractive
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.AppUpdateState
+import com.example.util.WindowSecurityHelper
 import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
@@ -198,6 +202,8 @@ class MainActivity : FragmentActivity() {
         }
 
         enableEdgeToEdge()
+        // Enforce Maximum Security (No Screenshot) from very first frame when enabled
+        WindowSecurityHelper.applySecureFlag(this, viewModel.isNoScreenshotEnabled.value)
         setContent {
             val themeMode by viewModel.currentThemeMode.collectAsState()
             val isDarkTheme = themeMode == AppThemeMode.DARK
@@ -246,7 +252,12 @@ fun LeaveTrackerMainApp(
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
     val lastUndo by viewModel.lastUndoAction.collectAsState()
     val currentLang by viewModel.currentLanguage.collectAsState()
+    val isNoScreenshotEnabled by viewModel.isNoScreenshotEnabled.collectAsState()
     val isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
+
+    LaunchedEffect(isNoScreenshotEnabled) {
+        WindowSecurityHelper.applySecureFlag(context as? android.app.Activity, isNoScreenshotEnabled)
+    }
 
     val personnelList by viewModel.filteredPersonnel.collectAsState()
     val allPersonnelList by viewModel.allPersonnel.collectAsState()
@@ -454,6 +465,8 @@ fun LeaveTrackerMainApp(
                             onSaveThreshold = { viewModel.setDutyThreshold(it) },
                             isBiometricEnabled = isBiometricEnabled,
                             onToggleBiometric = { enabled -> viewModel.setBiometricLock(enabled) },
+                            isNoScreenshotEnabled = isNoScreenshotEnabled,
+                            onToggleNoScreenshot = { enabled -> viewModel.setNoScreenshotEnabled(enabled) },
                             onLockNow = {
                                 scope.launch { drawerState.close() }
                                 viewModel.lockApp()
@@ -748,36 +761,50 @@ fun LeaveTrackerMainApp(
                             val horizontalPadding = if (isTablet) 24.dp else 16.dp
                             val contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 14.dp)
 
-                            when (selectedNavPage) {
-                                AppNavPage.DATABASE -> {
-                                    RoomDatabaseScreen(
-                                        viewModel = viewModel,
-                                        onBack = { selectedNavPage = AppNavPage.DASHBOARD }
-                                    )
-                                }
-                                AppNavPage.NOTIFICATIONS -> {
-                                    NotificationScreen(
-                                        viewModel = viewModel,
-                                        onBack = { selectedNavPage = AppNavPage.DASHBOARD },
-                                        onSelectPersonnel = { personnelId ->
-                                            val p = allPersonnelList.find { it.id == personnelId }
-                                            if (p != null) {
-                                                personnelToEdit = p
-                                                showAddEditDialog = true
-                                            }
+                            val saveableStateHolder = rememberSaveableStateHolder()
+                            val dashboardListState = rememberLazyListState()
+                            val recordsListState = rememberLazyListState()
+
+                            Crossfade(
+                                targetState = selectedNavPage,
+                                animationSpec = tween(
+                                    durationMillis = if (isDynamicAnimationsEnabled) 140 else 0,
+                                    easing = FastOutSlowInEasing
+                                ),
+                                label = "mainNavCrossfade"
+                            ) { currentPage ->
+                                saveableStateHolder.SaveableStateProvider(key = currentPage) {
+                                    when (currentPage) {
+                                        AppNavPage.DATABASE -> {
+                                            RoomDatabaseScreen(
+                                                viewModel = viewModel,
+                                                onBack = { selectedNavPage = AppNavPage.DASHBOARD }
+                                            )
                                         }
-                                    )
-                                }
-                                AppNavPage.DASHBOARD -> {
-                                    val previewList = remember(personnelList) { personnelList.take(4) }
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .widthIn(max = contentMaxWidth)
-                                            .testTag("dashboard_lazy_column"),
-                                        contentPadding = contentPadding,
-                                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                                    ) {
+                                        AppNavPage.NOTIFICATIONS -> {
+                                            NotificationScreen(
+                                                viewModel = viewModel,
+                                                onBack = { selectedNavPage = AppNavPage.DASHBOARD },
+                                                onSelectPersonnel = { personnelId ->
+                                                    val p = allPersonnelList.find { it.id == personnelId }
+                                                    if (p != null) {
+                                                        personnelToEdit = p
+                                                        showAddEditDialog = true
+                                                    }
+                                                }
+                                            )
+                                        }
+                                        AppNavPage.DASHBOARD -> {
+                                            val previewList = remember(personnelList) { personnelList.take(4) }
+                                            LazyColumn(
+                                                state = dashboardListState,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .widthIn(max = contentMaxWidth)
+                                                    .testTag("dashboard_lazy_column"),
+                                                contentPadding = contentPadding,
+                                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                                            ) {
                                         // Unified Interactive KPI Dashboard (with Pulse & living animation support)
                                         item {
                                             StatisticsSection(
@@ -1194,19 +1221,21 @@ fun LeaveTrackerMainApp(
                                         }
                                     }
                                 }
-                                AppNavPage.RECORDS -> {
-                                    val activeFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
-                                            (if (selectedRank != "ALL") 1 else 0) +
-                                            (if (currentSort != SortOption.RETURN_SOON) 1 else 0)
+                                        AppNavPage.RECORDS -> {
+                                            val activeFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
+                                                    (if (selectedRank != "ALL") 1 else 0) +
+                                                    (if (currentSort != SortOption.RETURN_SOON) 1 else 0)
+                                            val chunkedPersonnel = remember(personnelList) { personnelList.chunked(2) }
 
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .widthIn(max = contentMaxWidth)
-                                            .testTag("records_lazy_column"),
-                                        contentPadding = contentPadding,
-                                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                                    ) {
+                                            LazyColumn(
+                                                state = recordsListState,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .widthIn(max = contentMaxWidth)
+                                                    .testTag("records_lazy_column"),
+                                                contentPadding = contentPadding,
+                                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                                            ) {
                                         // Full Search Bar with Filter & Sort dialog trigger
                                         item {
                                             Box(
@@ -1400,7 +1429,7 @@ fun LeaveTrackerMainApp(
                                             }
                                         } else if (isTablet) {
                                             // Adaptive 2-column grid layout for tablets and wide screens
-                                            items(personnelList.chunked(2), key = { pair -> pair.joinToString("-") { it.id.toString() } }) { rowItems ->
+                                            items(chunkedPersonnel, key = { pair -> pair.joinToString("-") { it.id.toString() } }) { rowItems ->
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -1467,8 +1496,9 @@ fun LeaveTrackerMainApp(
                                             }
                                         }
 
-                                        item {
-                                            Spacer(modifier = Modifier.height(90.dp))
+                                            item {
+                                                Spacer(modifier = Modifier.height(90.dp))
+                                            }
                                         }
                                     }
                                 }
@@ -1479,6 +1509,7 @@ fun LeaveTrackerMainApp(
             }
         }
     }
+}
 
     // Add / Edit Personnel Dialog
     if (showAddEditDialog) {
@@ -1510,7 +1541,10 @@ fun LeaveTrackerMainApp(
                 ).show()
             },
             isDarkMode = isDarkMode,
-            currentLang = currentLang
+            currentLang = currentLang,
+            isNeumorphic = isNeumorphic,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled
         )
     }
 
@@ -1821,15 +1855,6 @@ private fun HeaderUpdateDownloadButton(
                     modifier = Modifier
                         .size(21.dp)
                         .graphicsLayer { translationY = arrowFloatY.dp.toPx() }
-                )
-                // Subtle live dot neatly inside top-end corner
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(5.5.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF10B981))
                 )
             }
         }

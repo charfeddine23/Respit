@@ -64,6 +64,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
@@ -144,6 +145,8 @@ fun SideNavigationDrawerContent(
     onSaveThreshold: (Int) -> Unit = {},
     isBiometricEnabled: Boolean = false,
     onToggleBiometric: (Boolean) -> Unit = {},
+    isNoScreenshotEnabled: Boolean = true,
+    onToggleNoScreenshot: (Boolean) -> Unit = {},
     onLockNow: () -> Unit = {},
     isDynamicAnimationsEnabled: Boolean = true,
     onToggleDynamicAnimations: (Boolean) -> Unit = {},
@@ -971,6 +974,37 @@ fun SideNavigationDrawerContent(
                             Spacer(modifier = Modifier.height(6.dp))
                         }
                     }
+
+                    HorizontalDivider(color = dividerColor)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 3.15 Maximum Security: Block Screenshots & Screen Recording (Enabled by default)
+                    TactileSwitchSettingRow(
+                        icon = Icons.Default.VisibilityOff,
+                        iconTint = Color(0xFF10B981),
+                        title = AppStrings.get("no_screenshot_title", currentLang),
+                        subtitle = AppStrings.get(
+                            if (isNoScreenshotEnabled) "no_screenshot_active_sub" else "no_screenshot_inactive_sub",
+                            currentLang
+                        ),
+                        subtitleColor = if (isNoScreenshotEnabled) Color(0xFF10B981) else null,
+                        checked = isNoScreenshotEnabled,
+                        trackColor = Color(0xFF10B981),
+                        isDarkMode = isDarkMode,
+                        haptic = haptic,
+                        switchTag = "drawer_no_screenshot_toggle",
+                        onToggle = { isChecked ->
+                            onToggleNoScreenshot(isChecked)
+                            Toast.makeText(
+                                context,
+                                AppStrings.get(
+                                    if (isChecked) "no_screenshot_enabled_toast" else "no_screenshot_disabled_toast",
+                                    currentLang
+                                ),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
 
                     HorizontalDivider(color = dividerColor)
                     Spacer(modifier = Modifier.height(4.dp))

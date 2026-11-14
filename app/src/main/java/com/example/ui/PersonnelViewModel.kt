@@ -128,6 +128,14 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         settingsManager.isDynamicAnimationsEnabled = enabled
     }
 
+    // Maximum Security: Block screenshots & screen recording (Enabled by default)
+    val isNoScreenshotEnabled = MutableStateFlow(settingsManager.isNoScreenshotEnabled)
+
+    fun setNoScreenshotEnabled(enabled: Boolean) {
+        isNoScreenshotEnabled.value = enabled
+        settingsManager.isNoScreenshotEnabled = enabled
+    }
+
     // Google Drive Sync state
     val isDriveSyncEnabled = MutableStateFlow(settingsManager.isGoogleDriveSyncEnabled)
     val lastDriveBackupTime = MutableStateFlow(settingsManager.lastGoogleDriveBackupTime)
@@ -389,7 +397,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     val msg = when (lang) {
                         AppLanguage.FRENCH -> "$localizedRank ${p.fullName} doit reprendre le service aujourd'hui (${sdf.format(Date(p.returnDateMillis))})."
                         AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} is scheduled to resume duty today (${sdf.format(Date(p.returnDateMillis))})."
-                        else -> "على $localizedRank / ${p.fullName} الالتحاق واستئناف الخدمة اليوم (${sdf.format(Date(p.returnDateMillis))})."
+                        else -> "على $localizedRank: ${p.fullName}، الالتحاق واستئناف الخدمة اليوم (${sdf.format(Date(p.returnDateMillis))}) بعد إجازة مدتها (${p.totalLeaveDays}) يوم"
                     }
                     result.add(
                         AppNotification(
@@ -418,7 +426,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     val msg = when (lang) {
                         AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a dépassé la date de retour (${p.getCountdownText(lang)})."
                         AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} is overdue for duty return (${p.getCountdownText(lang)})."
-                        else -> "تأخر $localizedRank / ${p.fullName} عن موعد الالتحاق المقرر (${p.getCountdownText(lang)})."
+                        else -> "تأخر $localizedRank: ${p.fullName}، عن موعد الدخول المقرر (${sdf.format(Date(p.returnDateMillis))}) بـ (${p.daysOverdue}) يوم"
                     }
                     result.add(
                         AppNotification(
@@ -442,14 +450,14 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     val title = when (lang) {
                         AppLanguage.FRENCH -> "Retour de congé imminent"
                         AppLanguage.ENGLISH -> "Duty Return Approaching"
-                        else -> "تنبيه: اقتراب موعد استئناف العمل"
+                        else -> "اقتراب موعد استئناف الخدمة"
                     }
                     val msg = when (lang) {
                         AppLanguage.FRENCH -> "Il reste $daysUntilReturn jour(s) pour $localizedRank ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
                         AppLanguage.ENGLISH -> "$daysUntilReturn day(s) remaining for $localizedRank ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
                         else -> {
-                            val timeNotice = if (daysUntilReturn == 1L) "متبقي يوم واحد (غداً)" else "متبقي يومان (خلال يومين)"
-                            "$timeNotice لعودة $localizedRank / ${p.fullName} للعمل (${sdf.format(Date(p.returnDateMillis))})."
+                            val timeNotice = if (daysUntilReturn == 1L) "بقي يوم واحد (غداً)" else "بقي يومان (خلال يومين)"
+                            "$timeNotice لاستئناف $localizedRank: ${p.fullName}، للخدمة بتاريخ (${sdf.format(Date(p.returnDateMillis))})"
                         }
                     }
                     result.add(
@@ -474,12 +482,12 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     val title = when (lang) {
                         AppLanguage.FRENCH -> "Départ en congé imminent"
                         AppLanguage.ENGLISH -> "Upcoming Leave"
-                        else -> "تنبيه: موعد انطلاق الإجازة"
+                        else -> "موعد انطلاق الإجازة"
                     }
                     val msg = when (lang) {
                         AppLanguage.FRENCH -> "$localizedRank ${p.fullName} commence son congé le ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
                         AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} starts leave on ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
-                        else -> "يبدأ $localizedRank / ${p.fullName} إجازته ($localizedLeaveType) بتاريخ ${sdf.format(Date(p.startDateMillis))}."
+                        else -> "يستفيد $localizedRank: ${p.fullName}، من $localizedLeaveType مدتها (${p.totalLeaveDays}) يوم ابتداءً من (${sdf.format(Date(p.startDateMillis))})"
                     }
                     result.add(
                         AppNotification(
@@ -508,7 +516,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     val msg = when (lang) {
                         AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a accompli ${p.daysSinceDutyReturn} jours de service (seuil : $threshold jours)."
                         AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} has completed ${p.daysSinceDutyReturn} duty days (threshold: $threshold days)."
-                        else -> "قضى $localizedRank / ${p.fullName} مدة ${p.daysSinceDutyReturn} يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold يوم)."
+                        else -> "قضى $localizedRank: ${p.fullName}، مدة ${p.daysSinceDutyReturn} يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold) يوم"
                     }
                     result.add(
                         AppNotification(

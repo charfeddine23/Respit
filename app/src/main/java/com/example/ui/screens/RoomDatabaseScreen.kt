@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -58,6 +60,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -82,6 +85,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -119,11 +123,15 @@ import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
 import com.example.ui.PersonnelViewModel
-import com.example.ui.theme.DynamicAuroraBackground
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.BiometricAuthHelper
+import com.example.util.ExcelXlsxExporter
+import com.example.util.SyncDialogSecureWindow
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,105 +161,171 @@ fun RoomDatabaseScreen(
     val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
+    val isNoScreenshotEnabled by viewModel.isNoScreenshotEnabled.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val excelExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    ) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        ExcelXlsxExporter.writeWorkbookToUri(
+                            context = context,
+                            uri = uri,
+                            personnelList = personnelList,
+                            leaveRecords = leavesList,
+                            lang = currentLang
+                        )
+                    }
+                }
+                if (result.isSuccess) {
+                    Toast.makeText(
+                        context,
+                        AppStrings.get("excel_export_success", currentLang),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "${AppStrings.get("excel_export_failed", currentLang)}: ${result.exceptionOrNull()?.localizedMessage.orEmpty()}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
-        Box(modifier = Modifier.fillMaxSize().background(bgColor).testTag("room_database_screen")) {
-            DynamicAuroraBackground(isDark = isDarkMode, isNeumorphic = isNeumorphic, animationsEnabled = isDynamicAnimationsEnabled)
-
-            Scaffold(
-                containerColor = Color.Transparent,
-                topBar = {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Storage,
-                                        contentDescription = null,
-                                        tint = Color(0xFF38BDF8),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = AppStrings.get("nav_database", currentLang),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = textPrimary
-                                    )
-                                }
+        Box(modifier = Modifier.fillMaxSize().testTag("room_database_screen")) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Surface(
+                    color = if (isDarkMode) Color(0xCC0F172A) else Color(0xDAE2E8F0),
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Storage,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = AppStrings.get("room_db_sub", currentLang),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = textSecondary
+                                    text = AppStrings.get("nav_database", currentLang),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimary
                                 )
                             }
-                        },
-                        actions = {
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(3.dp),
-                                modifier = Modifier.padding(end = 12.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = Color(0xFF10B981).copy(alpha = 0.15f),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(7.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFF10B981))
-                                        )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
-                                            text = "Room 2.7.0",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF10B981),
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
+                            Text(
+                                text = AppStrings.get("room_db_sub", currentLang),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = textSecondary
+                            )
+                        }
 
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFF10B981).copy(alpha = 0.14f),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.25f)),
-                                    modifier = Modifier.testTag("room_ksp_badge")
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.15f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF10B981))
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
                                     Text(
-                                        text = AppStrings.get("room_ksp_active", currentLang),
+                                        text = "Room 2.7.0",
                                         style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
+                                        fontSize = 11.sp,
                                         color = Color(0xFF10B981),
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = if (isDarkMode) Color(0xCC0F172A) else Color(0xCCE2E8F0)
-                        )
-                    )
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.14f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.25f)),
+                                modifier = Modifier.testTag("room_ksp_badge")
+                            ) {
+                                Text(
+                                    text = AppStrings.get("room_ksp_active", currentLang),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF10B981),
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                 }
-            ) { innerPadding ->
+
                 BoxWithConstraints(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
                     val contentModifier = Modifier
                         .fillMaxSize()
                         .widthIn(max = 720.dp)
                         .align(Alignment.TopCenter)
+
+                    val filteredPersonnel = remember(personnelList, searchQuery, currentLang) {
+                        if (searchQuery.isBlank()) {
+                            personnelList
+                        } else {
+                            val q = searchQuery.trim().lowercase(Locale.getDefault())
+                            personnelList.filter {
+                                it.fullName.lowercase(Locale.getDefault()).contains(q) ||
+                                        it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
+                                        it.rank.lowercase(Locale.getDefault()).contains(q) ||
+                                        formatRank(it.rank, currentLang).lowercase(Locale.getDefault()).contains(q)
+                            }
+                        }
+                    }
+
+                    val filteredLeaves = remember(leavesList, searchQuery, currentLang) {
+                        if (searchQuery.isBlank()) {
+                            leavesList
+                        } else {
+                            val q = searchQuery.trim().lowercase(Locale.getDefault())
+                            leavesList.filter {
+                                it.personnelName.lowercase(Locale.getDefault()).contains(q) ||
+                                        it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
+                                        it.leaveType.lowercase(Locale.getDefault()).contains(q) ||
+                                        formatLeaveType(it.leaveType, currentLang).lowercase(Locale.getDefault()).contains(q) ||
+                                        it.rank.lowercase(Locale.getDefault()).contains(q) ||
+                                        formatRank(it.rank, currentLang).lowercase(Locale.getDefault()).contains(q)
+                            }
+                        }
+                    }
 
                     LazyColumn(
                         modifier = contentModifier.padding(horizontal = 16.dp),
@@ -268,6 +342,9 @@ fun RoomDatabaseScreen(
                                 leavesCount = leavesCount,
                                 onClearData = {
                                     showClearDialog = true
+                                },
+                                onExportExcel = {
+                                    excelExportLauncher.launch(ExcelXlsxExporter.defaultFileName())
                                 }
                             )
                         }
@@ -353,18 +430,6 @@ fun RoomDatabaseScreen(
                                     )
                                 }
 
-                                val filteredPersonnel = if (searchQuery.isBlank()) {
-                                    personnelList
-                                } else {
-                                    val q = searchQuery.trim().lowercase(Locale.getDefault())
-                                    personnelList.filter {
-                                        it.fullName.lowercase(Locale.getDefault()).contains(q) ||
-                                                it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
-                                                it.rank.lowercase(Locale.getDefault()).contains(q) ||
-                                                formatRank(it.rank, currentLang).lowercase(Locale.getDefault()).contains(q)
-                                    }
-                                }
-
                                 if (filteredPersonnel.isEmpty()) {
                                     item {
                                         EmptyDatabaseState(
@@ -397,20 +462,6 @@ fun RoomDatabaseScreen(
                                         isDarkMode = isDarkMode,
                                         clearDesc = AppStrings.get("clear_icon_desc", currentLang)
                                     )
-                                }
-
-                                val filteredLeaves = if (searchQuery.isBlank()) {
-                                    leavesList
-                                } else {
-                                    val q = searchQuery.trim().lowercase(Locale.getDefault())
-                                    leavesList.filter {
-                                        it.personnelName.lowercase(Locale.getDefault()).contains(q) ||
-                                                it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
-                                                it.leaveType.lowercase(Locale.getDefault()).contains(q) ||
-                                                formatLeaveType(it.leaveType, currentLang).lowercase(Locale.getDefault()).contains(q) ||
-                                                it.rank.lowercase(Locale.getDefault()).contains(q) ||
-                                                formatRank(it.rank, currentLang).lowercase(Locale.getDefault()).contains(q)
-                                    }
                                 }
 
                                 if (filteredLeaves.isEmpty()) {
@@ -452,6 +503,7 @@ fun RoomDatabaseScreen(
                 ClearPersonnelConfirmationDialog(
                     isDarkMode = isDarkMode,
                     animationsEnabled = isDynamicAnimationsEnabled,
+                    isNoScreenshotEnabled = isNoScreenshotEnabled,
                     currentLang = currentLang,
                     onDismiss = { showClearDialog = false },
                     onConfirmedWithBiometric = {
@@ -476,7 +528,8 @@ private fun RoomDatabaseHeaderCard(
     currentLang: AppLanguage,
     personnelCount: Int,
     leavesCount: Int,
-    onClearData: () -> Unit
+    onClearData: () -> Unit,
+    onExportExcel: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
@@ -487,6 +540,14 @@ private fun RoomDatabaseHeaderCard(
         animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium),
         label = "clearBtnScale"
     )
+    val exportInteraction = remember { MutableInteractionSource() }
+    val isExportPressed by exportInteraction.collectIsPressedAsState()
+    val exportScale by animateFloatAsState(
+        targetValue = if (isExportPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium),
+        label = "exportExcelBtnScale"
+    )
+    val contentLayoutDir = if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
     Surface(
         shape = RoundedCornerShape(22.dp),
@@ -522,63 +583,133 @@ private fun RoomDatabaseHeaderCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Centered Clean Theme-Matched Clear Personnel Table Button (No highlights behind label)
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                val themePrimary = MaterialTheme.colorScheme.primary
-                val themeSecondary = MaterialTheme.colorScheme.secondary
-                val buttonShape = if (isNeumorphic) RoundedCornerShape(50.dp) else RoundedCornerShape(16.dp)
-                val borderGradient = Brush.linearGradient(
-                    colors = listOf(
-                        themePrimary.copy(alpha = if (isDarkMode) 0.72f else 0.62f),
-                        themeSecondary.copy(alpha = if (isDarkMode) 0.56f else 0.48f)
-                    )
+            // Dual Action Row: Physical LEFT = Clear Personnel Table | Physical RIGHT = Export Excel (.xlsx) A4 Landscape
+            val themePrimary = MaterialTheme.colorScheme.primary
+            val themeSecondary = MaterialTheme.colorScheme.secondary
+            val buttonShape = if (isNeumorphic) RoundedCornerShape(50.dp) else RoundedCornerShape(16.dp)
+            val borderGradient = Brush.linearGradient(
+                colors = listOf(
+                    themePrimary.copy(alpha = if (isDarkMode) 0.72f else 0.62f),
+                    themeSecondary.copy(alpha = if (isDarkMode) 0.56f else 0.48f)
                 )
+            )
 
-                OutlinedButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onClearData()
-                    },
-                    interactionSource = clearInteraction,
-                    shape = buttonShape,
-                    border = BorderStroke(1.25.dp, borderGradient),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = themePrimary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = clearScale
-                            scaleY = clearScale
-                        }
-                        .defaultMinSize(minHeight = 48.dp)
-                        .testTag("room_clear_tables_btn")
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteSweep,
-                        contentDescription = null,
-                        tint = themePrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = AppStrings.get("room_clear_btn", currentLang),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = themePrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Fingerprint,
-                        contentDescription = null,
-                        tint = themeSecondary,
-                        modifier = Modifier.size(17.dp)
-                    )
+                    // LEFT: Clear Personnel Table Button (Clean theme-matched OutlinedButton, zero label highlights)
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onClearData()
+                        },
+                        interactionSource = clearInteraction,
+                        shape = buttonShape,
+                        border = BorderStroke(1.25.dp, borderGradient),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = themePrimary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .graphicsLayer {
+                                scaleX = clearScale
+                                scaleY = clearScale
+                            }
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag("room_clear_tables_btn")
+                    ) {
+                        CompositionLocalProvider(LocalLayoutDirection provides contentLayoutDir) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteSweep,
+                                    contentDescription = null,
+                                    tint = themePrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("room_clear_btn", currentLang),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = themePrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Fingerprint,
+                                    contentDescription = null,
+                                    tint = themeSecondary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // RIGHT: Export Database to Excel (.xlsx) A4 Landscape Button
+                    Button(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onExportExcel()
+                        },
+                        interactionSource = exportInteraction,
+                        shape = buttonShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White
+                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .graphicsLayer {
+                                scaleX = exportScale
+                                scaleY = exportScale
+                            }
+                            .defaultMinSize(minHeight = 48.dp)
+                            .clip(buttonShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(themePrimary, Color(0xFF0D9488))
+                                )
+                            )
+                            .testTag("room_export_xlsx_btn")
+                    ) {
+                        CompositionLocalProvider(LocalLayoutDirection provides contentLayoutDir) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.TableChart,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("room_export_xlsx_btn", currentLang),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1110,6 +1241,7 @@ private fun EmptyDatabaseState(
 private fun ClearPersonnelConfirmationDialog(
     isDarkMode: Boolean,
     animationsEnabled: Boolean,
+    isNoScreenshotEnabled: Boolean,
     currentLang: AppLanguage,
     onDismiss: () -> Unit,
     onConfirmedWithBiometric: () -> Unit
@@ -1189,6 +1321,7 @@ private fun ClearPersonnelConfirmationDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        SyncDialogSecureWindow(isNoScreenshotEnabled)
         Box(
             modifier = Modifier
                 .fillMaxSize()
