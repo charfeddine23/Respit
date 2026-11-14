@@ -446,7 +446,10 @@ object AppStrings {
         "update_btn_retry" to "إعادة المحاولة",
         "update_btn_ok" to "حسناً",
         "update_current_version_tag" to "الإصدار الحالي",
-        "update_new_version_tag" to "الإصدار الجديد"
+        "update_new_version_tag" to "الإصدار الجديد",
+        "update_whats_new_btn" to "الإضافات",
+        "update_whats_new_title" to "الإضافات والتحسينات",
+        "update_whats_new_empty" to "تحسينات شاملة في الأداء واستقرار النظام وتجربة المستخدم."
     )
 
     private val stringsFr = mapOf(
@@ -874,7 +877,10 @@ object AppStrings {
         "update_btn_retry" to "Réessayer",
         "update_btn_ok" to "OK",
         "update_current_version_tag" to "Version actuelle",
-        "update_new_version_tag" to "Nouvelle version"
+        "update_new_version_tag" to "Nouvelle version",
+        "update_whats_new_btn" to "Nouveautés",
+        "update_whats_new_title" to "Nouveautés et améliorations",
+        "update_whats_new_empty" to "Améliorations générales des performances, de la stabilité et de l'interface."
     )
 
     private val stringsEn = mapOf(
@@ -1302,6 +1308,9 @@ object AppStrings {
         "update_btn_retry" to "Retry",
         "update_btn_ok" to "OK",
         "update_current_version_tag" to "Current version",
-        "update_new_version_tag" to "New version"
+        "update_new_version_tag" to "New version",
+        "update_whats_new_btn" to "What's New",
+        "update_whats_new_title" to "Additions & Improvements",
+        "update_whats_new_empty" to "General performance, stability, and user experience improvements."
     )
 }

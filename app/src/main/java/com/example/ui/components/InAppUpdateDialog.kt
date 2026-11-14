@@ -1,15 +1,30 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,9 +44,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,11 +64,17 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -57,6 +83,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -85,7 +114,22 @@ fun InAppUpdateDialog(
     onRetryCheck: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "updateGlowTransition")
+    var showWhatsNewPage by rememberSaveable { mutableStateOf(false) }
+    var cachedReleaseNotes by rememberSaveable { mutableStateOf("") }
+    var cachedVersionName by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(updateState) {
+        if (updateState is AppUpdateState.UpdateAvailable) {
+            cachedReleaseNotes = updateState.releaseNotes
+            cachedVersionName = updateState.versionName
+        } else if (updateState is AppUpdateState.Checking || updateState is AppUpdateState.UpToDate) {
+            showWhatsNewPage = false
+        }
+    }
+
+    val enterState = remember { MutableTransitionState(false).apply { targetState = true } }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "updateDialogMotion")
     val glowPulse by if (animationsEnabled) {
         infiniteTransition.animateFloat(
             initialValue = 0.72f,
@@ -97,531 +141,593 @@ fun InAppUpdateDialog(
             label = "glowPulse"
         )
     } else {
+        remember { mutableStateOf(0.86f) }
+    }
+
+    val haloOrbitAngle by if (animationsEnabled) {
         infiniteTransition.animateFloat(
-            initialValue = 0.85f,
-            targetValue = 0.85f,
-            animationSpec = infiniteRepeatable(tween(1000)),
-            label = "staticGlow"
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 12000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "haloOrbit"
         )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+
+    val rocketFloatOffset by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = -2.5f,
+            targetValue = 2.5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "rocketFloat"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
     }
 
     val flamePulse by if (animationsEnabled) {
         infiniteTransition.animateFloat(
-            initialValue = 0.85f,
-            targetValue = 1.18f,
+            initialValue = 0.86f,
+            targetValue = 1.22f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                animation = tween(durationMillis = 520, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "flamePulse"
         )
     } else {
-        infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(1000)),
-            label = "staticFlame"
-        )
+        remember { mutableStateOf(1f) }
     }
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val accentCyan = Color(0xFF00BCD4)
     val cardShape = RoundedCornerShape(28.dp)
 
+    val hasWhatsNewButton = updateState is AppUpdateState.UpdateAvailable ||
+        updateState is AppUpdateState.Downloading ||
+        updateState is AppUpdateState.ReadyToInstall
+
     Dialog(
         onDismissRequest = {
-            if (updateState !is AppUpdateState.Downloading) {
+            if (showWhatsNewPage) {
+                showWhatsNewPage = false
+            } else if (updateState !is AppUpdateState.Downloading) {
                 onDismiss()
             }
         },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            dismissOnBackPress = updateState !is AppUpdateState.Downloading,
+            dismissOnBackPress = updateState !is AppUpdateState.Downloading || showWhatsNewPage,
             dismissOnClickOutside = updateState !is AppUpdateState.Downloading
         )
     ) {
-        // Floating centered container — NEVER full-screen — with multi-color ambient glowing halo behind the card
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp)
-                .widthIn(max = 390.dp)
-                .testTag("in_app_update_dialog"),
-            contentAlignment = Alignment.Center
+        BackHandler(enabled = showWhatsNewPage) {
+            showWhatsNewPage = false
+        }
+
+        AnimatedVisibility(
+            visibleState = enterState,
+            enter = fadeIn(tween(240)) + scaleIn(
+                initialScale = 0.90f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
         ) {
-            // Outer Box that paints the multi-color backlight halo bleeding softly around the floating card
+            // Floating centered container — NEVER full-screen — with smooth prism backlight halo
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp)
-                    .drawBehind {
-                        val haloAlpha = (if (isDarkMode) 0.52f else 0.34f) * glowPulse
-                        val cornerRadiusPx = 30.dp.toPx()
+                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                    .widthIn(max = 390.dp)
+                    .testTag("in_app_update_dialog"),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .drawBehind {
+                            val haloAlpha = (if (isDarkMode) 0.56f else 0.36f) * glowPulse
+                            val cornerRadiusPx = 30.dp.toPx()
 
-                        // Top-Left Blue / Cyan Halo
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF38BDF8).copy(alpha = haloAlpha),
-                                    Color(0xFF3B82F6).copy(alpha = haloAlpha * 0.45f),
-                                    Color.Transparent
+                            // Top-Left Electric Cyan / Sky Halo
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFF38BDF8).copy(alpha = haloAlpha),
+                                        Color(0xFF3B82F6).copy(alpha = haloAlpha * 0.45f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.14f, size.height * 0.14f),
+                                    radius = size.minDimension * 0.68f
                                 ),
                                 center = Offset(size.width * 0.14f, size.height * 0.14f),
-                                radius = size.minDimension * 0.62f
-                            ),
-                            center = Offset(size.width * 0.14f, size.height * 0.14f),
-                            radius = size.minDimension * 0.62f
-                        )
+                                radius = size.minDimension * 0.68f
+                            )
 
-                        // Top-Right Coral / Rose Halo
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFFFB7185).copy(alpha = haloAlpha * 0.9f),
-                                    Color(0xFFEF4444).copy(alpha = haloAlpha * 0.38f),
-                                    Color.Transparent
+                            // Top-Right Coral / Rose Halo
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFFFB7185).copy(alpha = haloAlpha * 0.92f),
+                                        Color(0xFFEF4444).copy(alpha = haloAlpha * 0.38f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.88f, size.height * 0.16f),
+                                    radius = size.minDimension * 0.62f
                                 ),
                                 center = Offset(size.width * 0.88f, size.height * 0.16f),
-                                radius = size.minDimension * 0.56f
-                            ),
-                            center = Offset(size.width * 0.88f, size.height * 0.16f),
-                            radius = size.minDimension * 0.56f
-                        )
+                                radius = size.minDimension * 0.62f
+                            )
 
-                        // Bottom-Right Emerald / Amber Halo
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF10B981).copy(alpha = haloAlpha * 0.9f),
-                                    Color(0xFFFBBF24).copy(alpha = haloAlpha * 0.35f),
-                                    Color.Transparent
+                            // Bottom-Right Emerald / Amber Halo
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFF10B981).copy(alpha = haloAlpha * 0.92f),
+                                        Color(0xFFFBBF24).copy(alpha = haloAlpha * 0.36f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.84f, size.height * 0.86f),
+                                    radius = size.minDimension * 0.64f
                                 ),
                                 center = Offset(size.width * 0.84f, size.height * 0.86f),
-                                radius = size.minDimension * 0.58f
-                            ),
-                            center = Offset(size.width * 0.84f, size.height * 0.86f),
-                            radius = size.minDimension * 0.58f
-                        )
+                                radius = size.minDimension * 0.64f
+                            )
 
-                        // Bottom-Left Indigo / Cyan Halo
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF818CF8).copy(alpha = haloAlpha * 0.78f),
-                                    Color(0xFF06B6D4).copy(alpha = haloAlpha * 0.32f),
-                                    Color.Transparent
+                            // Bottom-Left Indigo / Violet Halo
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFF818CF8).copy(alpha = haloAlpha * 0.82f),
+                                        Color(0xFF06B6D4).copy(alpha = haloAlpha * 0.34f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.16f, size.height * 0.84f),
+                                    radius = size.minDimension * 0.60f
                                 ),
                                 center = Offset(size.width * 0.16f, size.height * 0.84f),
-                                radius = size.minDimension * 0.55f
-                            ),
-                            center = Offset(size.width * 0.16f, size.height * 0.84f),
-                            radius = size.minDimension * 0.55f
-                        )
-
-                        // Luminous prism border bloom hugging the card contour
-                        drawRoundRect(
-                            brush = Brush.sweepGradient(
-                                colors = listOf(
-                                    Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.85f),
-                                    Color(0xFFFB7185).copy(alpha = haloAlpha * 0.75f),
-                                    Color(0xFFFBBF24).copy(alpha = haloAlpha * 0.7f),
-                                    Color(0xFF10B981).copy(alpha = haloAlpha * 0.8f),
-                                    Color(0xFF818CF8).copy(alpha = haloAlpha * 0.75f),
-                                    Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.85f)
-                                )
-                            ),
-                            topLeft = Offset(-3.dp.toPx(), -3.dp.toPx()),
-                            size = Size(size.width + 6.dp.toPx(), size.height + 6.dp.toPx()),
-                            cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                            style = Stroke(width = 7.dp.toPx())
-                        )
-                    }
-            ) {
-                val containerBrush = when {
-                    isNeumorphic && isDarkMode -> Brush.verticalGradient(
-                        listOf(Color(0xFF162032), Color(0xFF0F172A))
-                    )
-                    isNeumorphic && !isDarkMode -> Brush.verticalGradient(
-                        listOf(Color(0xFFF8FAFC), Color(0xFFEFF6FF))
-                    )
-                    isDarkMode -> Brush.verticalGradient(
-                        listOf(Color(0xF5111827), Color(0xF50F172A))
-                    )
-                    else -> Brush.verticalGradient(
-                        listOf(Color(0xFAFFFFFF), Color(0xF5F0F9FF))
-                    )
-                }
-
-                val cardBorder = BorderStroke(
-                    width = 1.25.dp,
-                    brush = Brush.linearGradient(
-                        colors = if (isDarkMode) {
-                            listOf(
-                                Color(0xFF38BDF8).copy(alpha = 0.55f),
-                                Color.White.copy(alpha = 0.22f),
-                                Color(0xFF10B981).copy(alpha = 0.45f)
+                                radius = size.minDimension * 0.60f
                             )
-                        } else {
-                            listOf(
-                                Color.White,
-                                Color(0xFF00BCD4).copy(alpha = 0.45f),
-                                Color(0xFF3B82F6).copy(alpha = 0.35f)
+
+                            // Soft outer prism bloom ring around the rounded card
+                            drawRoundRect(
+                                brush = Brush.sweepGradient(
+                                    colors = listOf(
+                                        Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.55f),
+                                        Color(0xFFFB7185).copy(alpha = haloAlpha * 0.48f),
+                                        Color(0xFFFBBF24).copy(alpha = haloAlpha * 0.44f),
+                                        Color(0xFF10B981).copy(alpha = haloAlpha * 0.52f),
+                                        Color(0xFF818CF8).copy(alpha = haloAlpha * 0.48f),
+                                        Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.55f)
+                                    )
+                                ),
+                                topLeft = Offset(-4.dp.toPx(), -4.dp.toPx()),
+                                size = Size(size.width + 8.dp.toPx(), size.height + 8.dp.toPx()),
+                                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                                style = Stroke(width = 9.dp.toPx())
                             )
                         }
-                    )
-                )
-
-                Surface(
-                    shape = cardShape,
-                    color = Color.Transparent,
-                    border = cardBorder,
-                    shadowElevation = if (isNeumorphic) 12.dp else 16.dp,
-                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(containerBrush)
-                            .padding(horizontal = 20.dp, vertical = 18.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Top Row with Close button in corner (matching Reference Image 1)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Start,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(
-                                    onClick = {
-                                        if (updateState is AppUpdateState.Downloading) {
-                                            onCancelDownload()
-                                        } else {
-                                            onDismiss()
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .testTag("update_dialog_close_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = AppStrings.get("close", currentLang),
-                                        tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
+                    val containerBrush = when {
+                        isNeumorphic && isDarkMode -> Brush.verticalGradient(
+                            listOf(Color(0xFF172136), Color(0xFF0F172A))
+                        )
+                        isNeumorphic && !isDarkMode -> Brush.verticalGradient(
+                            listOf(Color(0xFFF8FAFC), Color(0xFFEFF6FF))
+                        )
+                        isDarkMode -> Brush.verticalGradient(
+                            listOf(Color(0xF7111827), Color(0xF70B1324))
+                        )
+                        else -> Brush.verticalGradient(
+                            listOf(Color(0xFCFFFFFF), Color(0xF7EFF8FF))
+                        )
+                    }
+
+                    val cardBorder = BorderStroke(
+                        width = 1.25.dp,
+                        brush = Brush.linearGradient(
+                            colors = if (isDarkMode) {
+                                listOf(
+                                    Color(0xFF38BDF8).copy(alpha = 0.55f),
+                                    Color.White.copy(alpha = 0.24f),
+                                    Color(0xFF10B981).copy(alpha = 0.45f)
+                                )
+                            } else {
+                                listOf(
+                                    Color.White,
+                                    Color(0xFF00BCD4).copy(alpha = 0.45f),
+                                    Color(0xFF3B82F6).copy(alpha = 0.35f)
+                                )
                             }
+                        )
+                    )
 
-                            // Hero Emblem with Backlight Halo (fusing Reference Image 1 Rocket + Reference Image 2 Glowing Halo)
-                            UpdateHeroEmblem(
-                                updateState = updateState,
-                                primaryColor = primaryColor,
-                                accentCyan = accentCyan,
-                                isDarkMode = isDarkMode,
-                                glowPulse = glowPulse,
-                                flamePulse = flamePulse
-                            )
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            // Title, Accent Subtitle, Body & Action by State
-                            when (updateState) {
-                                is AppUpdateState.Idle,
-                                is AppUpdateState.Checking -> {
-                                    Text(
-                                        text = AppStrings.get("update_checking_title", currentLang),
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = "v${BuildConfig.VERSION_NAME}",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = accentCyan
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    CircularProgressIndicator(
-                                        color = accentCyan,
-                                        strokeWidth = 3.dp,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Text(
-                                        text = AppStrings.get("update_checking_desc", currentLang),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-
-                                is AppUpdateState.UpdateAvailable -> {
-                                    Text(
-                                        text = AppStrings.get("update_available_title", currentLang),
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        textAlign = TextAlign.Center
-                                    )
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    Text(
-                                        text = "${AppStrings.get("update_available_sub", currentLang)} • v${updateState.versionName}",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = accentCyan,
-                                        textAlign = TextAlign.Center
-                                    )
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    // Version & File Size Chip Row
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        VersionPillBadge(
-                                            text = "v${BuildConfig.VERSION_NAME} → v${updateState.versionName}",
-                                            tint = primaryColor,
-                                            isDarkMode = isDarkMode
-                                        )
-                                        if (updateState.fileSizeBytes > 0L) {
-                                            VersionPillBadge(
-                                                text = AppUpdateManager.formatBytes(updateState.fileSizeBytes),
-                                                tint = Color(0xFF10B981),
-                                                isDarkMode = isDarkMode
-                                            )
-                                        }
+                    Surface(
+                        shape = cardShape,
+                        color = Color.Transparent,
+                        border = cardBorder,
+                        shadowElevation = if (isNeumorphic) 12.dp else 18.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(containerBrush)
+                                .padding(horizontal = 20.dp, vertical = 18.dp)
+                        ) {
+                            AnimatedContent(
+                                targetState = showWhatsNewPage,
+                                transitionSpec = {
+                                    if (targetState) {
+                                        (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it / 3 } + fadeIn(tween(220))) togetherWith
+                                            (slideOutHorizontally(tween(200)) { -it / 4 } + fadeOut(tween(180)))
+                                    } else {
+                                        (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it / 3 } + fadeIn(tween(220))) togetherWith
+                                            (slideOutHorizontally(tween(200)) { it / 4 } + fadeOut(tween(180)))
                                     }
-
-                                    if (updateState.releaseNotes.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = if (isDarkMode) Color(0x33334155) else Color(0xFFF1F5F9),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
-                                            ),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .heightIn(max = 100.dp)
+                                },
+                                label = "updateDialogPageSwitch"
+                            ) { isWhatsNew ->
+                                if (isWhatsNew) {
+                                    // Dedicated "الإضافات" (What's New / Release Notes) view inside the floating card
+                                    WhatsNewContentView(
+                                        versionName = cachedVersionName.ifBlank { BuildConfig.VERSION_NAME },
+                                        releaseNotes = cachedReleaseNotes,
+                                        isDarkMode = isDarkMode,
+                                        primaryColor = primaryColor,
+                                        accentCyan = accentCyan,
+                                        currentLang = currentLang,
+                                        onBack = { showWhatsNewPage = false }
+                                    )
+                                } else {
+                                    // Clean Primary Update Card View
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        // Top Row with Close button in corner
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.Start,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = updateState.releaseNotes,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF334155),
-                                                textAlign = TextAlign.Center,
+                                            IconButton(
+                                                onClick = {
+                                                    if (updateState is AppUpdateState.Downloading) {
+                                                        onCancelDownload()
+                                                    } else {
+                                                        onDismiss()
+                                                    }
+                                                },
                                                 modifier = Modifier
-                                                    .verticalScroll(rememberScrollState())
-                                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                                                    .size(48.dp)
+                                                    .clip(CircleShape)
+                                                    .testTag("update_dialog_close_button")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = AppStrings.get("close", currentLang),
+                                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                                    modifier = Modifier.size(22.dp)
+                                                )
+                                            }
+                                        }
+
+                                        // Upgraded Rocket Hero Emblem with orbital ring + smooth floating motion
+                                        UpdateHeroEmblem(
+                                            updateState = updateState,
+                                            primaryColor = primaryColor,
+                                            accentCyan = accentCyan,
+                                            isDarkMode = isDarkMode,
+                                            glowPulse = glowPulse,
+                                            haloOrbitAngle = haloOrbitAngle,
+                                            rocketFloatOffset = rocketFloatOffset,
+                                            flamePulse = flamePulse
+                                        )
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        AnimatedContent(
+                                            targetState = updateState,
+                                            transitionSpec = {
+                                                fadeIn(tween(240)) togetherWith fadeOut(tween(180))
+                                            },
+                                            label = "updateStateBodyTransition"
+                                        ) { state ->
+                                            Column(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                when (state) {
+                                                    is AppUpdateState.Idle,
+                                                    is AppUpdateState.Checking -> {
+                                                        Text(
+                                                            text = AppStrings.get("update_checking_title", currentLang),
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Spacer(modifier = Modifier.height(6.dp))
+                                                        Text(
+                                                            text = "v${BuildConfig.VERSION_NAME}",
+                                                            style = MaterialTheme.typography.labelLarge,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontFamily = FontFamily.Monospace,
+                                                            color = accentCyan
+                                                        )
+                                                        Spacer(modifier = Modifier.height(14.dp))
+                                                        CircularProgressIndicator(
+                                                            color = accentCyan,
+                                                            strokeWidth = 3.dp,
+                                                            modifier = Modifier.size(30.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.height(10.dp))
+                                                        Text(
+                                                            text = AppStrings.get("update_checking_desc", currentLang),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                    }
+
+                                                    is AppUpdateState.UpdateAvailable -> {
+                                                        Text(
+                                                            text = AppStrings.get("update_available_title", currentLang),
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            textAlign = TextAlign.Center
+                                                        )
+
+                                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                                        Text(
+                                                            text = "${AppStrings.get("update_available_sub", currentLang)} • v${state.versionName}",
+                                                            style = MaterialTheme.typography.titleSmall,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = accentCyan,
+                                                            textAlign = TextAlign.Center
+                                                        )
+
+                                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                                        // Clean compact version & size badges (no inline changelog clutter)
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            VersionPillBadge(
+                                                                text = "v${BuildConfig.VERSION_NAME} → v${state.versionName}",
+                                                                tint = primaryColor,
+                                                                isDarkMode = isDarkMode
+                                                            )
+                                                            if (state.fileSizeBytes > 0L) {
+                                                                VersionPillBadge(
+                                                                    text = AppUpdateManager.formatBytes(state.fileSizeBytes),
+                                                                    tint = Color(0xFF10B981),
+                                                                    isDarkMode = isDarkMode
+                                                                )
+                                                            }
+                                                        }
+
+                                                        Spacer(modifier = Modifier.height(22.dp))
+
+                                                        ThemedPillCtaButton(
+                                                            text = AppStrings.get("update_btn_now", currentLang),
+                                                            icon = Icons.Default.RocketLaunch,
+                                                            gradientColors = listOf(primaryColor, accentCyan),
+                                                            onClick = onStartDownload,
+                                                            testTag = "update_dialog_start_button"
+                                                        )
+                                                    }
+
+                                                    is AppUpdateState.Downloading -> {
+                                                        val animatedProgress by animateFloatAsState(
+                                                            targetValue = state.progress.coerceIn(0f, 1f),
+                                                            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+                                                            label = "downloadProgressSmooth"
+                                                        )
+
+                                                        Text(
+                                                            text = AppStrings.get("update_downloading_title", currentLang),
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            textAlign = TextAlign.Center
+                                                        )
+
+                                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                                        val percent = (animatedProgress * 100f).roundToInt().coerceIn(0, 100)
+                                                        Text(
+                                                            text = "v${state.versionName} • $percent%",
+                                                            style = MaterialTheme.typography.titleSmall,
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            fontFamily = FontFamily.Monospace,
+                                                            color = accentCyan
+                                                        )
+
+                                                        Spacer(modifier = Modifier.height(14.dp))
+
+                                                        if (state.totalBytes > 0L) {
+                                                            LinearProgressIndicator(
+                                                                progress = { animatedProgress },
+                                                                color = accentCyan,
+                                                                trackColor = if (isDarkMode) Color(0x33475569) else Color(0xFFE2E8F0),
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .height(10.dp)
+                                                                    .clip(CircleShape)
+                                                            )
+                                                            Spacer(modifier = Modifier.height(8.dp))
+                                                            Text(
+                                                                text = "${AppUpdateManager.formatBytes(state.downloadedBytes)} / ${AppUpdateManager.formatBytes(state.totalBytes)}",
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontFamily = FontFamily.Monospace,
+                                                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                            )
+                                                        } else {
+                                                            LinearProgressIndicator(
+                                                                color = accentCyan,
+                                                                trackColor = if (isDarkMode) Color(0x33475569) else Color(0xFFE2E8F0),
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .height(10.dp)
+                                                                    .clip(CircleShape)
+                                                            )
+                                                        }
+
+                                                        Spacer(modifier = Modifier.height(6.dp))
+                                                        Text(
+                                                            text = AppStrings.get("update_downloading_sub", currentLang),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
+                                                            textAlign = TextAlign.Center
+                                                        )
+
+                                                        Spacer(modifier = Modifier.height(18.dp))
+
+                                                        TactileSecondaryPillButton(
+                                                            text = AppStrings.get("update_btn_cancel_download", currentLang),
+                                                            accentColor = Color(0xFFEF4444),
+                                                            isDarkMode = isDarkMode,
+                                                            onClick = onCancelDownload,
+                                                            testTag = "update_dialog_cancel_button"
+                                                        )
+                                                    }
+
+                                                    is AppUpdateState.ReadyToInstall -> {
+                                                        Text(
+                                                            text = AppStrings.get("update_ready_title", currentLang),
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Spacer(modifier = Modifier.height(6.dp))
+                                                        Text(
+                                                            text = "v${state.versionName}",
+                                                            style = MaterialTheme.typography.titleSmall,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontFamily = FontFamily.Monospace,
+                                                            color = Color(0xFF10B981)
+                                                        )
+                                                        Spacer(modifier = Modifier.height(10.dp))
+                                                        Text(
+                                                            text = AppStrings.get(
+                                                                if (state.requiresPermission) "update_permission_desc" else "update_ready_desc",
+                                                                currentLang
+                                                            ),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Spacer(modifier = Modifier.height(20.dp))
+                                                        ThemedPillCtaButton(
+                                                            text = AppStrings.get(
+                                                                if (state.requiresPermission) "update_btn_grant_install" else "update_btn_install",
+                                                                currentLang
+                                                            ),
+                                                            icon = if (state.requiresPermission) Icons.Default.Security else Icons.Default.DownloadDone,
+                                                            gradientColors = listOf(Color(0xFF059669), Color(0xFF10B981)),
+                                                            onClick = onInstallApk,
+                                                            testTag = "update_dialog_install_button"
+                                                        )
+                                                    }
+
+                                                    is AppUpdateState.UpToDate -> {
+                                                        Text(
+                                                            text = AppStrings.get("update_uptodate_title", currentLang),
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        VersionPillBadge(
+                                                            text = "${AppStrings.get("update_current_version_tag", currentLang)}: v${state.currentVersion}",
+                                                            tint = Color(0xFF10B981),
+                                                            isDarkMode = isDarkMode
+                                                        )
+                                                        Spacer(modifier = Modifier.height(10.dp))
+                                                        Text(
+                                                            text = AppStrings.get("update_uptodate_desc", currentLang),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Spacer(modifier = Modifier.height(20.dp))
+                                                        ThemedPillCtaButton(
+                                                            text = AppStrings.get("update_btn_ok", currentLang),
+                                                            icon = Icons.Default.CheckCircle,
+                                                            gradientColors = listOf(primaryColor, accentCyan),
+                                                            onClick = onDismiss,
+                                                            testTag = "update_dialog_ok_button"
+                                                        )
+                                                    }
+
+                                                    is AppUpdateState.Error -> {
+                                                        Text(
+                                                            text = AppStrings.get("update_error_title", currentLang),
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        Text(
+                                                            text = AppStrings.get(state.messageKey, currentLang),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        if (!state.detail.isNullOrBlank()) {
+                                                            Spacer(modifier = Modifier.height(4.dp))
+                                                            Text(
+                                                                text = state.detail,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontFamily = FontFamily.Monospace,
+                                                                color = Color(0xFFF59E0B),
+                                                                textAlign = TextAlign.Center
+                                                            )
+                                                        }
+                                                        Spacer(modifier = Modifier.height(20.dp))
+                                                        ThemedPillCtaButton(
+                                                            text = AppStrings.get("update_btn_retry", currentLang),
+                                                            icon = Icons.Default.Refresh,
+                                                            gradientColors = listOf(Color(0xFFEA580C), Color(0xFFF59E0B)),
+                                                            onClick = onRetryCheck,
+                                                            testTag = "update_dialog_retry_button"
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Dedicated Bottom "الإضافات" Button displaying the release notes view when tapped
+                                        if (hasWhatsNewButton) {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            TactileSecondaryPillButton(
+                                                text = AppStrings.get("update_whats_new_btn", currentLang),
+                                                icon = Icons.Default.AutoAwesome,
+                                                accentColor = accentCyan,
+                                                isDarkMode = isDarkMode,
+                                                onClick = { showWhatsNewPage = true },
+                                                testTag = "update_dialog_whats_new_button"
                                             )
                                         }
-                                    } else {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = AppStrings.get("update_available_title", currentLang),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
-                                            textAlign = TextAlign.Center
-                                        )
                                     }
-
-                                    Spacer(modifier = Modifier.height(20.dp))
-
-                                    ThemedPillCtaButton(
-                                        text = AppStrings.get("update_btn_now", currentLang),
-                                        gradientColors = listOf(primaryColor, accentCyan),
-                                        onClick = onStartDownload,
-                                        testTag = "update_dialog_start_button"
-                                    )
-                                }
-
-                                is AppUpdateState.Downloading -> {
-                                    Text(
-                                        text = AppStrings.get("update_downloading_title", currentLang),
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        textAlign = TextAlign.Center
-                                    )
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    val percent = (updateState.progress * 100f).roundToInt().coerceIn(0, 100)
-                                    Text(
-                                        text = "v${updateState.versionName} • $percent%",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = accentCyan
-                                    )
-
-                                    Spacer(modifier = Modifier.height(14.dp))
-
-                                    if (updateState.totalBytes > 0L) {
-                                        LinearProgressIndicator(
-                                            progress = { updateState.progress.coerceIn(0f, 1f) },
-                                            color = accentCyan,
-                                            trackColor = if (isDarkMode) Color(0x33475569) else Color(0xFFE2E8F0),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(10.dp)
-                                                .clip(CircleShape)
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "${AppUpdateManager.formatBytes(updateState.downloadedBytes)} / ${AppUpdateManager.formatBytes(updateState.totalBytes)}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                        )
-                                    } else {
-                                        LinearProgressIndicator(
-                                            color = accentCyan,
-                                            trackColor = if (isDarkMode) Color(0x33475569) else Color(0xFFE2E8F0),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(10.dp)
-                                                .clip(CircleShape)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = AppStrings.get("update_downloading_sub", currentLang),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
-                                        textAlign = TextAlign.Center
-                                    )
-
-                                    Spacer(modifier = Modifier.height(18.dp))
-
-                                    OutlinedButton(
-                                        onClick = onCancelDownload,
-                                        shape = RoundedCornerShape(50.dp),
-                                        border = BorderStroke(1.2.dp, Color(0xFFEF4444).copy(alpha = 0.65f)),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(48.dp)
-                                            .testTag("update_dialog_cancel_button")
-                                    ) {
-                                        Text(
-                                            text = AppStrings.get("update_btn_cancel_download", currentLang),
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFEF4444)
-                                        )
-                                    }
-                                }
-
-                                is AppUpdateState.ReadyToInstall -> {
-                                    Text(
-                                        text = AppStrings.get("update_ready_title", currentLang),
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = "v${updateState.versionName}",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = Color(0xFF10B981)
-                                    )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Text(
-                                        text = AppStrings.get(
-                                            if (updateState.requiresPermission) "update_permission_desc" else "update_ready_desc",
-                                            currentLang
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF475569),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(20.dp))
-                                    ThemedPillCtaButton(
-                                        text = AppStrings.get(
-                                            if (updateState.requiresPermission) "update_btn_grant_install" else "update_btn_install",
-                                            currentLang
-                                        ),
-                                        gradientColors = listOf(Color(0xFF059669), Color(0xFF10B981)),
-                                        onClick = onInstallApk,
-                                        testTag = "update_dialog_install_button"
-                                    )
-                                }
-
-                                is AppUpdateState.UpToDate -> {
-                                    Text(
-                                        text = AppStrings.get("update_uptodate_title", currentLang),
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    VersionPillBadge(
-                                        text = "${AppStrings.get("update_current_version_tag", currentLang)}: v${updateState.currentVersion}",
-                                        tint = Color(0xFF10B981),
-                                        isDarkMode = isDarkMode
-                                    )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Text(
-                                        text = AppStrings.get("update_uptodate_desc", currentLang),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(20.dp))
-                                    ThemedPillCtaButton(
-                                        text = AppStrings.get("update_btn_ok", currentLang),
-                                        gradientColors = listOf(primaryColor, accentCyan),
-                                        onClick = onDismiss,
-                                        testTag = "update_dialog_ok_button"
-                                    )
-                                }
-
-                                is AppUpdateState.Error -> {
-                                    Text(
-                                        text = AppStrings.get("update_error_title", currentLang),
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = AppStrings.get(updateState.messageKey, currentLang),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF475569),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    if (!updateState.detail.isNullOrBlank()) {
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = updateState.detail,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = Color(0xFFF59E0B),
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(20.dp))
-                                    ThemedPillCtaButton(
-                                        text = AppStrings.get("update_btn_retry", currentLang),
-                                        gradientColors = listOf(Color(0xFFEA580C), Color(0xFFF59E0B)),
-                                        onClick = onRetryCheck,
-                                        testTag = "update_dialog_retry_button"
-                                    )
                                 }
                             }
                         }
@@ -633,12 +739,119 @@ fun InAppUpdateDialog(
 }
 
 @Composable
+private fun WhatsNewContentView(
+    versionName: String,
+    releaseNotes: String,
+    isDarkMode: Boolean,
+    primaryColor: Color,
+    accentCyan: Color,
+    currentLang: AppLanguage,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("update_whats_new_view"),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Header with Back Arrow + Title
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .testTag("update_whats_new_back_button")
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = AppStrings.get("back", currentLang),
+                    tint = accentCyan,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = AppStrings.get("update_whats_new_title", currentLang),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                )
+                Text(
+                    text = "v$versionName",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = accentCyan
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(accentCyan.copy(alpha = if (isDarkMode) 0.18f else 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = accentCyan,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Formatted Release Notes Card
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = if (isDarkMode) Color(0x33334155) else Color(0xFFF1F5F9),
+            border = BorderStroke(
+                1.dp,
+                if (isDarkMode) Color(0x4038BDF8) else Color(0x4000BCD4)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 120.dp, max = 240.dp)
+        ) {
+            val notesText = releaseNotes.ifBlank { AppStrings.get("update_whats_new_empty", currentLang) }
+            Text(
+                text = notesText,
+                style = MaterialTheme.typography.bodyMedium,
+                lineHeight = 22.sp,
+                color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF1E293B),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ThemedPillCtaButton(
+            text = AppStrings.get("back", currentLang),
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
+            gradientColors = listOf(primaryColor, accentCyan),
+            onClick = onBack,
+            testTag = "update_whats_new_bottom_back_button"
+        )
+    }
+}
+
+@Composable
 private fun UpdateHeroEmblem(
     updateState: AppUpdateState,
     primaryColor: Color,
     accentCyan: Color,
     isDarkMode: Boolean,
     glowPulse: Float,
+    haloOrbitAngle: Float,
+    rocketFloatOffset: Float,
     flamePulse: Float
 ) {
     val coreAccent = when (updateState) {
@@ -649,14 +862,14 @@ private fun UpdateHeroEmblem(
     }
 
     Box(
-        modifier = Modifier.size(116.dp),
+        modifier = Modifier.size(124.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Multi-color prism squircle backlight aura behind the concentric rings (echoing Screenshot 2)
         Canvas(modifier = Modifier.fillMaxSize()) {
             val c = Offset(size.width / 2f, size.height / 2f)
-            val auraAlpha = (if (isDarkMode) 0.42f else 0.28f) * glowPulse
+            val auraAlpha = (if (isDarkMode) 0.46f else 0.30f) * glowPulse
 
+            // Soft diffused outer aura
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -671,32 +884,48 @@ private fun UpdateHeroEmblem(
                 radius = size.minDimension * 0.56f
             )
 
-            // Outer translucent concentric halo ring (echoing Screenshot 1)
+            // Outer translucent concentric ripple rings
             drawCircle(
-                color = coreAccent.copy(alpha = if (isDarkMode) 0.16f else 0.12f),
-                radius = size.minDimension * 0.46f,
+                color = coreAccent.copy(alpha = if (isDarkMode) 0.10f else 0.08f),
+                radius = size.minDimension * 0.48f,
+                center = c
+            )
+            drawCircle(
+                color = coreAccent.copy(alpha = if (isDarkMode) 0.18f else 0.13f),
+                radius = size.minDimension * 0.42f,
                 center = c
             )
 
-            // Crisp luminous ring border
-            drawCircle(
-                brush = Brush.sweepGradient(
-                    colors = listOf(
-                        coreAccent,
-                        primaryColor,
-                        Color(0xFF38BDF8),
-                        coreAccent
-                    )
-                ),
-                radius = size.minDimension * 0.39f,
-                center = c,
-                style = Stroke(width = 2.4.dp.toPx())
-            )
+            // Rotating luminous gradient ring
+            rotate(degrees = haloOrbitAngle, pivot = c) {
+                drawCircle(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            coreAccent,
+                            primaryColor,
+                            Color(0xFF38BDF8),
+                            Color(0xFFFB7185).copy(alpha = 0.75f),
+                            coreAccent
+                        )
+                    ),
+                    radius = size.minDimension * 0.38f,
+                    center = c,
+                    style = Stroke(width = 2.6.dp.toPx())
+                )
+            }
 
-            // Inner deep disc
+            // Inner deep disc with subtle radial gradient
             drawCircle(
-                color = if (isDarkMode) Color(0xFF0B1220) else Color.White,
-                radius = size.minDimension * 0.37f,
+                brush = Brush.radialGradient(
+                    colors = if (isDarkMode) {
+                        listOf(Color(0xFF162238), Color(0xFF0A101E))
+                    } else {
+                        listOf(Color(0xFFFFFFFF), Color(0xFFF0F9FF))
+                    },
+                    center = c,
+                    radius = size.minDimension * 0.36f
+                ),
+                radius = size.minDimension * 0.36f,
                 center = c
             )
         }
@@ -707,7 +936,7 @@ private fun UpdateHeroEmblem(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
                     tint = Color(0xFF10B981),
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(46.dp)
                 )
             }
             is AppUpdateState.ReadyToInstall -> {
@@ -715,7 +944,7 @@ private fun UpdateHeroEmblem(
                     imageVector = if (updateState.requiresPermission) Icons.Default.Security else Icons.Default.CheckCircle,
                     contentDescription = null,
                     tint = Color(0xFF10B981),
-                    modifier = Modifier.size(42.dp)
+                    modifier = Modifier.size(44.dp)
                 )
             }
             is AppUpdateState.Error -> {
@@ -723,129 +952,163 @@ private fun UpdateHeroEmblem(
                     imageVector = Icons.Default.ErrorOutline,
                     contentDescription = null,
                     tint = Color(0xFFF59E0B),
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(46.dp)
                 )
             }
             else -> {
-                // Custom crisp Rocket Launch artwork styled with app theme colors & orbiting stars (inspired by Screenshot 1)
-                Canvas(modifier = Modifier.size(72.dp)) {
+                // Upgraded layered Rocket illustration with subtle vertical floating motion
+                Canvas(
+                    modifier = Modifier
+                        .size(74.dp)
+                        .graphicsLayer {
+                            translationY = rocketFloatOffset.dp.toPx()
+                        }
+                ) {
                     val w = size.width
                     val h = size.height
                     val cx = w / 2f
 
-                    // Orbiting pixel sparkles inside the disc (matching Screenshot 1)
-                    drawRect(
-                        color = Color(0xFFFBBF24),
-                        topLeft = Offset(w * 0.18f, h * 0.65f),
-                        size = Size(3.dp.toPx(), 3.dp.toPx())
+                    // Twinkling star particles inside the disc
+                    val starAlpha = (0.65f + 0.35f * glowPulse).coerceIn(0f, 1f)
+                    drawCircle(
+                        color = Color(0xFFFBBF24).copy(alpha = starAlpha),
+                        radius = 2.1.dp.toPx(),
+                        center = Offset(w * 0.19f, h * 0.66f)
                     )
-                    drawRect(
-                        color = accentCyan,
-                        topLeft = Offset(w * 0.17f, h * 0.28f),
-                        size = Size(2.5.dp.toPx(), 2.5.dp.toPx())
+                    drawCircle(
+                        color = accentCyan.copy(alpha = starAlpha),
+                        radius = 1.8.dp.toPx(),
+                        center = Offset(w * 0.18f, h * 0.28f)
                     )
-                    drawRect(
-                        color = if (isDarkMode) Color.White else primaryColor,
-                        topLeft = Offset(w * 0.80f, h * 0.25f),
-                        size = Size(3.dp.toPx(), 3.dp.toPx())
+                    drawCircle(
+                        color = (if (isDarkMode) Color.White else primaryColor).copy(alpha = starAlpha),
+                        radius = 2.2.dp.toPx(),
+                        center = Offset(w * 0.81f, h * 0.26f)
                     )
-                    drawRect(
-                        color = Color(0xFFFB7185),
-                        topLeft = Offset(w * 0.78f, h * 0.66f),
-                        size = Size(2.5.dp.toPx(), 2.5.dp.toPx())
+                    drawCircle(
+                        color = Color(0xFFFB7185).copy(alpha = starAlpha),
+                        radius = 1.9.dp.toPx(),
+                        center = Offset(w * 0.79f, h * 0.65f)
                     )
 
-                    // Thruster flame
-                    val flameLength = h * 0.18f * flamePulse
-                    val flamePath = Path().apply {
-                        moveTo(cx - w * 0.065f, h * 0.68f)
-                        lineTo(cx, h * 0.68f + flameLength)
-                        lineTo(cx + w * 0.065f, h * 0.68f)
+                    // Outer thruster flame + white-hot core
+                    val flameLength = h * 0.20f * flamePulse
+                    val outerFlamePath = Path().apply {
+                        moveTo(cx - w * 0.072f, h * 0.67f)
+                        lineTo(cx, h * 0.67f + flameLength)
+                        lineTo(cx + w * 0.072f, h * 0.67f)
                         close()
                     }
                     drawPath(
-                        path = flamePath,
+                        path = outerFlamePath,
                         brush = Brush.verticalGradient(
                             colors = listOf(Color(0xFFFBBF24), Color(0xFFF97316), Color(0xFFEF4444))
                         )
                     )
+                    val innerFlamePath = Path().apply {
+                        moveTo(cx - w * 0.036f, h * 0.67f)
+                        lineTo(cx, h * 0.67f + flameLength * 0.58f)
+                        lineTo(cx + w * 0.036f, h * 0.67f)
+                        close()
+                    }
+                    drawPath(innerFlamePath, color = Color(0xFFFEF08A))
 
-                    // Left Fin
+                    // Side Fins with gradient shading
+                    val finBrush = Brush.verticalGradient(
+                        listOf(primaryColor, Color(0xFF0284C7))
+                    )
                     val leftFin = Path().apply {
-                        moveTo(cx - w * 0.11f, h * 0.50f)
-                        lineTo(cx - w * 0.25f, h * 0.66f)
-                        lineTo(cx - w * 0.08f, h * 0.63f)
+                        moveTo(cx - w * 0.105f, h * 0.48f)
+                        lineTo(cx - w * 0.26f, h * 0.66f)
+                        lineTo(cx - w * 0.075f, h * 0.625f)
                         close()
                     }
-                    drawPath(leftFin, color = primaryColor)
+                    drawPath(leftFin, brush = finBrush)
 
-                    // Right Fin
                     val rightFin = Path().apply {
-                        moveTo(cx + w * 0.11f, h * 0.50f)
-                        lineTo(cx + w * 0.25f, h * 0.66f)
-                        lineTo(cx + w * 0.08f, h * 0.63f)
+                        moveTo(cx + w * 0.105f, h * 0.48f)
+                        lineTo(cx + w * 0.26f, h * 0.66f)
+                        lineTo(cx + w * 0.075f, h * 0.625f)
                         close()
                     }
-                    drawPath(rightFin, color = primaryColor)
+                    drawPath(rightFin, brush = finBrush)
 
-                    // Fuselage body
+                    // Fuselage Body with 3D metallic highlight shading
                     val bodyPath = Path().apply {
-                        moveTo(cx, h * 0.14f)
+                        moveTo(cx, h * 0.13f)
                         cubicTo(
-                            cx + w * 0.16f, h * 0.28f,
-                            cx + w * 0.14f, h * 0.54f,
-                            cx + w * 0.08f, h * 0.68f
+                            cx + w * 0.165f, h * 0.27f,
+                            cx + w * 0.145f, h * 0.54f,
+                            cx + w * 0.085f, h * 0.67f
                         )
-                        lineTo(cx - w * 0.08f, h * 0.68f)
+                        lineTo(cx - w * 0.085f, h * 0.67f)
                         cubicTo(
-                            cx - w * 0.14f, h * 0.54f,
-                            cx - w * 0.16f, h * 0.28f,
-                            cx, h * 0.14f
+                            cx - w * 0.145f, h * 0.54f,
+                            cx - w * 0.165f, h * 0.27f,
+                            cx, h * 0.13f
                         )
                         close()
                     }
                     drawPath(
                         path = bodyPath,
-                        color = if (isDarkMode) Color.White else Color(0xFFE2E8F0)
+                        brush = Brush.horizontalGradient(
+                            colors = if (isDarkMode) {
+                                listOf(Color.White, Color(0xFFF1F5F9), Color(0xFFCBD5E1))
+                            } else {
+                                listOf(Color(0xFFF8FAFC), Color(0xFFE2E8F0), Color(0xFFCBD5E1))
+                            }
+                        )
                     )
 
-                    // Nose cone accent cap
+                    // Nose Cone Accent Cap
                     val nosePath = Path().apply {
-                        moveTo(cx, h * 0.14f)
+                        moveTo(cx, h * 0.13f)
                         cubicTo(
-                            cx + w * 0.085f, h * 0.21f,
-                            cx + w * 0.105f, h * 0.27f,
-                            cx + w * 0.105f, h * 0.30f
+                            cx + w * 0.088f, h * 0.205f,
+                            cx + w * 0.108f, h * 0.265f,
+                            cx + w * 0.108f, h * 0.295f
                         )
-                        lineTo(cx - w * 0.105f, h * 0.30f)
+                        lineTo(cx - w * 0.108f, h * 0.295f)
                         cubicTo(
-                            cx - w * 0.105f, h * 0.27f,
-                            cx - w * 0.085f, h * 0.21f,
-                            cx, h * 0.14f
+                            cx - w * 0.108f, h * 0.265f,
+                            cx - w * 0.088f, h * 0.205f,
+                            cx, h * 0.13f
                         )
                         close()
                     }
-                    drawPath(nosePath, color = accentCyan)
+                    drawPath(
+                        path = nosePath,
+                        brush = Brush.horizontalGradient(listOf(Color(0xFF38BDF8), accentCyan))
+                    )
 
-                    // Circular Porthole Window
-                    val windowCenter = Offset(cx, h * 0.44f)
+                    // Porthole Window with glossy crescent highlight
+                    val windowCenter = Offset(cx, h * 0.435f)
                     drawCircle(
                         color = Color(0xFF0F172A),
-                        radius = w * 0.082f,
+                        radius = w * 0.088f,
                         center = windowCenter
                     )
                     drawCircle(
-                        color = Color(0xFF38BDF8),
-                        radius = w * 0.058f,
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color(0xFF7DD3FC), Color(0xFF0284C7)),
+                            center = Offset(cx - w * 0.02f, h * 0.415f),
+                            radius = w * 0.07f
+                        ),
+                        radius = w * 0.062f,
                         center = windowCenter
                     )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.75f),
+                        radius = w * 0.018f,
+                        center = Offset(cx - w * 0.024f, h * 0.412f)
+                    )
 
-                    // Thruster nozzle bar
+                    // Nozzle Collar
                     drawLine(
                         color = Color(0xFF475569),
-                        start = Offset(cx - w * 0.06f, h * 0.68f),
-                        end = Offset(cx + w * 0.06f, h * 0.68f),
-                        strokeWidth = 2.5.dp.toPx(),
+                        start = Offset(cx - w * 0.065f, h * 0.67f),
+                        end = Offset(cx + w * 0.065f, h * 0.67f),
+                        strokeWidth = 3.dp.toPx(),
                         cap = StrokeCap.Round
                     )
                 }
@@ -871,7 +1134,7 @@ private fun VersionPillBadge(
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
             color = if (isDarkMode) tint else tint.copy(alpha = 0.95f),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp)
         )
     }
 }
@@ -879,30 +1142,120 @@ private fun VersionPillBadge(
 @Composable
 private fun ThemedPillCtaButton(
     text: String,
+    icon: ImageVector? = null,
     gradientColors: List<Color>,
     onClick: () -> Unit,
     testTag: String
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.965f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "ctaPressScale"
+    )
+
     Button(
         onClick = onClick,
+        interactionSource = interactionSource,
         shape = RoundedCornerShape(50.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
             contentColor = Color.White
         ),
-        contentPadding = PaddingValues(0.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.30f)),
+        contentPadding = PaddingValues(horizontal = 20.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .height(52.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(50.dp),
+                ambientColor = gradientColors.first().copy(alpha = 0.45f),
+                spotColor = gradientColors.last().copy(alpha = 0.55f)
+            )
             .clip(RoundedCornerShape(50.dp))
             .background(Brush.horizontalGradient(gradientColors))
             .testTag(testTag)
     ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(19.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
         Text(
             text = text,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
             color = Color.White
+        )
+    }
+}
+
+@Composable
+private fun TactileSecondaryPillButton(
+    text: String,
+    icon: ImageVector? = null,
+    accentColor: Color,
+    isDarkMode: Boolean,
+    onClick: () -> Unit,
+    testTag: String
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.965f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "secondaryPressScale"
+    )
+
+    OutlinedButton(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(50.dp),
+        border = BorderStroke(1.1.dp, accentColor.copy(alpha = if (isDarkMode) 0.50f else 0.42f)),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = accentColor.copy(alpha = if (isDarkMode) 0.12f else 0.08f),
+            contentColor = accentColor
+        ),
+        contentPadding = PaddingValues(horizontal = 18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .testTag(testTag)
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isDarkMode) accentColor else accentColor.copy(alpha = 0.95f),
+                modifier = Modifier.size(17.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (isDarkMode) accentColor else accentColor.copy(alpha = 0.95f)
         )
     }
 }
