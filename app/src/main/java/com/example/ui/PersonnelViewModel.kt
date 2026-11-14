@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.BuildConfig
 import com.example.data.AppDatabase
 import com.example.data.AppNotification
 import com.example.data.AppThemeMode
@@ -20,11 +21,17 @@ import com.example.data.normalizeRank
 import com.example.data.normalizeWilaya
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
+import com.example.util.AppUpdateManager
+import com.example.util.AppUpdateState
+import com.example.util.InstallLaunchResult
 import com.example.util.LeaveNotificationHelper
 import com.example.util.PdfExporter
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -158,6 +165,17 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     // Undo action state
     val lastUndoAction = MutableStateFlow<UndoAction?>(null)
+
+    // In-App Update state (Strict in-app check, download & system install; no external redirects)
+    private val _appUpdateState = MutableStateFlow<AppUpdateState>(AppUpdateState.Idle)
+    val appUpdateState: StateFlow<AppUpdateState> = _appUpdateState.asStateFlow()
+
+    private val _showUpdateDialog = MutableStateFlow(false)
+    val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
+
+    private var updateDownloadJob: Job? = null
+    private var lastAvailableUpdate: AppUpdateState.UpdateAvailable? = null
+    private var hasAutoCheckedUpdate = false
 
     val allPersonnel: StateFlow<List<Personnel>>
     val allLeaves: StateFlow<List<LeaveRecord>>
@@ -1212,5 +1230,127 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
             repository.clearAndReset(seedP, seedL)
         }
+    }
+
+    // ==========================================
+    // In-App GitHub Update & System Installer
+    // ==========================================
+
+    fun checkForAppUpdate(manual: Boolean = true) {
+        if (!manual && hasAutoCheckedUpdate) return
+        if (!manual) hasAutoCheckedUpdate = true
+
+        val current = _appUpdateState.value
+        if (current is AppUpdateState.Downloading || current is AppUpdateState.ReadyToInstall) {
+            if (manual) _showUpdateDialog.value = true
+            return
+        }
+
+        if (manual) {
+            _showUpdateDialog.value = true
+            _appUpdateState.value = AppUpdateState.Checking
+        }
+
+        viewModelScope.launch {
+            val result = AppUpdateManager.checkLatestRelease(BuildConfig.VERSION_NAME)
+            if (result is AppUpdateState.UpdateAvailable) {
+                lastAvailableUpdate = result
+                _appUpdateState.value = result
+                _showUpdateDialog.value = true
+            } else if (manual) {
+                _appUpdateState.value = result
+            }
+        }
+    }
+
+    fun startAppUpdateDownload() {
+        val available = (_appUpdateState.value as? AppUpdateState.UpdateAvailable)
+            ?: lastAvailableUpdate
+            ?: return
+
+        updateDownloadJob?.cancel()
+        _appUpdateState.value = AppUpdateState.Downloading(
+            versionName = available.versionName,
+            downloadedBytes = 0L,
+            totalBytes = available.fileSizeBytes,
+            progress = 0f
+        )
+
+        val app = getApplication<Application>()
+        updateDownloadJob = viewModelScope.launch {
+            val result = AppUpdateManager.downloadApkInApp(
+                context = app,
+                downloadUrl = available.downloadUrl,
+                versionName = available.versionName,
+                expectedSizeBytes = available.fileSizeBytes,
+                onProgress = { downloaded, total, progress ->
+                    _appUpdateState.value = AppUpdateState.Downloading(
+                        versionName = available.versionName,
+                        downloadedBytes = downloaded,
+                        totalBytes = total,
+                        progress = progress
+                    )
+                }
+            )
+            result.fold(
+                onSuccess = { apkFile ->
+                    val needsPerm = !AppUpdateManager.canInstallPackages(app)
+                    _appUpdateState.value = AppUpdateState.ReadyToInstall(
+                        versionName = available.versionName,
+                        apkFile = apkFile,
+                        requiresPermission = needsPerm
+                    )
+                    if (!needsPerm) {
+                        installDownloadedApk()
+                    }
+                },
+                onFailure = { error ->
+                    if (error is CancellationException) throw error
+                    _appUpdateState.value = AppUpdateState.Error(
+                        messageKey = "update_download_failed",
+                        detail = error.localizedMessage
+                    )
+                }
+            )
+        }
+    }
+
+    fun cancelAppUpdateDownload() {
+        updateDownloadJob?.cancel()
+        updateDownloadJob = null
+        _appUpdateState.value = lastAvailableUpdate ?: AppUpdateState.Idle
+        if (_appUpdateState.value is AppUpdateState.Idle) {
+            _showUpdateDialog.value = false
+        }
+    }
+
+    fun installDownloadedApk() {
+        val ready = _appUpdateState.value as? AppUpdateState.ReadyToInstall ?: return
+        val app = getApplication<Application>()
+        when (AppUpdateManager.launchSystemPackageInstaller(app, ready.apkFile)) {
+            InstallLaunchResult.LAUNCHED_SYSTEM_INSTALLER -> {
+                _appUpdateState.value = ready.copy(requiresPermission = false)
+            }
+            InstallLaunchResult.PERMISSION_REQUIRED -> {
+                _appUpdateState.value = ready.copy(requiresPermission = true)
+                AppUpdateManager.openInstallPermissionSettings(app)
+            }
+            InstallLaunchResult.FAILED -> {
+                _appUpdateState.value = AppUpdateState.Error(messageKey = "update_install_failed")
+            }
+        }
+    }
+
+    fun refreshInstallPermissionState() {
+        val ready = _appUpdateState.value as? AppUpdateState.ReadyToInstall ?: return
+        val app = getApplication<Application>()
+        if (ready.requiresPermission && AppUpdateManager.canInstallPackages(app)) {
+            _appUpdateState.value = ready.copy(requiresPermission = false)
+            installDownloadedApk()
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _showUpdateDialog.value = false
     }
 }

@@ -417,7 +417,36 @@ object AppStrings {
         "import_json_error" to "خطأ في قراءة JSON:",
         "import_invalid_data" to "بيانات غير صالحة",
         "toolbar_menu_desc" to "القائمة",
-        "status_col_header" to "الحالة:"
+        "status_col_header" to "الحالة:",
+
+        // In-App Update
+        "update_menu_title" to "تحديث التطبيق",
+        "update_menu_sub" to "التحقق من التحديثات والتثبيت الداخلي",
+        "update_check_btn" to "التحقق من التحديثات",
+        "update_available_title" to "تحديث جديد متاح",
+        "update_available_sub" to "تحديث جديد",
+        "update_checking_title" to "جاري البحث عن تحديثات",
+        "update_checking_desc" to "يتم الآن فحص أحدث إصدار متاح داخل النظام...",
+        "update_downloading_title" to "جاري تحميل التحديث",
+        "update_downloading_sub" to "يتم التحميل مباشرة داخل التطبيق...",
+        "update_ready_title" to "التحديث جاهز للتثبيت",
+        "update_ready_desc" to "تم تحميل حزمة التحديث بنجاح داخل النظام. اضغط للتثبيت الآن.",
+        "update_permission_desc" to "يرجى تفعيل إذن تثبيت التطبيقات لهذا النظام من الإعدادات ثم المتابعة.",
+        "update_uptodate_title" to "التطبيق محدث بالكامل",
+        "update_uptodate_desc" to "أنت تستخدم أحدث إصدار متاح حالياً",
+        "update_error_title" to "تعذر إكمال التحديث",
+        "update_check_failed" to "تعذر الاتصال بخادم التحديثات. تأكد من الاتصال بالإنترنت وحاول مجدداً.",
+        "update_no_apk_asset" to "لم يتم العثور على ملف تثبيت APK في هذا الإصدار.",
+        "update_download_failed" to "فشل تحميل حزمة التحديث. يرجى المحاولة مرة أخرى.",
+        "update_install_failed" to "تعذر تشغيل مثبت النظام لحزمة التحديث.",
+        "update_btn_now" to "تحديث",
+        "update_btn_install" to "تثبيت التحديث",
+        "update_btn_grant_install" to "منح إذن التثبيت",
+        "update_btn_cancel_download" to "إلغاء التحميل",
+        "update_btn_retry" to "إعادة المحاولة",
+        "update_btn_ok" to "حسناً",
+        "update_current_version_tag" to "الإصدار الحالي",
+        "update_new_version_tag" to "الإصدار الجديد"
     )
 
     private val stringsFr = mapOf(
@@ -816,7 +845,36 @@ object AppStrings {
         "import_json_error" to "Erreur de lecture JSON :",
         "import_invalid_data" to "Données invalides",
         "toolbar_menu_desc" to "Menu",
-        "status_col_header" to "Statut :"
+        "status_col_header" to "Statut :",
+
+        // In-App Update
+        "update_menu_title" to "Mise à jour",
+        "update_menu_sub" to "Vérifier et installer dans l'application",
+        "update_check_btn" to "Vérifier les mises à jour",
+        "update_available_title" to "Nouvelle mise à jour disponible",
+        "update_available_sub" to "Nouvelle version",
+        "update_checking_title" to "Recherche de mise à jour",
+        "update_checking_desc" to "Vérification de la dernière version disponible...",
+        "update_downloading_title" to "Téléchargement en cours",
+        "update_downloading_sub" to "Téléchargement direct dans l'application...",
+        "update_ready_title" to "Mise à jour prête à installer",
+        "update_ready_desc" to "Téléchargement terminé. Appuyez pour installer via le système.",
+        "update_permission_desc" to "Veuillez autoriser l'installation pour Respite Pulse dans les paramètres système.",
+        "update_uptodate_title" to "Application à jour",
+        "update_uptodate_desc" to "Vous utilisez déjà la dernière version disponible",
+        "update_error_title" to "Échec de la mise à jour",
+        "update_check_failed" to "Impossible de vérifier les mises à jour. Vérifiez votre connexion.",
+        "update_no_apk_asset" to "Aucun paquet APK trouvé dans cette version.",
+        "update_download_failed" to "Échec du téléchargement de la mise à jour. Veuillez réessayer.",
+        "update_install_failed" to "Impossible de lancer l'installateur système.",
+        "update_btn_now" to "Mettre à jour",
+        "update_btn_install" to "Installer",
+        "update_btn_grant_install" to "Autoriser l'installation",
+        "update_btn_cancel_download" to "Annuler",
+        "update_btn_retry" to "Réessayer",
+        "update_btn_ok" to "OK",
+        "update_current_version_tag" to "Version actuelle",
+        "update_new_version_tag" to "Nouvelle version"
     )
 
     private val stringsEn = mapOf(
@@ -1215,6 +1273,35 @@ object AppStrings {
         "import_json_error" to "JSON parsing error:",
         "import_invalid_data" to "Invalid data",
         "toolbar_menu_desc" to "Menu",
-        "status_col_header" to "Status:"
+        "status_col_header" to "Status:",
+
+        // In-App Update
+        "update_menu_title" to "App Update",
+        "update_menu_sub" to "Check & install updates inside app",
+        "update_check_btn" to "Check for Updates",
+        "update_available_title" to "New Update Available",
+        "update_available_sub" to "New Release",
+        "update_checking_title" to "Checking for Updates",
+        "update_checking_desc" to "Checking for the latest available release...",
+        "update_downloading_title" to "Downloading Update",
+        "update_downloading_sub" to "Downloading package directly in-app...",
+        "update_ready_title" to "Update Ready to Install",
+        "update_ready_desc" to "Download complete inside app. Tap to install via system installer.",
+        "update_permission_desc" to "Please allow package installation for Respite Pulse in system settings to continue.",
+        "update_uptodate_title" to "App is Up to Date",
+        "update_uptodate_desc" to "You are running the latest available version",
+        "update_error_title" to "Update Failed",
+        "update_check_failed" to "Unable to check for updates. Check your internet connection and retry.",
+        "update_no_apk_asset" to "No APK installation package found in this release.",
+        "update_download_failed" to "Failed to download the update package. Please try again.",
+        "update_install_failed" to "Unable to launch the system package installer.",
+        "update_btn_now" to "Update",
+        "update_btn_install" to "Install Now",
+        "update_btn_grant_install" to "Allow Installation",
+        "update_btn_cancel_download" to "Cancel Download",
+        "update_btn_retry" to "Retry",
+        "update_btn_ok" to "OK",
+        "update_current_version_tag" to "Current version",
+        "update_new_version_tag" to "New version"
     )
 }

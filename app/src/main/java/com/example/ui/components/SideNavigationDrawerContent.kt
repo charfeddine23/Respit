@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
@@ -133,7 +134,9 @@ fun SideNavigationDrawerContent(
     lastDriveBackupTime: Long = 0L,
     onBackupToDrive: () -> Unit = {},
     onRestoreFromDrive: () -> Unit = {},
-    drawerIsOpen: Boolean = true
+    drawerIsOpen: Boolean = true,
+    onCheckUpdate: () -> Unit = {},
+    availableUpdateVersion: String? = null
 ) {
     val context = LocalContext.current
     var isSettingsPageOpen by rememberSaveable { mutableStateOf(false) }
@@ -526,6 +529,23 @@ fun SideNavigationDrawerContent(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // In-App Update Item
+        DrawerNavigationItem(
+            icon = Icons.Default.RocketLaunch,
+            iconTint = if (availableUpdateVersion != null) Color(0xFF10B981) else Color(0xFF00BCD4),
+            title = AppStrings.get("update_menu_title", currentLang),
+            subtitle = if (availableUpdateVersion != null) {
+                "${AppStrings.get("update_available_sub", currentLang)} • v$availableUpdateVersion"
+            } else {
+                "${AppStrings.get("update_menu_sub", currentLang)} (v${BuildConfig.VERSION_NAME})"
+            },
+            isDarkMode = isDarkMode,
+            onClick = onCheckUpdate,
+            testTag = "drawer_update_item"
+        )
 
         Spacer(modifier = Modifier.height(6.dp))
 
@@ -1134,6 +1154,37 @@ fun SideNavigationDrawerContent(
                                 }
                             }
                         }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onCheckUpdate,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFF00BCD4).copy(alpha = 0.65f)),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("drawer_settings_check_update_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RocketLaunch,
+                            contentDescription = null,
+                            tint = Color(0xFF00BCD4),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (availableUpdateVersion != null) {
+                                "${AppStrings.get("update_available_title", currentLang)} (v$availableUpdateVersion)"
+                            } else {
+                                AppStrings.get("update_check_btn", currentLang)
+                            },
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00BCD4),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }

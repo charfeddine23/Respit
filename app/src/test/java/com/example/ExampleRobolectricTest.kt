@@ -21,8 +21,12 @@ import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
 import com.example.util.AppLanguage
+import com.example.util.AppUpdateManager
+import com.example.util.AppUpdateState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
+import org.json.JSONObject
 import org.robolectric.Robolectric
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -267,6 +271,40 @@ class ExampleRobolectricTest {
     val activity = controller.get()
     assertTrue(!activity.isFinishing)
     controller.pause().stop().destroy()
+  }
+
+  @Test
+  fun `verify AppUpdateManager version comparison and GitHub release parsing`() {
+    assertTrue(AppUpdateManager.compareVersions("1.43.0", "1.42.4") > 0)
+    assertTrue(AppUpdateManager.compareVersions("v2.0.0", "1.99.9") > 0)
+    assertEquals(0, AppUpdateManager.compareVersions("v1.42.4", "1.42.4"))
+    assertTrue(AppUpdateManager.compareVersions("1.42.3", "1.42.4") < 0)
+
+    val releaseJson = JSONObject().apply {
+      put("tag_name", "v1.43.0")
+      put("name", "Respite Pulse v1.43.0")
+      put("body", "Bug fixes and performance improvements")
+      put(
+        "assets",
+        JSONArray().put(
+          JSONObject().apply {
+            put("name", "RespitePulse-v1.43.0.apk")
+            put("browser_download_url", "https://github.com/charfeddine23/Respit/releases/download/v1.43.0/RespitePulse-v1.43.0.apk")
+            put("size", 12_582_912L)
+          }
+        )
+      )
+    }
+
+    val newerState = AppUpdateManager.parseReleaseObject(releaseJson, "1.42.4")
+    assertTrue(newerState is AppUpdateState.UpdateAvailable)
+    val available = newerState as AppUpdateState.UpdateAvailable
+    assertEquals("1.43.0", available.versionName)
+    assertEquals("RespitePulse-v1.43.0.apk", available.fileName)
+    assertTrue(available.downloadUrl.startsWith("https://github.com/charfeddine23/Respit"))
+
+    val sameVersionState = AppUpdateManager.parseReleaseObject(releaseJson, "1.43.0")
+    assertTrue(sameVersionState is AppUpdateState.UpToDate)
   }
 }
 

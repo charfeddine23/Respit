@@ -91,6 +91,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -98,6 +99,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -127,6 +131,7 @@ import com.example.ui.components.BiometricLockScreen
 import com.example.ui.components.DeveloperInfoDialog
 import com.example.ui.components.ExportDialog
 import com.example.ui.components.FilterSortDialog
+import com.example.ui.components.InAppUpdateDialog
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
@@ -142,6 +147,7 @@ import com.example.ui.theme.liquidGlass
 import com.example.ui.theme.liquidGlassInteractive
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
+import com.example.util.AppUpdateState
 import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
@@ -210,6 +216,8 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
     val notificationsCount by viewModel.unreadNotificationsCount.collectAsState()
     val isDriveSyncEnabled by viewModel.isDriveSyncEnabled.collectAsState()
     val lastDriveBackupTime by viewModel.lastDriveBackupTime.collectAsState()
+    val appUpdateState by viewModel.appUpdateState.collectAsState()
+    val showUpdateDialog by viewModel.showUpdateDialog.collectAsState()
 
     // Google Drive SAF Document Launchers
     val driveBackupLauncher = rememberLauncherForActivityResult(
@@ -271,6 +279,19 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshInstallPermissionState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     LaunchedEffect(isLocked) {
         if (!isLocked) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -286,6 +307,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
             } else {
                 viewModel.checkUpcomingNotifications()
             }
+            viewModel.checkForAppUpdate(manual = false)
         }
     }
 
@@ -385,7 +407,12 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                             onRestoreFromDrive = {
                                 driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
                             },
-                            drawerIsOpen = drawerState.isOpen
+                            drawerIsOpen = drawerState.isOpen,
+                            onCheckUpdate = {
+                                scope.launch { drawerState.close() }
+                                viewModel.checkForAppUpdate(manual = true)
+                            },
+                            availableUpdateVersion = (appUpdateState as? AppUpdateState.UpdateAvailable)?.versionName
                         )
                     }
                 }
@@ -1504,6 +1531,22 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                     Text(AppStrings.get("cancel", currentLang))
                 }
             }
+        )
+    }
+
+    // Floating In-App Update Dialog (Strictly in-app; no external redirects)
+    if (showUpdateDialog) {
+        InAppUpdateDialog(
+            updateState = appUpdateState,
+            isDarkMode = isDarkMode,
+            isNeumorphic = isNeumorphic,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            currentLang = currentLang,
+            onStartDownload = { viewModel.startAppUpdateDownload() },
+            onCancelDownload = { viewModel.cancelAppUpdateDownload() },
+            onInstallApk = { viewModel.installDownloadedApk() },
+            onRetryCheck = { viewModel.checkForAppUpdate(manual = true) },
+            onDismiss = { viewModel.dismissUpdateDialog() }
         )
     }
 }
