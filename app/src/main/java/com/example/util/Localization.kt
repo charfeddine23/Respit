@@ -202,6 +202,14 @@ object AppStrings {
         "notif_type_alert" to "تنبيه",
         "view_record" to "عرض السجل",
         "pinned_badge" to "مثبت في الأعلى",
+        "notif_summary_urgent" to "تنبيهات عاجلة",
+        "notif_summary_upcoming" to "مواعيد قادمة",
+        "notif_summary_eligible" to "مستحقون",
+        "notif_summary_total" to "الإجمالي",
+        "notif_detail_title" to "تفاصيل التنبيه",
+        "notif_quick_preview" to "معاينة",
+        "notif_action_open" to "فتح التنبيهات",
+        "update_top_banner_desc" to "تنزيل التحديث الجديد",
 
         // Drawer
         "drawer_notif_sub" to "متابعة تنبيهات الإجازات ومواعيد الدخول",
@@ -633,6 +641,14 @@ object AppStrings {
         "notif_type_alert" to "Alerte",
         "view_record" to "Voir la fiche",
         "pinned_badge" to "Épinglé en haut",
+        "notif_summary_urgent" to "Urgents",
+        "notif_summary_upcoming" to "À venir",
+        "notif_summary_eligible" to "Éligibles",
+        "notif_summary_total" to "Total",
+        "notif_detail_title" to "Détails de l'alerte",
+        "notif_quick_preview" to "Aperçu",
+        "notif_action_open" to "Voir les alertes",
+        "update_top_banner_desc" to "Télécharger la mise à jour",
 
         // Drawer
         "drawer_notif_sub" to "Alertes des congés et rentrées",
@@ -1068,6 +1084,14 @@ object AppStrings {
         "notif_type_alert" to "Alert",
         "view_record" to "View Record",
         "pinned_badge" to "Pinned on Top",
+        "notif_summary_urgent" to "Urgent",
+        "notif_summary_upcoming" to "Upcoming",
+        "notif_summary_eligible" to "Eligible",
+        "notif_summary_total" to "Total",
+        "notif_detail_title" to "Alert Details",
+        "notif_quick_preview" to "Preview",
+        "notif_action_open" to "Open Alerts",
+        "update_top_banner_desc" to "Download new update",
 
         // Drawer
         "drawer_notif_sub" to "Leave alerts and return reminders",

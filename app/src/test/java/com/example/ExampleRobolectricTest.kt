@@ -306,5 +306,36 @@ class ExampleRobolectricTest {
     val sameVersionState = AppUpdateManager.parseReleaseObject(releaseJson, "1.43.0")
     assertTrue(sameVersionState is AppUpdateState.UpToDate)
   }
+
+  @Test
+  fun `verify LeaveNotificationHelper dispatches overdue and grouped notifications`() {
+    val app = ApplicationProvider.getApplicationContext<android.app.Application>()
+    org.robolectric.Shadows.shadowOf(app).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
+    val list = listOf(
+      Personnel(
+        id = 101,
+        fullName = "أحمد منصور",
+        rank = "نقيب - Capitaine",
+        registrationNumber = "DZ-771100",
+        startDateMillis = getOffsetDateMillis(-14),
+        returnDateMillis = getOffsetDateMillis(-2),
+        isReturnedToDuty = false,
+        wilaya = "16 - الجزائر - Alger"
+      ),
+      Personnel(
+        id = 102,
+        fullName = "سليم بن علي",
+        rank = "ملازم - Sous-Lieutenant",
+        registrationNumber = "DZ-772200",
+        startDateMillis = getOffsetDateMillis(-10),
+        returnDateMillis = getOffsetDateMillis(0),
+        isReturnedToDuty = false,
+        wilaya = "31 - وهران - Oran"
+      )
+    )
+    val sent = com.example.util.LeaveNotificationHelper.checkApproachingLeaves(app, list, "ar")
+    assertEquals(2, sent)
+  }
 }
+
 

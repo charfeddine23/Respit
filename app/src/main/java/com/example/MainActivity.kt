@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -13,8 +14,20 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -22,6 +35,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -50,6 +65,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.ui.text.input.ImeAction
@@ -67,6 +84,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -95,6 +113,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -105,12 +124,20 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -152,9 +179,14 @@ import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     private val viewModel: PersonnelViewModel by viewModels()
+    private val openNotificationsSignal = mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (intent?.getBooleanExtra("open_notifications", false) == true) {
+            openNotificationsSignal.intValue++
+        }
 
         // Set application animation and refresh frame rate up to 60 FPS
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -174,20 +206,35 @@ class MainActivity : FragmentActivity() {
             }
 
             val currentLang by viewModel.currentLanguage.collectAsState()
+            val navSignal by openNotificationsSignal
             MyApplicationTheme(darkTheme = isDarkTheme) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
                 ) {
-                    LeaveTrackerMainApp(viewModel = viewModel)
+                    LeaveTrackerMainApp(
+                        viewModel = viewModel,
+                        openNotificationsSignal = navSignal
+                    )
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("open_notifications", false)) {
+            openNotificationsSignal.intValue++
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
+fun LeaveTrackerMainApp(
+    viewModel: PersonnelViewModel,
+    openNotificationsSignal: Int = 0
+) {
     val context = LocalContext.current
     val isLocked by viewModel.isLocked.collectAsState()
     val currentThemeMode by viewModel.currentThemeMode.collectAsState()
@@ -279,11 +326,25 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         }
     }
 
+    LaunchedEffect(openNotificationsSignal) {
+        if (openNotificationsSignal > 0) {
+            selectedNavPage = AppNavPage.NOTIFICATIONS
+        }
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, isLocked) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshInstallPermissionState()
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    if (!isLocked) {
+                        viewModel.checkForAppUpdate(manual = false)
+                    }
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    viewModel.refreshInstallPermissionState()
+                }
+                else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -412,7 +473,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                 scope.launch { drawerState.close() }
                                 viewModel.checkForAppUpdate(manual = true)
                             },
-                            availableUpdateVersion = (appUpdateState as? AppUpdateState.UpdateAvailable)?.versionName
+                            availableUpdateVersion = null
                         )
                     }
                 }
@@ -486,12 +547,37 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
                                             )
                                         }
 
-                                        // Right Side: Quick Actions (Light/Dark Theme Toggle & Drawer Menu)
+                                        // Right Side: Quick Actions (Dynamic Update Arrow when available + Light/Dark Toggle & Drawer Menu)
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+                                            val hasAvailableUpdate = appUpdateState is AppUpdateState.UpdateAvailable ||
+                                                appUpdateState is AppUpdateState.Downloading ||
+                                                appUpdateState is AppUpdateState.ReadyToInstall
+
+                                            // Sleek Dynamic Download Arrow shown ONLY in the Top Banner when an update exists
+                                            AnimatedVisibility(
+                                                visible = hasAvailableUpdate,
+                                                enter = fadeIn(tween(260)) + scaleIn(
+                                                    initialScale = 0.72f,
+                                                    animationSpec = spring(
+                                                        dampingRatio = 0.65f,
+                                                        stiffness = Spring.StiffnessMediumLow
+                                                    )
+                                                ),
+                                                exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.75f)
+                                            ) {
+                                                HeaderUpdateDownloadButton(
+                                                    updateState = appUpdateState,
+                                                    isDarkMode = isDarkMode,
+                                                    isNeumorphic = isNeumorphic,
+                                                    animationsEnabled = isDynamicAnimationsEnabled,
+                                                    contentDescription = AppStrings.get("update_top_banner_desc", currentLang),
+                                                    onClick = { viewModel.openUpdateDialog() }
+                                                )
+                                            }
 
                                             // Light / Dark Mode Toggle Button
                                             Box(
@@ -1534,7 +1620,7 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         )
     }
 
-    // Floating In-App Update Dialog (Strictly in-app; no external redirects)
+    // Floating In-App Update Dialog (Strictly centered, in-app; no external redirects)
     if (showUpdateDialog) {
         InAppUpdateDialog(
             updateState = appUpdateState,
@@ -1550,3 +1636,193 @@ fun LeaveTrackerMainApp(viewModel: PersonnelViewModel) {
         )
     }
 }
+
+@Composable
+private fun HeaderUpdateDownloadButton(
+    updateState: AppUpdateState,
+    isDarkMode: Boolean,
+    isNeumorphic: Boolean,
+    animationsEnabled: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium),
+        label = "headerDownloadScale"
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "headerDownloadMotion")
+    val arrowFloatY by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = -2.2f,
+            targetValue = 2.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1050, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "arrowFloatY"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+
+    val ringRotation by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "headerRingRotation"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+
+    val haloPulse by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "headerHaloPulse"
+        )
+    } else {
+        remember { mutableStateOf(0.8f) }
+    }
+
+    val shape = if (isNeumorphic) CircleShape else RoundedCornerShape(14.dp)
+    val isReady = updateState is AppUpdateState.ReadyToInstall
+    val isDownloading = updateState is AppUpdateState.Downloading
+
+    Surface(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
+        interactionSource = interactionSource,
+        shape = shape,
+        color = if (isDarkMode) Color(0xD9102038) else Color(0xF5FFFFFF),
+        shadowElevation = 6.dp,
+        modifier = Modifier
+            .size(48.dp)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .drawBehind {
+                val cornerPx = if (isNeumorphic) size.minDimension / 2f else 14.dp.toPx()
+                val glowColors = if (isReady) {
+                    listOf(
+                        Color(0xFF10B981).copy(alpha = 0.90f * haloPulse),
+                        Color(0xFF34D399).copy(alpha = 0.65f * haloPulse),
+                        Color(0xFF00E5FF).copy(alpha = 0.75f * haloPulse),
+                        Color(0xFF10B981).copy(alpha = 0.90f * haloPulse)
+                    )
+                } else {
+                    listOf(
+                        Color(0xFF00E5FF).copy(alpha = 0.90f * haloPulse),
+                        Color(0xFF3B82F6).copy(alpha = 0.75f * haloPulse),
+                        Color(0xFF10B981).copy(alpha = 0.85f * haloPulse),
+                        Color(0xFF00E5FF).copy(alpha = 0.90f * haloPulse)
+                    )
+                }
+
+                rotate(degrees = ringRotation) {
+                    drawRoundRect(
+                        brush = Brush.sweepGradient(glowColors),
+                        topLeft = Offset(-2.dp.toPx(), -2.dp.toPx()),
+                        size = Size(size.width + 4.dp.toPx(), size.height + 4.dp.toPx()),
+                        cornerRadius = CornerRadius(cornerPx + 2.dp.toPx(), cornerPx + 2.dp.toPx()),
+                        style = Stroke(width = 3.dp.toPx())
+                    )
+                }
+            }
+            .testTag("header_update_download_button")
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        if (isReady) {
+                            listOf(
+                                Color(0xFF10B981).copy(alpha = if (isDarkMode) 0.24f else 0.14f),
+                                Color(0xFF00BCD4).copy(alpha = if (isDarkMode) 0.16f else 0.08f)
+                            )
+                        } else {
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = if (isDarkMode) 0.22f else 0.14f),
+                                Color(0xFF3B82F6).copy(alpha = if (isDarkMode) 0.16f else 0.08f)
+                            )
+                        }
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            when {
+                isDownloading -> {
+                    val dlState = updateState as AppUpdateState.Downloading
+                    if (dlState.totalBytes > 0L) {
+                        CircularProgressIndicator(
+                            progress = { dlState.progress.coerceIn(0f, 1f) },
+                            color = Color(0xFF00E5FF),
+                            trackColor = Color(0xFF00E5FF).copy(alpha = 0.22f),
+                            strokeWidth = 2.6.dp,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            color = Color(0xFF00E5FF),
+                            strokeWidth = 2.6.dp,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = contentDescription,
+                        tint = Color(0xFF00E5FF),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .graphicsLayer { translationY = arrowFloatY.dp.toPx() * 0.6f }
+                    )
+                }
+                isReady -> {
+                    Icon(
+                        imageVector = Icons.Default.DownloadDone,
+                        contentDescription = contentDescription,
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                else -> {
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = contentDescription,
+                        tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                        modifier = Modifier
+                            .size(22.dp)
+                            .graphicsLayer { translationY = arrowFloatY.dp.toPx() }
+                    )
+                    // Subtle live dot in top-end corner
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(7.dp)
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981))
+                    )
+                }
+            }
+        }
+    }
+}
+

@@ -175,7 +175,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var updateDownloadJob: Job? = null
     private var lastAvailableUpdate: AppUpdateState.UpdateAvailable? = null
-    private var hasAutoCheckedUpdate = false
+    private var lastAutoCheckTimestampMs: Long = 0L
 
     val allPersonnel: StateFlow<List<Personnel>>
     val allLeaves: StateFlow<List<LeaveRecord>>
@@ -1236,17 +1236,27 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     // In-App GitHub Update & System Installer
     // ==========================================
 
-    fun checkForAppUpdate(manual: Boolean = true) {
-        if (!manual && hasAutoCheckedUpdate) return
-        if (!manual) hasAutoCheckedUpdate = true
+    fun openUpdateDialog() {
+        _showUpdateDialog.value = true
+        val current = _appUpdateState.value
+        if (current is AppUpdateState.Idle || current is AppUpdateState.Error) {
+            checkForAppUpdate(manual = true)
+        }
+    }
 
+    fun checkForAppUpdate(manual: Boolean = true) {
         val current = _appUpdateState.value
         if (current is AppUpdateState.Downloading || current is AppUpdateState.ReadyToInstall) {
             if (manual) _showUpdateDialog.value = true
             return
         }
 
-        if (manual) {
+        val now = System.currentTimeMillis()
+        if (!manual) {
+            if (current is AppUpdateState.Checking) return
+            if (now - lastAutoCheckTimestampMs < 3_000L) return
+            lastAutoCheckTimestampMs = now
+        } else {
             _showUpdateDialog.value = true
             _appUpdateState.value = AppUpdateState.Checking
         }
@@ -1256,8 +1266,10 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             if (result is AppUpdateState.UpdateAvailable) {
                 lastAvailableUpdate = result
                 _appUpdateState.value = result
-                _showUpdateDialog.value = true
             } else if (manual) {
+                _appUpdateState.value = result
+            } else if (result is AppUpdateState.UpToDate) {
+                lastAvailableUpdate = null
                 _appUpdateState.value = result
             }
         }
