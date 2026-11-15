@@ -66,7 +66,9 @@ data class Personnel(
     val notes: String = "",
     val addedAtMillis: Long = System.currentTimeMillis(), // تاريخ إضافة الفرد في قاعدة البيانات
     val isPinned: Boolean = false,
-    val pinnedAtMillis: Long = 0L
+    val pinnedAtMillis: Long = 0L,
+    val isDeleted: Boolean = false,
+    val deletedAtMillis: Long = 0L
 ) {
     companion object {
         fun toStartOfDay(timeMillis: Long): Long {
@@ -80,6 +82,12 @@ data class Personnel(
             return cal.timeInMillis
         }
 
+        fun signedDaysBetween(fromMillis: Long, toMillis: Long): Long {
+            val fromStart = toStartOfDay(fromMillis)
+            val toStart = toStartOfDay(toMillis)
+            return kotlin.math.round((toStart - fromStart).toDouble() / 86_400_000.0).toLong()
+        }
+
         fun findLeavesForPersonnel(person: Personnel, allLeaves: List<LeaveRecord>): List<LeaveRecord> {
             val regNormalized = person.registrationNumber.trim()
             return allLeaves.filter { leave ->
@@ -91,8 +99,9 @@ data class Personnel(
 
     /**
      * يحسب تاريخ بداية احتساب أيام الخدمة والاستحقاق:
-     * - يعتمد على تاريخ الدخول (العودة) من آخر عطلة مسجلة في قاعدة البيانات.
-     * - وإذا لم توجد أي عطلة سابقة للفرد في قاعدة البيانات، يبدأ الحساب من تاريخ إضافة الفرد.
+     * - أثناء الإجازة/العطلة (قبل استئناف العمل): يحسب العداد بالسالب (-5، -4، ... حتى 0 يوم الدخول) ثم يكمل تصاعدياً (1، 2...).
+     * - عند التواجد بالخدمة: يعتمد على تاريخ الدخول (العودة) من آخر عطلة مسجلة في قاعدة البيانات،
+     *   وإذا لم توجد أي عطلة سابقة فيبدأ الحساب من تاريخ إضافة الفرد.
      */
     fun computeDutyReferenceInfo(
         allLeaves: List<LeaveRecord>,
@@ -103,9 +112,22 @@ data class Personnel(
             compareBy<LeaveRecord> { it.returnDateMillis }.thenBy { it.createdAtMillis }
         )
         val todayStart = toStartOfDay(todayMillis)
+
+        if (!isReturnedToDuty) {
+            val activeReturnStart = toStartOfDay(returnDateMillis)
+            val signedDays = signedDaysBetween(activeReturnStart, todayStart)
+            return DutyReferenceInfo(
+                referenceDateMillis = activeReturnStart,
+                source = ReferenceDateSource.LAST_LEAVE_RETURN,
+                daysSinceReference = signedDays,
+                lastLeaveStartMillis = toStartOfDay(startDateMillis),
+                lastLeaveReturnMillis = activeReturnStart
+            )
+        }
+
         return if (lastLeave != null) {
             val refStart = toStartOfDay(lastLeave.returnDateMillis)
-            val days = TimeUnit.MILLISECONDS.toDays(todayStart - refStart).coerceAtLeast(0L)
+            val days = signedDaysBetween(refStart, todayStart)
             DutyReferenceInfo(
                 referenceDateMillis = refStart,
                 source = ReferenceDateSource.LAST_LEAVE_RETURN,
@@ -116,7 +138,7 @@ data class Personnel(
         } else {
             val fallbackAdded = if (addedAtMillis > 0L) addedAtMillis else todayMillis
             val refStart = toStartOfDay(fallbackAdded)
-            val days = TimeUnit.MILLISECONDS.toDays(todayStart - refStart).coerceAtLeast(0L)
+            val days = signedDaysBetween(refStart, todayStart).coerceAtLeast(0L)
             DutyReferenceInfo(
                 referenceDateMillis = refStart,
                 source = ReferenceDateSource.PERSONNEL_ADDED_DATE,
@@ -150,7 +172,7 @@ data class Personnel(
         get() {
             val today = toStartOfDay(System.currentTimeMillis())
             val returnDay = toStartOfDay(returnDateMillis)
-            return TimeUnit.MILLISECONDS.toDays(returnDay - today)
+            return signedDaysBetween(today, returnDay)
         }
 
     // الأيام المنقضية من الإجازة
@@ -158,8 +180,7 @@ data class Personnel(
         get() {
             val today = toStartOfDay(System.currentTimeMillis())
             val start = toStartOfDay(startDateMillis)
-            val diff = today - start
-            return TimeUnit.MILLISECONDS.toDays(diff).coerceAtLeast(0)
+            return signedDaysBetween(start, today).coerceAtLeast(0)
         }
 
     // عدد أيام التأخر عن الدخول (إن وجد)
@@ -167,17 +188,15 @@ data class Personnel(
         get() {
             val today = toStartOfDay(System.currentTimeMillis())
             val returnDay = toStartOfDay(returnDateMillis)
-            val diff = today - returnDay
-            return TimeUnit.MILLISECONDS.toDays(diff).coerceAtLeast(0)
+            return signedDaysBetween(returnDay, today).coerceAtLeast(0)
         }
 
-    // الأيام المنقضية في الخدمة منذ آخر عودة
+    // عداد الأيام بالنسبة لتاريخ الدخول: سالب أثناء الإجازة (-5..-1) ثم 0 يوم الدخول ثم تصاعدي (1، 2..)
     val daysSinceDutyReturn: Long
         get() {
             val today = toStartOfDay(System.currentTimeMillis())
             val returnDay = toStartOfDay(returnDateMillis)
-            val diff = today - returnDay
-            return TimeUnit.MILLISECONDS.toDays(diff).coerceAtLeast(0)
+            return signedDaysBetween(returnDay, today)
         }
 
     // هل الفرد مستحق للإجازة (تجاوز عتبة الخدمة المحددة)

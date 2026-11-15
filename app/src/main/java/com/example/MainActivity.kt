@@ -67,6 +67,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.FilterList
@@ -166,6 +167,7 @@ import com.example.ui.components.InAppUpdateDialog
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
+import com.example.ui.components.TrashBinDialog
 import com.example.ui.screens.AnalyticsDashboardScreen
 import com.example.ui.screens.NotificationScreen
 import com.example.ui.screens.RoomDatabaseScreen
@@ -194,12 +196,35 @@ class MainActivity : FragmentActivity() {
             openNotificationsSignal.intValue++
         }
 
-        // Set application animation and refresh frame rate up to 60 FPS
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.attributes.preferredRefreshRate = 60f
-        } else {
-            @Suppress("DEPRECATION")
-            window.attributes.preferredRefreshRate = 60f
+        // Unlock maximum supported display refresh rate (90Hz / 120Hz / 144Hz+) for silky fluidity
+        try {
+            val activeDisplay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                display
+            } else {
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay
+            }
+            val currentMode = activeDisplay?.mode
+            val supportedModes = activeDisplay?.supportedModes?.toList().orEmpty()
+            val bestMode = supportedModes
+                .filter {
+                    currentMode == null ||
+                        (it.physicalWidth == currentMode.physicalWidth &&
+                            it.physicalHeight == currentMode.physicalHeight)
+                }
+                .maxByOrNull { it.refreshRate }
+                ?: supportedModes.maxByOrNull { it.refreshRate }
+
+            val params = window.attributes
+            if (bestMode != null) {
+                params.preferredDisplayModeId = bestMode.modeId
+                params.preferredRefreshRate = bestMode.refreshRate
+            } else {
+                params.preferredRefreshRate = 120f
+            }
+            window.attributes = params
+        } catch (_: Exception) {
+            // Safe fallback on headless/Robolectric test environments
         }
 
         enableEdgeToEdge()
@@ -208,6 +233,7 @@ class MainActivity : FragmentActivity() {
         setContent {
             val themeMode by viewModel.currentThemeMode.collectAsState()
             val selectedThemeEngineId by viewModel.selectedThemeEngineId.collectAsState()
+            val isLivingLuxuryMode by viewModel.isLivingLuxuryMode.collectAsState()
             val activeThemePreset = remember(selectedThemeEngineId) {
                 com.example.ui.theme.ThemeEngine.findById(selectedThemeEngineId)
             }
@@ -221,7 +247,8 @@ class MainActivity : FragmentActivity() {
             val navSignal by openNotificationsSignal
             MyApplicationTheme(
                 darkTheme = isDarkTheme,
-                themePreset = activeThemePreset
+                themePreset = activeThemePreset,
+                livingLuxuryMode = isLivingLuxuryMode
             ) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
@@ -334,9 +361,22 @@ fun LeaveTrackerMainApp(
     var showDeveloperDialog by remember { mutableStateOf(false) }
     var showFilterSortDialog by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
+    var showTrashBinDialog by remember { mutableStateOf(false) }
+    var lastSwipeDeletedPerson by remember { mutableStateOf<Personnel?>(null) }
+    var swipeUndoTicket by remember { mutableIntStateOf(0) }
     var selectedNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
     var previousNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
+    val isLivingLuxuryMode by viewModel.isLivingLuxuryMode.collectAsState()
+    val trashedPersonnel by viewModel.trashedPersonnel.collectAsState()
+    val trashedCount by viewModel.trashedCount.collectAsState()
+
+    LaunchedEffect(swipeUndoTicket) {
+        if (lastSwipeDeletedPerson != null) {
+            kotlinx.coroutines.delay(4500L)
+            lastSwipeDeletedPerson = null
+        }
+    }
 
     val openNotificationsPage: () -> Unit = {
         if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
@@ -503,6 +543,13 @@ fun LeaveTrackerMainApp(
                             },
                             isDynamicAnimationsEnabled = isDynamicAnimationsEnabled,
                             onToggleDynamicAnimations = { viewModel.setDynamicAnimationsEnabled(it) },
+                            isLivingLuxuryMode = isLivingLuxuryMode,
+                            onToggleLivingLuxuryMode = { viewModel.setLivingLuxuryMode(it) },
+                            trashedCount = trashedCount,
+                            onOpenTrashBin = {
+                                showTrashBinDialog = true
+                                scope.launch { drawerState.close() }
+                            },
                             isDriveSyncEnabled = isDriveSyncEnabled,
                             onToggleDriveSync = { viewModel.setDriveSyncEnabled(it) },
                             lastDriveBackupTime = lastDriveBackupTime,
@@ -726,6 +773,19 @@ fun LeaveTrackerMainApp(
                         },
                         floatingActionButton = {
                             if (selectedNavPage == AppNavPage.DASHBOARD || selectedNavPage == AppNavPage.RECORDS) {
+                                val fabBreathScale = if (isLivingLuxuryMode && isDynamicAnimationsEnabled) {
+                                    val fabInf = rememberInfiniteTransition(label = "fabLuxuryBreath")
+                                    fabInf.animateFloat(
+                                        initialValue = 1f,
+                                        targetValue = 1.055f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(durationMillis = 2200, easing = FastOutSlowInEasing),
+                                            repeatMode = RepeatMode.Reverse
+                                        ),
+                                        label = "fabBreathScale"
+                                    ).value
+                                } else 1f
+
                                 if (isNeumorphic) {
                                     Surface(
                                         onClick = {
@@ -734,6 +794,10 @@ fun LeaveTrackerMainApp(
                                         },
                                         modifier = Modifier
                                             .size(58.dp)
+                                            .graphicsLayer {
+                                                scaleX = fabBreathScale
+                                                scaleY = fabBreathScale
+                                            }
                                             .shadow(
                                                 elevation = 10.dp,
                                                 shape = CircleShape,
@@ -770,6 +834,10 @@ fun LeaveTrackerMainApp(
                                         },
                                         modifier = Modifier
                                             .size(56.dp)
+                                            .graphicsLayer {
+                                                scaleX = fabBreathScale
+                                                scaleY = fabBreathScale
+                                            }
                                             .shadow(
                                                 elevation = 8.dp,
                                                 shape = RoundedCornerShape(18.dp),
@@ -845,7 +913,7 @@ fun LeaveTrackerMainApp(
                             Crossfade(
                                 targetState = selectedNavPage,
                                 animationSpec = tween(
-                                    durationMillis = if (isDynamicAnimationsEnabled) 140 else 0,
+                                    durationMillis = if (isDynamicAnimationsEnabled) 115 else 0,
                                     easing = FastOutSlowInEasing
                                 ),
                                 label = "mainNavCrossfade"
@@ -1281,7 +1349,11 @@ fun LeaveTrackerMainApp(
                                                 }
                                             }
                                         } else {
-                                            items(previewList, key = { it.id }) { person ->
+                                            items(
+                                                items = previewList,
+                                                key = { it.id },
+                                                contentType = { "personnel_card" }
+                                            ) { person ->
                                                 PersonnelCard(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
@@ -1291,6 +1363,12 @@ fun LeaveTrackerMainApp(
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
+                                                    onTogglePin = { viewModel.togglePinPersonnel(person) },
+                                                    onSwipeDelete = {
+                                                        viewModel.deletePersonnel(person)
+                                                        lastSwipeDeletedPerson = person
+                                                        swipeUndoTicket++
+                                                    },
                                                     onConfirmDuty = {
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(
@@ -1452,7 +1530,7 @@ fun LeaveTrackerMainApp(
                                             }
                                         }
 
-                                        // Results Count Indicator
+                                        // Results Count & Quick Trash Bin Indicator
                                         item {
                                             Row(
                                                 modifier = Modifier
@@ -1468,12 +1546,44 @@ fun LeaveTrackerMainApp(
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
 
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(
-                                                        text = "${AppStrings.get("duty_threshold_label", currentLang)}: $dutyThreshold ${AppStrings.get("days", currentLang)}  |  ",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Surface(
+                                                        onClick = { showTrashBinDialog = true },
+                                                        shape = RoundedCornerShape(50.dp),
+                                                        color = CoralRedAccent.copy(alpha = if (trashedCount > 0) 0.16f else 0.08f),
+                                                        border = BorderStroke(
+                                                            1.dp,
+                                                            CoralRedAccent.copy(alpha = if (trashedCount > 0) 0.55f else 0.25f)
+                                                        ),
+                                                        modifier = Modifier.testTag("records_trash_bin_button")
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.DeleteSweep,
+                                                                contentDescription = AppStrings.get("trash_bin_title", currentLang),
+                                                                tint = CoralRedAccent,
+                                                                modifier = Modifier.size(15.dp)
+                                                            )
+                                                            Text(
+                                                                text = if (trashedCount > 0) {
+                                                                    "${AppStrings.get("trash_bin_title", currentLang)} ($trashedCount)"
+                                                                } else {
+                                                                    AppStrings.get("trash_bin_title", currentLang)
+                                                                },
+                                                                fontSize = 10.5.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = CoralRedAccent
+                                                            )
+                                                        }
+                                                    }
+
                                                     Text(
                                                         text = currentSort.getTitle(currentLang),
                                                         style = MaterialTheme.typography.labelSmall,
@@ -1523,7 +1633,11 @@ fun LeaveTrackerMainApp(
                                             }
                                         } else if (isTablet) {
                                             // Adaptive 2-column grid layout for tablets and wide screens
-                                            items(chunkedPersonnel, key = { pair -> pair.joinToString("-") { it.id.toString() } }) { rowItems ->
+                                            items(
+                                                items = chunkedPersonnel,
+                                                key = { pair -> pair.joinToString("-") { it.id.toString() } },
+                                                contentType = { "personnel_tablet_row" }
+                                            ) { rowItems ->
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -1539,6 +1653,12 @@ fun LeaveTrackerMainApp(
                                                                 animationsEnabled = isDynamicAnimationsEnabled,
                                                                 currentLang = currentLang,
                                                                 effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
+                                                                onTogglePin = { viewModel.togglePinPersonnel(person) },
+                                                                onSwipeDelete = {
+                                                                    viewModel.deletePersonnel(person)
+                                                                    lastSwipeDeletedPerson = person
+                                                                    swipeUndoTicket++
+                                                                },
                                                                 onConfirmDuty = {
                                                                     viewModel.confirmReturnToDuty(person.id)
                                                                     Toast.makeText(
@@ -1563,7 +1683,11 @@ fun LeaveTrackerMainApp(
                                                 }
                                             }
                                         } else {
-                                            items(personnelList, key = { it.id }) { person ->
+                                            items(
+                                                items = personnelList,
+                                                key = { it.id },
+                                                contentType = { "personnel_card" }
+                                            ) { person ->
                                                 PersonnelCard(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
@@ -1573,6 +1697,12 @@ fun LeaveTrackerMainApp(
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
+                                                    onTogglePin = { viewModel.togglePinPersonnel(person) },
+                                                    onSwipeDelete = {
+                                                        viewModel.deletePersonnel(person)
+                                                        lastSwipeDeletedPerson = person
+                                                        swipeUndoTicket++
+                                                    },
                                                     onConfirmDuty = {
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(
@@ -1594,6 +1724,96 @@ fun LeaveTrackerMainApp(
 
                                             item {
                                                 Spacer(modifier = Modifier.height(90.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Floating Undo Bar when a personnel card is swipe-deleted into Trash Bin
+                            AnimatedVisibility(
+                                visible = lastSwipeDeletedPerson != null,
+                                enter = fadeIn(tween(180)) + scaleIn(initialScale = 0.92f),
+                                exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.92f),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                            ) {
+                                lastSwipeDeletedPerson?.let { deletedPerson ->
+                                    Surface(
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = if (isDarkMode) Color(0xEE1E293B) else Color(0xF50F172A),
+                                        border = BorderStroke(1.2.dp, CoralRedAccent.copy(alpha = 0.7f)),
+                                        shadowElevation = 10.dp,
+                                        modifier = Modifier
+                                            .widthIn(max = 520.dp)
+                                            .fillMaxWidth()
+                                            .testTag("swipe_delete_undo_banner")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.DeleteSweep,
+                                                    contentDescription = null,
+                                                    tint = CoralRedAccent,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                    text = "${deletedPerson.fullName} — ${AppStrings.get("trash_moved_toast", currentLang)}",
+                                                    color = Color.White,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                TextButton(
+                                                    onClick = {
+                                                        viewModel.restorePersonnelFromTrash(deletedPerson)
+                                                        lastSwipeDeletedPerson = null
+                                                        Toast.makeText(context, AppStrings.get("trash_restored_toast", currentLang), Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    modifier = Modifier.testTag("swipe_delete_undo_button")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.Undo,
+                                                        contentDescription = null,
+                                                        tint = EmeraldSuccess,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = AppStrings.get("undo_short", currentLang),
+                                                        color = EmeraldSuccess,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        fontSize = 12.sp
+                                                    )
+                                                }
+                                                TextButton(
+                                                    onClick = {
+                                                        lastSwipeDeletedPerson = null
+                                                        showTrashBinDialog = true
+                                                    },
+                                                    modifier = Modifier.testTag("swipe_delete_open_trash_button")
+                                                ) {
+                                                    Text(
+                                                        text = AppStrings.get("trash_bin_title", currentLang),
+                                                        color = Color(0xFF38BDF8),
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 11.5.sp
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -1764,6 +1984,32 @@ fun LeaveTrackerMainApp(
             onInstallApk = { viewModel.installDownloadedApk() },
             onRetryCheck = { viewModel.checkForAppUpdate(manual = true) },
             onDismiss = { viewModel.dismissUpdateDialog() }
+        )
+    }
+
+    // Persistent Trash Bin Dialog (Restore or Permanently Delete)
+    if (showTrashBinDialog) {
+        TrashBinDialog(
+            trashedPersonnel = trashedPersonnel,
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            onRestore = { person ->
+                viewModel.restorePersonnelFromTrash(person)
+                Toast.makeText(context, AppStrings.get("trash_restored_toast", currentLang), Toast.LENGTH_SHORT).show()
+            },
+            onRestoreAll = {
+                viewModel.restoreAllFromTrash()
+                Toast.makeText(context, AppStrings.get("trash_restored_all_toast", currentLang), Toast.LENGTH_SHORT).show()
+            },
+            onDeleteForever = { person ->
+                viewModel.deletePersonnelPermanently(person)
+                Toast.makeText(context, AppStrings.get("delete_success", currentLang), Toast.LENGTH_SHORT).show()
+            },
+            onEmptyTrash = {
+                viewModel.emptyTrash()
+                Toast.makeText(context, AppStrings.get("trash_emptied_toast", currentLang), Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showTrashBinDialog = false }
         )
     }
 }

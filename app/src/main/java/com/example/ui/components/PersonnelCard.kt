@@ -3,8 +3,15 @@ package com.example.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -36,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -56,6 +64,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -75,11 +84,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -90,8 +102,10 @@ import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
 import com.example.ui.theme.AmberWarning
+import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
+import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.RedDanger
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
@@ -99,6 +113,33 @@ import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlass
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
+import kotlin.math.abs
+import kotlin.math.hypot
+
+object SwipeDeleteGestureHelper {
+    const val HOLD_ARM_DURATION_MS = 500L
+
+    /** Physical screen X direction sign: -1f (Left) for Arabic/RTL, +1f (Right) for English/French. */
+    fun expectedDirectionSign(lang: AppLanguage): Float =
+        if (lang == AppLanguage.ARABIC || lang.isRtl) -1f else 1f
+
+    fun coerceDirectionalOffset(rawDeltaX: Float, lang: AppLanguage): Float {
+        return if (expectedDirectionSign(lang) < 0f) {
+            rawDeltaX.coerceAtMost(0f)
+        } else {
+            rawDeltaX.coerceAtLeast(0f)
+        }
+    }
+
+    fun deleteThresholdPx(cardWidthPx: Float): Float {
+        return if (cardWidthPx > 0f) maxOf(120f, cardWidthPx * 0.30f) else 220f
+    }
+
+    fun shouldTriggerDelete(dragOffsetX: Float, cardWidthPx: Float, lang: AppLanguage): Boolean {
+        val directionalProgress = dragOffsetX * expectedDirectionSign(lang)
+        return directionalProgress >= deleteThresholdPx(cardWidthPx)
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -115,7 +156,8 @@ fun PersonnelCard(
     animationsEnabled: Boolean = true,
     currentLang: AppLanguage = AppLanguage.ARABIC,
     effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn,
-    onTogglePin: () -> Unit = {}
+    onTogglePin: () -> Unit = {},
+    onSwipeDelete: () -> Unit = onDelete
 ) {
     val status = personnel.status
     val isEligible = personnel.isReturnedToDuty && effectiveDaysSinceDuty >= dutyThresholdDays
@@ -188,18 +230,62 @@ fun PersonnelCard(
         label = "arrowRotation"
     )
 
+    val isLivingLuxury = LocalLivingLuxuryMode.current
     val haptic = LocalHapticFeedback.current
     val holdScope = rememberCoroutineScope()
     val latestOnTogglePin by rememberUpdatedState(onTogglePin)
+    val latestOnSwipeDelete by rememberUpdatedState(onSwipeDelete)
+    val latestLang by rememberUpdatedState(currentLang)
+
     var holdProgress by remember { mutableFloatStateOf(0f) }
+    var isSwipeArmed by remember { mutableStateOf(false) }
+    var isHorizontalDragging by remember { mutableStateOf(false) }
+    var cardWidthPx by remember { mutableFloatStateOf(0f) }
+    val dragOffsetAnim = remember(personnel.id) { Animatable(0f) }
+
     val cardPressScale by animateFloatAsState(
-        targetValue = if (holdProgress > 0.02f) 0.982f else 1f,
-        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        targetValue = when {
+            isHorizontalDragging -> 0.99f
+            isSwipeArmed -> 0.975f
+            holdProgress > 0.02f -> 0.985f
+            else -> 1f
+        },
+        animationSpec = spring(
+            dampingRatio = if (isLivingLuxury) Spring.DampingRatioMediumBouncy else 0.72f,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "pinHoldScale"
     )
 
-    val pinBorderModifier = if (personnel.isPinned) {
-        Modifier.border(
+    val luxuryPulse by if (isLivingLuxury && animationsEnabled) {
+        val transition = rememberInfiniteTransition(label = "cardLuxuryBreath")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "cardBadgeBreath"
+        )
+    } else {
+        remember { mutableFloatStateOf(0f) }
+    }
+
+    val pinBorderModifier = when {
+        isSwipeArmed || isHorizontalDragging -> Modifier.border(
+            BorderStroke(
+                1.8.dp,
+                Brush.linearGradient(
+                    listOf(
+                        CoralRedAccent.copy(alpha = 0.92f),
+                        RedDanger.copy(alpha = 0.85f)
+                    )
+                )
+            ),
+            RoundedCornerShape(24.dp)
+        )
+        personnel.isPinned -> Modifier.border(
             BorderStroke(
                 1.6.dp,
                 Brush.linearGradient(
@@ -212,106 +298,305 @@ fun PersonnelCard(
             ),
             RoundedCornerShape(24.dp)
         )
-    } else {
-        Modifier
+        else -> Modifier
     }
+
+    val swipeThreshold = SwipeDeleteGestureHelper.deleteThresholdPx(cardWidthPx)
+    val swipeRatio = (abs(dragOffsetAnim.value) / swipeThreshold).coerceIn(0f, 1.25f)
+    val isPastDeleteThreshold = SwipeDeleteGestureHelper.shouldTriggerDelete(dragOffsetAnim.value, cardWidthPx, currentLang)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                if (animationsEnabled) {
-                    scaleX = cardPressScale
-                    scaleY = cardPressScale
-                }
-            }
-            .liquidGlass(
-                shape = RoundedCornerShape(24.dp),
-                elevation = if (personnel.isPinned || isFocusMode) 7.dp else 4.dp,
-                borderAlpha = if (isFocusMode) 0.95f else 0.85f,
-                isDark = isDarkMode,
-                isNeumorphic = isNeumorphic,
-                cornerRadius = 24.dp
-            )
-            .then(pinBorderModifier)
-            .pointerInput(personnel.id, personnel.isPinned) {
-                val slop = viewConfiguration.touchSlop
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    val startPos = down.position
-                    var triggered = false
-                    var finished = false
-                    val holdJob = holdScope.launch {
-                        // Brief grace delay so taps and quick scrolls never show hold progress
-                        delay(150L)
-                        val startTime = System.currentTimeMillis()
-                        val remainingMs = 850L // 150ms + 850ms = exact 1000ms (1 second) long press
-                        while (!finished) {
-                            val elapsed = System.currentTimeMillis() - startTime
-                            val p = (elapsed.toFloat() / remainingMs.toFloat()).coerceIn(0f, 1f)
-                            holdProgress = p
-                            if (p >= 1f) {
-                                triggered = true
-                                holdProgress = 0f
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                latestOnTogglePin()
-                                break
-                            }
-                            delay(16L)
-                        }
-                    }
-
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        val matching = event.changes.firstOrNull { it.id == down.id }
-                        if (matching == null || !matching.pressed) {
-                            if (triggered) {
-                                event.changes.forEach { it.consume() }
-                            }
-                            break
-                        }
-                        if (triggered) {
-                            event.changes.forEach { it.consume() }
-                        } else if ((matching.position - startPos).getDistance() > slop) {
-                            break
-                        }
-                    }
-
-                    finished = true
-                    holdJob.cancel()
-                    holdProgress = 0f
-                }
-            }
-            .testTag("personnel_item_${personnel.id}")
+            .onSizeChanged { cardWidthPx = it.width.toFloat() }
     ) {
-        Column(
+        // Directional Trash Bin Reveal Backdrop (Right side when swiping Left in AR; Left side when swiping Right in EN/FR)
+        if (abs(dragOffsetAnim.value) > 4f || isHorizontalDragging) {
+            val isRtlSwipeLeft = SwipeDeleteGestureHelper.expectedDirectionSign(currentLang) < 0f
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                if (isPastDeleteThreshold) {
+                                    listOf(RedDanger.copy(alpha = 0.92f), CoralRedAccent.copy(alpha = 0.95f))
+                                } else {
+                                    listOf(RedDanger.copy(alpha = 0.25f + 0.45f * swipeRatio), CoralRedAccent.copy(alpha = 0.30f + 0.45f * swipeRatio))
+                                }
+                            )
+                        )
+                        .padding(horizontal = 22.dp),
+                    contentAlignment = if (isRtlSwipeLeft) Alignment.CenterEnd else Alignment.CenterStart
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.graphicsLayer {
+                            val iconScale = 0.85f + (swipeRatio.coerceAtMost(1f) * 0.28f)
+                            scaleX = iconScale
+                            scaleY = iconScale
+                            alpha = (0.45f + swipeRatio * 0.55f).coerceIn(0f, 1f)
+                        }
+                    ) {
+                        if (!isRtlSwipeLeft) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.20f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteSweep,
+                                    contentDescription = AppStrings.get("delete", currentLang),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = AppStrings.get(
+                                if (isPastDeleteThreshold) "swipe_delete_release"
+                                else if (isRtlSwipeLeft) "swipe_delete_hint_rtl" else "swipe_delete_hint_ltr",
+                                currentLang
+                            ),
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.5.sp
+                        )
+                        if (isRtlSwipeLeft) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.20f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteSweep,
+                                    contentDescription = AppStrings.get("delete", currentLang),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Foreground Draggable Personnel Card
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (holdProgress > 0.02f) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    LinearProgressIndicator(
-                        progress = { holdProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(50.dp)),
-                        color = AmberWarning,
-                        trackColor = AmberWarning.copy(alpha = 0.18f)
-                    )
-                    Text(
-                        text = AppStrings.get(
-                            if (personnel.isPinned) "unpin_hold_hint" else "pin_hold_hint",
-                            currentLang
-                        ),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AmberWarning
-                    )
+                .graphicsLayer {
+                    translationX = dragOffsetAnim.value
+                    rotationZ = (dragOffsetAnim.value / 72f).coerceIn(-3.5f, 3.5f)
+                    if (animationsEnabled) {
+                        scaleX = cardPressScale
+                        scaleY = cardPressScale
+                    }
                 }
-            }
+                .liquidGlass(
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = when {
+                        isLivingLuxury -> 8.dp
+                        personnel.isPinned || isFocusMode -> 7.dp
+                        else -> 4.dp
+                    },
+                    borderAlpha = if (isFocusMode || isLivingLuxury) 0.95f else 0.85f,
+                    isDark = isDarkMode,
+                    isNeumorphic = isNeumorphic,
+                    cornerRadius = 24.dp
+                )
+                .then(pinBorderModifier)
+                .pointerInput(personnel.id, personnel.isPinned, currentLang) {
+                    val slop = viewConfiguration.touchSlop
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        val startPos = down.position
+                        var triggeredPin = false
+                        var dragging = false
+                        var finished = false
+                        var lastDragX = 0f
+
+                        val holdJob = holdScope.launch {
+                            // 0.5 second (500ms) hold arms directional swipe-to-delete!
+                            delay(SwipeDeleteGestureHelper.HOLD_ARM_DURATION_MS)
+                            if (finished) return@launch
+                            isSwipeArmed = true
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+
+                            // Continuing stationary hold toggles Pin after an extra 700ms
+                            val pinStartTime = System.currentTimeMillis()
+                            val pinRemainingMs = 700L
+                            while (!finished && !dragging) {
+                                val elapsed = System.currentTimeMillis() - pinStartTime
+                                val p = (elapsed.toFloat() / pinRemainingMs.toFloat()).coerceIn(0f, 1f)
+                                holdProgress = p
+                                if (p >= 1f) {
+                                    triggeredPin = true
+                                    holdProgress = 0f
+                                    isSwipeArmed = false
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    latestOnTogglePin()
+                                    break
+                                }
+                                delay(16L)
+                            }
+                        }
+
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val matching = event.changes.firstOrNull { it.id == down.id }
+                            if (matching == null || !matching.pressed) {
+                                if (triggeredPin || dragging) {
+                                    event.changes.forEach { it.consume() }
+                                }
+                                break
+                            }
+                            if (triggeredPin) {
+                                event.changes.forEach { it.consume() }
+                                continue
+                            }
+
+                            val totalDx = matching.position.x - startPos.x
+                            val totalDy = matching.position.y - startPos.y
+
+                            if (!isSwipeArmed) {
+                                if (hypot(totalDx, totalDy) > slop) {
+                                    break
+                                }
+                            } else {
+                                if (!dragging) {
+                                    val dirSign = SwipeDeleteGestureHelper.expectedDirectionSign(latestLang)
+                                    val directionalDx = totalDx * dirSign
+                                    if (directionalDx > slop * 0.65f && abs(totalDx) > abs(totalDy) * 0.7f) {
+                                        dragging = true
+                                        isHorizontalDragging = true
+                                        holdProgress = 0f
+                                        holdJob.cancel()
+                                    } else if (abs(totalDy) > slop * 2.2f && directionalDx <= slop) {
+                                        break
+                                    }
+                                }
+                                if (dragging) {
+                                    event.changes.forEach { it.consume() }
+                                    val clamped = SwipeDeleteGestureHelper.coerceDirectionalOffset(totalDx, latestLang)
+                                    lastDragX = clamped
+                                    holdScope.launch {
+                                        dragOffsetAnim.snapTo(clamped)
+                                    }
+                                }
+                            }
+                        }
+
+                        finished = true
+                        holdJob.cancel()
+                        holdProgress = 0f
+
+                        if (dragging) {
+                            val shouldDelete = SwipeDeleteGestureHelper.shouldTriggerDelete(lastDragX, cardWidthPx, latestLang)
+                            isHorizontalDragging = false
+                            isSwipeArmed = false
+                            if (shouldDelete) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                holdScope.launch {
+                                    val exitX = SwipeDeleteGestureHelper.expectedDirectionSign(latestLang) *
+                                        (cardWidthPx.coerceAtLeast(600f) * 1.15f)
+                                    dragOffsetAnim.animateTo(
+                                        targetValue = exitX,
+                                        animationSpec = tween(durationMillis = 190, easing = FastOutSlowInEasing)
+                                    )
+                                    latestOnSwipeDelete()
+                                    dragOffsetAnim.snapTo(0f)
+                                }
+                            } else {
+                                holdScope.launch {
+                                    dragOffsetAnim.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    )
+                                }
+                            }
+                        } else {
+                            isHorizontalDragging = false
+                            isSwipeArmed = false
+                        }
+                    }
+                }
+                .testTag("personnel_item_${personnel.id}")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AnimatedVisibility(
+                    visible = isSwipeArmed && !isHorizontalDragging,
+                    enter = fadeIn(tween(140)) + expandVertically(),
+                    exit = fadeOut(tween(120)) + shrinkVertically()
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = CoralRedAccent.copy(alpha = if (isDarkMode) 0.20f else 0.12f),
+                        border = BorderStroke(1.dp, CoralRedAccent.copy(alpha = 0.55f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = null,
+                                tint = CoralRedAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = AppStrings.get(
+                                    if (SwipeDeleteGestureHelper.expectedDirectionSign(currentLang) < 0f) "swipe_delete_hint_rtl"
+                                    else "swipe_delete_hint_ltr",
+                                    currentLang
+                                ),
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = CoralRedAccent
+                            )
+                        }
+                    }
+                }
+
+                if (holdProgress > 0.02f) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LinearProgressIndicator(
+                            progress = { holdProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(50.dp)),
+                            color = AmberWarning,
+                            trackColor = AmberWarning.copy(alpha = 0.18f)
+                        )
+                        Text(
+                            text = AppStrings.get(
+                                if (personnel.isPinned) "unpin_hold_hint" else "pin_hold_hint",
+                                currentLang
+                            ),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AmberWarning
+                        )
+                    }
+                }
 
             if (personnel.isPinned) {
                 Row(
@@ -375,23 +660,40 @@ fun PersonnelCard(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.Top
                 ) {
-                    // Days Number-Only Badge
+                    // Days Number-Only Badge (-5, -4, ..., 0, 1, 2...)
+                    val formattedDaysBadge = if (effectiveDaysSinceDuty < 0L) {
+                        "\u200E$effectiveDaysSinceDuty\u200E"
+                    } else {
+                        "$effectiveDaysSinceDuty"
+                    }
+                    val badgeBreathScale = if (isLivingLuxury && animationsEnabled) 1f + (luxuryPulse * 0.055f) else 1f
                     Box(
                         modifier = Modifier
                             .size(48.dp)
+                            .graphicsLayer {
+                                scaleX = badgeBreathScale
+                                scaleY = badgeBreathScale
+                            }
                             .clip(avatarShape)
                             .background(visual.bgTint)
                             .border(
-                                1.4.dp,
-                                visual.color.copy(alpha = if (isNeumorphic) 0.45f else 0.9f),
+                                if (isLivingLuxury) 1.7.dp else 1.4.dp,
+                                visual.color.copy(
+                                    alpha = if (isLivingLuxury) (0.70f + 0.30f * luxuryPulse)
+                                    else if (isNeumorphic) 0.45f else 0.9f
+                                ),
                                 avatarShape
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "$effectiveDaysSinceDuty",
+                            text = formattedDaysBadge,
                             fontWeight = FontWeight.Black,
-                            fontSize = if (effectiveDaysSinceDuty >= 100) 14.sp else 17.sp,
+                            fontSize = when {
+                                kotlin.math.abs(effectiveDaysSinceDuty) >= 100L -> 13.sp
+                                effectiveDaysSinceDuty <= -10L -> 15.sp
+                                else -> 17.sp
+                            },
                             color = visual.color,
                             maxLines = 1
                         )
@@ -795,6 +1097,7 @@ fun PersonnelCard(
                     }
                 }
             }
+        }
         }
     }
 }

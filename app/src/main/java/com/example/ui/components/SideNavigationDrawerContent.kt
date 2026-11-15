@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
@@ -113,6 +114,8 @@ import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
+import com.example.ui.theme.CoralRedAccent
+import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.ThemeEngine
 import com.example.ui.theme.liquidGlassInteractive
@@ -154,6 +157,10 @@ fun SideNavigationDrawerContent(
     onLockNow: () -> Unit = {},
     isDynamicAnimationsEnabled: Boolean = true,
     onToggleDynamicAnimations: (Boolean) -> Unit = {},
+    isLivingLuxuryMode: Boolean = false,
+    onToggleLivingLuxuryMode: (Boolean) -> Unit = {},
+    trashedCount: Int = 0,
+    onOpenTrashBin: () -> Unit = {},
     isDriveSyncEnabled: Boolean = false,
     onToggleDriveSync: (Boolean) -> Unit = {},
     lastDriveBackupTime: Long = 0L,
@@ -447,6 +454,36 @@ fun SideNavigationDrawerContent(
                     haptic = haptic,
                     onClick = onOpenRoomDatabase,
                     testTag = "drawer_room_db_item"
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Trash Bin (Recycle Bin) Item
+                DrawerNavigationItem(
+                    icon = Icons.Default.DeleteSweep,
+                    iconTint = CoralRedAccent,
+                    title = AppStrings.get("trash_bin_title", currentLang),
+                    subtitle = AppStrings.get("trash_bin_sub", currentLang),
+                    isDarkMode = isDarkMode,
+                    haptic = haptic,
+                    onClick = onOpenTrashBin,
+                    trailingContent = if (trashedCount > 0) {
+                        {
+                            Surface(
+                                shape = CircleShape,
+                                color = CoralRedAccent
+                            ) {
+                                Text(
+                                    text = if (trashedCount > 99) "99+" else "$trashedCount",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    } else null,
+                    testTag = "drawer_trash_bin_item"
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -983,6 +1020,38 @@ fun SideNavigationDrawerContent(
                             ).show()
                         }
                     )
+
+                    HorizontalDivider(color = dividerColor)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 1.5 Living & Ultra-Luxury Mode Toggle Row
+                    val luxuryAccent = activeThemePreset?.primary ?: Color(0xFFF59E0B)
+                    TactileSwitchSettingRow(
+                        icon = Icons.Default.AutoAwesome,
+                        iconTint = luxuryAccent,
+                        title = AppStrings.get("living_luxury_title", currentLang),
+                        subtitle = AppStrings.get(
+                            if (isLivingLuxuryMode) "living_luxury_active" else "living_luxury_inactive",
+                            currentLang
+                        ),
+                        subtitleColor = if (isLivingLuxuryMode) luxuryAccent else null,
+                        checked = isLivingLuxuryMode,
+                        trackColor = luxuryAccent,
+                        isDarkMode = isDarkMode,
+                        haptic = haptic,
+                        switchTag = "drawer_living_luxury_toggle",
+                        onToggle = { enabled ->
+                            onToggleLivingLuxuryMode(enabled)
+                            Toast.makeText(
+                                context,
+                                AppStrings.get(
+                                    if (enabled) "living_luxury_enabled_toast" else "living_luxury_disabled_toast",
+                                    currentLang
+                                ),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
                 }
 
                 // SECTION 2: نظام الإجازات (Leave Rules)
@@ -1392,15 +1461,18 @@ private fun CleanSettingsCard(
     content: @Composable () -> Unit
 ) {
     val activeThemePreset = LocalThemePreset.current
+    val isLivingLuxury = LocalLivingLuxuryMode.current
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = activeThemePreset?.surfacePrimary ?: if (isDarkMode) Color(0xFF1E293B) else Color.White,
         border = BorderStroke(
-            1.dp,
-            activeThemePreset?.borderAccent?.copy(alpha = 0.45f)
-                ?: if (isDarkMode) Color(0x33475569) else Color(0x38CBD5E1)
+            if (isLivingLuxury) 1.3.dp else 1.dp,
+            activeThemePreset?.borderAccent?.copy(alpha = if (isLivingLuxury) 0.7f else 0.45f)
+                ?: if (isLivingLuxury) Color(0x6638BDF8)
+                else if (isDarkMode) Color(0x33475569)
+                else Color(0x38CBD5E1)
         ),
-        shadowElevation = if (isDarkMode) 2.dp else 1.dp,
+        shadowElevation = if (isLivingLuxury) 5.dp else if (isDarkMode) 2.dp else 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {

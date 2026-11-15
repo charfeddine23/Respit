@@ -2,7 +2,13 @@ package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -42,6 +48,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CyanGlow
+import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.VibrantCyan
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
@@ -73,6 +81,7 @@ fun AppBottomNavigationPanel(
     modifier: Modifier = Modifier
 ) {
     val preset = com.example.ui.theme.LocalThemePreset.current
+    val isLiving = LocalLivingLuxuryMode.current
     val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
 
     val containerBg = when {
@@ -82,6 +91,7 @@ fun AppBottomNavigationPanel(
     }
 
     val borderColor = when {
+        isLiving -> (preset?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan).copy(alpha = 0.65f)
         preset != null -> preset.borderAccent.copy(alpha = 0.55f)
         effectiveNeumorphic -> if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1)
         else -> if (isDarkMode) Color(0x3300E5FF) else Color(0x3300BCD4)
@@ -93,16 +103,18 @@ fun AppBottomNavigationPanel(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(
-                elevation = if (effectiveNeumorphic) 10.dp else 8.dp,
+                elevation = if (isLiving) 14.dp else if (effectiveNeumorphic) 10.dp else 8.dp,
                 shape = RoundedCornerShape(28.dp),
-                ambientColor = if (isDarkMode) Color(0x40000000) else Color(0x308DA0B5),
+                ambientColor = if (isLiving) {
+                    (preset?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan).copy(alpha = 0.42f)
+                } else if (isDarkMode) Color(0x40000000) else Color(0x308DA0B5),
                 spotColor = preset?.primary?.copy(alpha = 0.35f)
                     ?: if (isDarkMode) Color(0x6000E5FF) else Color(0x352563EB)
             )
             .testTag("bottom_nav_panel"),
         shape = RoundedCornerShape(28.dp),
         color = containerBg,
-        border = BorderStroke(1.2.dp, borderColor)
+        border = BorderStroke(if (isLiving) 1.5.dp else 1.2.dp, borderColor)
     ) {
         Row(
             modifier = Modifier
@@ -179,30 +191,46 @@ private fun BottomNavItem(
     testTag: String
 ) {
     val preset = com.example.ui.theme.LocalThemePreset.current
+    val isLiving = LocalLivingLuxuryMode.current
     val activeColor = preset?.primary ?: if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF2563EB)
     val inactiveColor = preset?.textSecondary ?: if (isDarkMode) Color(0xFF64748B) else Color(0xFF64748B)
 
     val itemColor by animateColorAsState(
         targetValue = if (isSelected) activeColor else inactiveColor,
-        animationSpec = if (animationsEnabled) tween(250, easing = FastOutSlowInEasing) else tween(0),
+        animationSpec = if (animationsEnabled || isLiving) tween(220, easing = FastOutSlowInEasing) else tween(0),
         label = "navColor"
     )
 
+    val livingPulse = if (isLiving && isSelected) {
+        val t = rememberInfiniteTransition(label = "navLivingPulse")
+        t.animateFloat(
+            initialValue = 1.04f,
+            targetValue = 1.11f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "navBreathScale"
+        ).value
+    } else 1f
+
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1.0f,
-        animationSpec = if (animationsEnabled) tween(200, easing = FastOutSlowInEasing) else tween(0),
+        targetValue = if (isSelected) 1.06f else 1.0f,
+        animationSpec = if (animationsEnabled || isLiving) {
+            spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium)
+        } else tween(0),
         label = "navScale"
     )
 
-    val activePillBg = if (isDarkMode) {
-        Color(0xFF00E5FF).copy(alpha = 0.14f)
-    } else {
-        Color(0xFF2563EB).copy(alpha = 0.12f)
-    }
+    val activePillBg = activeColor.copy(alpha = if (isLiving) 0.18f else if (isDarkMode) 0.14f else 0.12f)
 
     Box(
         modifier = Modifier
-            .scale(scale)
+            .graphicsLayer {
+                val s = if (isLiving && isSelected) livingPulse else scale
+                scaleX = s
+                scaleY = s
+            }
             .clip(RoundedCornerShape(16.dp))
             .background(if (isSelected) activePillBg else Color.Transparent)
             .clickable(

@@ -534,7 +534,36 @@ object AppStrings {
         "analytics_of_year" to "من إجمالي السنة",
         "analytics_archived_tag" to "أرشيف",
         "analytics_empty_charts" to "لا توجد إجازات مسجلة لهذه السنة بعد",
-        "analytics_all_ranks_total" to "الإجمالي"
+        "analytics_all_ranks_total" to "الإجمالي",
+
+        // Living Breathing Luxury Mode & Swipe-to-Delete + Trash Bin
+        "living_luxury_title" to "الوضع الحي الفاخر (تتنفس)",
+        "living_luxury_active" to "مفعّل • التطبيق حي يتنفس بأعلى جودة وفخامة",
+        "living_luxury_inactive" to "معطّل • فعّله لرفع السلاسة والفخامة لأقصى درجة",
+        "living_luxury_enabled_toast" to "تم تفعيل الوضع الحي الفاخر بأقصى جودة ✨",
+        "living_luxury_disabled_toast" to "تم إيقاف الوضع الحي الفاخر",
+        "swipe_delete_hint_rtl" to "اسحب لليسار للحذف ←",
+        "swipe_delete_hint_ltr" to "Swipe right to delete →",
+        "swipe_delete_release" to "أفلت للنقل إلى سلة المهملات",
+        "pin_hold_hint" to "اضغط مطولاً للتثبيت أو اسحب لليسار للحذف",
+        "unpin_hold_hint" to "اضغط مطولاً لإلغاء التثبيت أو اسحب للحذف",
+        "pin_tap_to_unpin" to "اضغط لإلغاء التثبيت",
+        "trash_bin_title" to "سلة المهملات",
+        "trash_bin_sub" to "استعادة الأفراد المحذوفين أو الحذف النهائي",
+        "trash_bin_empty_title" to "سلة المهملات فارغة",
+        "trash_bin_empty_desc" to "الأفراد الذين تحذفهم بالسحب يظهرون هنا لتتمكن من استعادتهم في أي وقت.",
+        "trash_restore_btn" to "استعادة",
+        "trash_restore_all_btn" to "استعادة الكل",
+        "trash_empty_all_btn" to "إفراغ السلة",
+        "trash_delete_forever" to "حذف نهائي",
+        "trash_moved_toast" to "تم النقل إلى سلة المهملات",
+        "trash_restored_toast" to "تمت استعادة الفرد بنجاح",
+        "trash_restored_all_toast" to "تمت استعادة جميع الأفراد من السلة",
+        "trash_emptied_toast" to "تم إفراغ سلة المهملات نهائياً",
+        "trash_empty_confirm_title" to "إفراغ سلة المهملات نهائياً",
+        "trash_empty_confirm_desc" to "هل أنت متأكد من حذف جميع العناصر في سلة المهملات نهائياً؟ لا يمكن التراجع بعد ذلك.",
+        "trash_deleted_at" to "تاريخ الحذف:",
+        "undo_short" to "تراجع"
     )
 
     private val stringsFr = mapOf(
@@ -1050,7 +1079,36 @@ object AppStrings {
         "analytics_of_year" to "du total annuel",
         "analytics_archived_tag" to "Archivé",
         "analytics_empty_charts" to "Aucun congé enregistré pour cette année",
-        "analytics_all_ranks_total" to "Total"
+        "analytics_all_ranks_total" to "Total",
+
+        // Living Breathing Luxury Mode & Swipe-to-Delete + Trash Bin
+        "living_luxury_title" to "Mode Vivant Ultra-Luxe",
+        "living_luxury_active" to "Actif • Interface vivante et qualité maximale",
+        "living_luxury_inactive" to "Désactivé • Activez pour fluidité et luxe maximal",
+        "living_luxury_enabled_toast" to "Mode Vivant Ultra-Luxe activé ✨",
+        "living_luxury_disabled_toast" to "Mode Vivant Ultra-Luxe désactivé",
+        "swipe_delete_hint_rtl" to "Glisser à gauche pour supprimer ←",
+        "swipe_delete_hint_ltr" to "Glisser à droite pour supprimer →",
+        "swipe_delete_release" to "Relâcher pour mettre à la corbeille",
+        "pin_hold_hint" to "Maintenir pour épingler ou glisser pour supprimer",
+        "unpin_hold_hint" to "Maintenir pour détacher ou glisser pour supprimer",
+        "pin_tap_to_unpin" to "Appuyer pour détacher",
+        "trash_bin_title" to "Corbeille",
+        "trash_bin_sub" to "Restaurer ou supprimer définitivement",
+        "trash_bin_empty_title" to "La corbeille est vide",
+        "trash_bin_empty_desc" to "Les fiches supprimées apparaîtront ici pour une restauration rapide.",
+        "trash_restore_btn" to "Restaurer",
+        "trash_restore_all_btn" to "Tout restaurer",
+        "trash_empty_all_btn" to "Vider la corbeille",
+        "trash_delete_forever" to "Supprimer",
+        "trash_moved_toast" to "Déplacé vers la corbeille",
+        "trash_restored_toast" to "Fiche restaurée avec succès",
+        "trash_restored_all_toast" to "Toutes les fiches ont été restaurées",
+        "trash_emptied_toast" to "Corbeille vidée définitivement",
+        "trash_empty_confirm_title" to "Vider la corbeille",
+        "trash_empty_confirm_desc" to "Voulez-vous supprimer définitivement tous les éléments de la corbeille ?",
+        "trash_deleted_at" to "Supprimé le :",
+        "undo_short" to "Annuler"
     )
 
     private val stringsEn = mapOf(
@@ -1566,6 +1624,35 @@ object AppStrings {
         "analytics_of_year" to "of annual total",
         "analytics_archived_tag" to "Archived",
         "analytics_empty_charts" to "No leaves recorded for this year yet",
-        "analytics_all_ranks_total" to "Total"
+        "analytics_all_ranks_total" to "Total",
+
+        // Living Breathing Luxury Mode & Swipe-to-Delete + Trash Bin
+        "living_luxury_title" to "Living Breathing Luxury",
+        "living_luxury_active" to "Active • Breathing UI at maximum quality & elegance",
+        "living_luxury_inactive" to "Disabled • Enable for maximum fluidity & luxury",
+        "living_luxury_enabled_toast" to "Living Breathing Luxury activated ✨",
+        "living_luxury_disabled_toast" to "Living Breathing Luxury disabled",
+        "swipe_delete_hint_rtl" to "Swipe left to delete ←",
+        "swipe_delete_hint_ltr" to "Swipe right to delete →",
+        "swipe_delete_release" to "Release to move to Trash Bin",
+        "pin_hold_hint" to "Hold to pin or swipe right to delete",
+        "unpin_hold_hint" to "Hold to unpin or swipe right to delete",
+        "pin_tap_to_unpin" to "Tap to unpin",
+        "trash_bin_title" to "Trash Bin",
+        "trash_bin_sub" to "Restore deleted personnel or purge permanently",
+        "trash_bin_empty_title" to "Trash Bin is Empty",
+        "trash_bin_empty_desc" to "Deleted personnel records stay here safely so you can restore them anytime.",
+        "trash_restore_btn" to "Restore",
+        "trash_restore_all_btn" to "Restore All",
+        "trash_empty_all_btn" to "Empty Trash",
+        "trash_delete_forever" to "Delete Forever",
+        "trash_moved_toast" to "Moved to Trash Bin",
+        "trash_restored_toast" to "Personnel restored successfully",
+        "trash_restored_all_toast" to "All personnel restored from Trash",
+        "trash_emptied_toast" to "Trash Bin emptied permanently",
+        "trash_empty_confirm_title" to "Empty Trash Permanently",
+        "trash_empty_confirm_desc" to "Are you sure you want to permanently erase all items in the Trash Bin? This cannot be undone.",
+        "trash_deleted_at" to "Deleted:",
+        "undo_short" to "Undo"
     )
 }

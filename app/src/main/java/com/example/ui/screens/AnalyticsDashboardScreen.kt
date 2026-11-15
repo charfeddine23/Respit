@@ -1727,8 +1727,13 @@ private fun PersonnelAnnualStatCard(
                         shape = RoundedCornerShape(10.dp),
                         color = (if (stat.isEligible) AmberWarning else refColor).copy(alpha = if (isDarkMode) 0.2f else 0.12f)
                     ) {
+                        val formattedRefDays = if (stat.daysSinceReference < 0L) {
+                            "\u200E${stat.daysSinceReference}\u200E"
+                        } else {
+                            "${stat.daysSinceReference}"
+                        }
                         Text(
-                            text = "${AppStrings.get("analytics_elapsed_since_ref", currentLang)} ${stat.daysSinceReference} ${AppStrings.get("days", currentLang)}" +
+                            text = "${AppStrings.get("analytics_elapsed_since_ref", currentLang)} $formattedRefDays ${AppStrings.get("days", currentLang)}" +
                                 if (stat.isEligible) " • ${AppStrings.get("badge_eligible", currentLang)}" else "",
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.ExtraBold,

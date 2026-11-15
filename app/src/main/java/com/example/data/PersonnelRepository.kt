@@ -8,6 +8,8 @@ class PersonnelRepository(
 ) {
     // Flow streams for reactive UI
     val allPersonnel: Flow<List<Personnel>> = personnelDao.getAllPersonnel()
+    val trashedPersonnel: Flow<List<Personnel>> = personnelDao.getTrashedPersonnel()
+    val trashedCount: Flow<Int> = personnelDao.getTrashedCount()
     val allLeaves: Flow<List<LeaveRecord>> = leaveRecordDao.getAllLeaves()
     val personnelCount: Flow<Int> = personnelDao.getPersonnelCount()
     val leavesCount: Flow<Int> = leaveRecordDao.getLeavesCount()
@@ -27,6 +29,22 @@ class PersonnelRepository(
 
     suspend fun deleteById(id: Long) {
         personnelDao.deleteById(id)
+    }
+
+    suspend fun moveToTrash(id: Long, deletedAt: Long = System.currentTimeMillis()) {
+        personnelDao.moveToTrash(id, deletedAt)
+    }
+
+    suspend fun restoreFromTrash(id: Long) {
+        personnelDao.restoreFromTrash(id)
+    }
+
+    suspend fun restoreAllFromTrash() {
+        personnelDao.restoreAllFromTrash()
+    }
+
+    suspend fun emptyTrash() {
+        personnelDao.emptyTrash()
     }
 
     suspend fun confirmReturnToDuty(id: Long) {

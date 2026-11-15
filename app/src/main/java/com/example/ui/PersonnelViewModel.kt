@@ -135,6 +135,14 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         settingsManager.isDynamicAnimationsEnabled = enabled
     }
 
+    // Living & Ultra-Luxury Mode (Breathing UI + Maximum Visual Fidelity)
+    val isLivingLuxuryMode = MutableStateFlow(settingsManager.isLivingLuxuryMode)
+
+    fun setLivingLuxuryMode(enabled: Boolean) {
+        isLivingLuxuryMode.value = enabled
+        settingsManager.isLivingLuxuryMode = enabled
+    }
+
     // Maximum Security: Block screenshots & screen recording (Enabled by default)
     val isNoScreenshotEnabled = MutableStateFlow(settingsManager.isNoScreenshotEnabled)
 
@@ -193,6 +201,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     private var lastAutoCheckTimestampMs: Long = 0L
 
     val allPersonnel: StateFlow<List<Personnel>>
+    val trashedPersonnel: StateFlow<List<Personnel>>
+    val trashedCount: StateFlow<Int>
     val allLeaves: StateFlow<List<LeaveRecord>>
     val personnelCount: StateFlow<Int>
     val leavesCount: StateFlow<Int>
@@ -208,6 +218,10 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         repository = PersonnelRepository(db.personnelDao(), db.leaveRecordDao())
         allPersonnel = repository.allPersonnel
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        trashedPersonnel = repository.trashedPersonnel
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        trashedCount = repository.trashedCount
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
         allLeaves = repository.allLeaves
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         personnelCount = repository.personnelCount
@@ -733,7 +747,12 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             when (action) {
                 is UndoAction.Deleted -> {
-                    repository.insert(action.personnel)
+                    val existing = repository.getPersonnelById(action.personnel.id)
+                    if (existing != null) {
+                        repository.restoreFromTrash(action.personnel.id)
+                    } else {
+                        repository.insert(action.personnel.copy(isDeleted = false, deletedAtMillis = 0L))
+                    }
                 }
                 is UndoAction.Updated -> {
                     repository.update(action.previous)
@@ -860,8 +879,41 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun deletePersonnel(personnel: Personnel) {
         viewModelScope.launch {
+            val now = System.currentTimeMillis()
             lastUndoAction.value = UndoAction.Deleted(personnel)
+            repository.moveToTrash(personnel.id, now)
+        }
+    }
+
+    fun restorePersonnelFromTrash(personnel: Personnel) {
+        viewModelScope.launch {
+            repository.restoreFromTrash(personnel.id)
+        }
+    }
+
+    fun restoreAllFromTrash() {
+        viewModelScope.launch {
+            repository.restoreAllFromTrash()
+        }
+    }
+
+    fun deletePersonnelPermanently(personnel: Personnel) {
+        viewModelScope.launch {
             repository.delete(personnel)
+        }
+    }
+
+    fun emptyTrash() {
+        viewModelScope.launch {
+            repository.emptyTrash()
+        }
+    }
+
+    fun togglePinPersonnel(personnel: Personnel) {
+        viewModelScope.launch {
+            val nextPinned = !personnel.isPinned
+            val pinnedAt = if (nextPinned) System.currentTimeMillis() else 0L
+            repository.setPinned(personnel.id, nextPinned, pinnedAt)
         }
     }
 

@@ -5,7 +5,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+
+val LocalLivingLuxuryMode = staticCompositionLocalOf { false }
 
 private val DarkColorScheme = darkColorScheme(
     primary = VibrantCyan,
@@ -61,6 +64,7 @@ private val LightColorScheme = lightColorScheme(
 fun MyApplicationTheme(
     darkTheme: Boolean = false,
     themePreset: AppThemePreset? = null,
+    livingLuxuryMode: Boolean = false,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -118,7 +122,10 @@ fun MyApplicationTheme(
         if (darkTheme) DarkColorScheme else LightColorScheme
     }
 
-    CompositionLocalProvider(LocalThemePreset provides themePreset) {
+    CompositionLocalProvider(
+        LocalThemePreset provides themePreset,
+        LocalLivingLuxuryMode provides livingLuxuryMode
+    ) {
         MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
     }
 }

@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +57,7 @@ import com.example.ui.DashboardStats
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
+import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.RedDanger
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
@@ -104,18 +106,36 @@ fun StatisticsSection(
         ).value
     } else overdueFraction
 
-    val pulseAlpha = if (animationsEnabled) {
+    val isLivingLuxury = LocalLivingLuxuryMode.current
+
+    val pulseAlpha: Float
+    val livingBreathScale: Float
+    if (animationsEnabled || isLivingLuxury) {
         val infiniteTransition = rememberInfiniteTransition(label = "pulseInfinite")
-        infiniteTransition.animateFloat(
+        pulseAlpha = infiniteTransition.animateFloat(
             initialValue = 0.35f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+                animation = tween(durationMillis = if (isLivingLuxury) 950 else 1100, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "pulseAlpha"
         ).value
-    } else 1f
+        livingBreathScale = if (isLivingLuxury) {
+            infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.032f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 2800, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "livingRingBreath"
+            ).value
+        } else 1f
+    } else {
+        pulseAlpha = 1f
+        livingBreathScale = 1f
+    }
 
     Column(
         modifier = modifier
@@ -203,16 +223,34 @@ fun StatisticsSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Modern Multi-Segment Radial Ring Chart
+                    // Modern Multi-Segment Radial Ring Chart (with Living Breathing Aura when enabled)
                     Box(
                         modifier = Modifier
                             .size(ringSize)
+                            .graphicsLayer {
+                                scaleX = livingBreathScale
+                                scaleY = livingBreathScale
+                            }
                             .padding(4.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(modifier = Modifier.size(canvasSize)) {
                             val strokeWidth = strokeWidthDp.toPx()
                             val trackColor = if (isDarkMode) Color(0x26334155) else Color(0x33CBD5E1)
+
+                            if (isLivingLuxury) {
+                                val haloColor = if (isDarkMode) CyanGlow else VibrantCyan
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        listOf(
+                                            haloColor.copy(alpha = 0.22f * pulseAlpha),
+                                            EmeraldSuccess.copy(alpha = 0.12f * pulseAlpha),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    radius = size.minDimension * 0.62f
+                                )
+                            }
 
                             // Background Track
                             drawCircle(

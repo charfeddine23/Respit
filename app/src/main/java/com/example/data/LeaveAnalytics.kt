@@ -214,7 +214,7 @@ object LeaveAnalyticsCalculator {
             ) ?: return@forEach
             val personYearLeaves = personAllLeaves.filter { extractYear(it.startDateMillis) == selectedYear }
             val refStart = Personnel.toStartOfDay(latest.returnDateMillis)
-            val daysSince = TimeUnit.MILLISECONDS.toDays(todayStart - refStart).coerceAtLeast(0L)
+            val daysSince = Personnel.signedDaysBetween(refStart, todayStart)
             val typeCounts = personYearLeaves.groupingBy { it.leaveType.ifBlank { "إجازة" } }.eachCount()
 
             personnelStatsList.add(

@@ -10,8 +10,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PersonnelDao {
-    @Query("SELECT * FROM personnel ORDER BY returnDateMillis ASC")
+    @Query("SELECT * FROM personnel WHERE isDeleted = 0 ORDER BY returnDateMillis ASC")
     fun getAllPersonnel(): Flow<List<Personnel>>
+
+    @Query("SELECT * FROM personnel WHERE isDeleted = 1 ORDER BY deletedAtMillis DESC")
+    fun getTrashedPersonnel(): Flow<List<Personnel>>
+
+    @Query("SELECT COUNT(*) FROM personnel WHERE isDeleted = 1")
+    fun getTrashedCount(): Flow<Int>
 
     @Query("SELECT * FROM personnel WHERE id = :id")
     suspend fun getPersonnelById(id: Long): Personnel?
@@ -31,6 +37,18 @@ interface PersonnelDao {
     @Query("DELETE FROM personnel WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("UPDATE personnel SET isDeleted = 1, deletedAtMillis = :deletedAt WHERE id = :id")
+    suspend fun moveToTrash(id: Long, deletedAt: Long)
+
+    @Query("UPDATE personnel SET isDeleted = 0, deletedAtMillis = 0 WHERE id = :id")
+    suspend fun restoreFromTrash(id: Long)
+
+    @Query("UPDATE personnel SET isDeleted = 0, deletedAtMillis = 0 WHERE isDeleted = 1")
+    suspend fun restoreAllFromTrash()
+
+    @Query("DELETE FROM personnel WHERE isDeleted = 1")
+    suspend fun emptyTrash()
+
     @Query("UPDATE personnel SET isReturnedToDuty = 1 WHERE id = :id")
     suspend fun confirmReturnToDuty(id: Long)
 
@@ -40,9 +58,9 @@ interface PersonnelDao {
     @Query("UPDATE personnel SET isPinned = :pinned, pinnedAtMillis = :pinnedAt WHERE id = :id")
     suspend fun setPinned(id: Long, pinned: Boolean, pinnedAt: Long)
 
-    @Query("DELETE FROM personnel")
+    @Query("DELETE FROM personnel WHERE isDeleted = 0")
     suspend fun clearAll()
 
-    @Query("SELECT COUNT(*) FROM personnel")
+    @Query("SELECT COUNT(*) FROM personnel WHERE isDeleted = 0")
     fun getPersonnelCount(): Flow<Int>
 }

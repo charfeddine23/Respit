@@ -757,7 +757,7 @@ class ExampleRobolectricTest {
     sqliteDb.close()
 
     val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, "test_mig_4_5.db")
-      .addMigrations(AppDatabase.MIGRATION_4_5)
+      .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7)
       .allowMainThreadQueries()
       .build()
 
@@ -806,6 +806,140 @@ class ExampleRobolectricTest {
     assertTrue(found?.isDark == true)
 
     settings.selectedThemeEngineId = ""
+  }
+
+  @Test
+  fun `verify days counter counts negative during leave (-5 to 0) then positive normally`() {
+    val startDate = getOffsetDateMillis(-5)
+    val returnDate = getOffsetDateMillis(5)
+    val onLeave = Personnel(
+      id = 77L,
+      fullName = "سعيد بن عمر",
+      rank = "رقيب أول - Sergent-Chef",
+      registrationNumber = "DZ-770011",
+      startDateMillis = startDate,
+      returnDateMillis = returnDate,
+      isReturnedToDuty = false
+    )
+    val leaveRecord = LeaveRecord(
+      id = 1L,
+      personnelId = 77L,
+      personnelName = onLeave.fullName,
+      rank = onLeave.rank,
+      registrationNumber = onLeave.registrationNumber,
+      leaveType = "إجازة",
+      startDateMillis = startDate,
+      returnDateMillis = returnDate,
+      durationDays = 10L
+    )
+
+    // 5 days before return -> -5
+    assertEquals(-5L, onLeave.daysSinceDutyReturn)
+    assertEquals(-5L, onLeave.computeDutyReferenceInfo(listOf(leaveRecord), getOffsetDateMillis(0)).daysSinceReference)
+
+    // 1 day before return -> -1
+    assertEquals(-1L, onLeave.computeDutyReferenceInfo(listOf(leaveRecord), getOffsetDateMillis(4)).daysSinceReference)
+
+    // On return date -> 0
+    assertEquals(0L, onLeave.computeDutyReferenceInfo(listOf(leaveRecord), getOffsetDateMillis(5)).daysSinceReference)
+
+    // 1 day after return -> 1, 3 days after -> 3
+    val returned = onLeave.copy(isReturnedToDuty = true)
+    assertEquals(1L, returned.computeDutyReferenceInfo(listOf(leaveRecord), getOffsetDateMillis(6)).daysSinceReference)
+    assertEquals(3L, returned.computeDutyReferenceInfo(listOf(leaveRecord), getOffsetDateMillis(8)).daysSinceReference)
+  }
+
+  @Test
+  fun `verify SettingsManager persists Living Breathing Luxury mode`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val settings = com.example.data.SettingsManager(context)
+    settings.isLivingLuxuryMode = false
+    assertTrue(!settings.isLivingLuxuryMode)
+
+    settings.isLivingLuxuryMode = true
+    val reloaded = com.example.data.SettingsManager(context)
+    assertTrue(reloaded.isLivingLuxuryMode)
+
+    settings.isLivingLuxuryMode = false
+  }
+
+  @Test
+  fun `verify Room Trash Bin soft delete restore and emptyTrash persistence`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val inMemoryDb = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+    val repo = PersonnelRepository(inMemoryDb.personnelDao(), inMemoryDb.leaveRecordDao())
+
+    val id1 = repo.insert(
+      Personnel(
+        fullName = "وليد بن سالم",
+        rank = "رقيب - Sergent",
+        registrationNumber = "DZ-301",
+        startDateMillis = getOffsetDateMillis(-5),
+        returnDateMillis = getOffsetDateMillis(5)
+      )
+    )
+    val id2 = repo.insert(
+      Personnel(
+        fullName = "أمين تواتي",
+        rank = "نقيب - Capitaine",
+        registrationNumber = "DZ-302",
+        startDateMillis = getOffsetDateMillis(-8),
+        returnDateMillis = getOffsetDateMillis(2)
+      )
+    )
+    assertEquals(2, repo.allPersonnel.first().size)
+    assertEquals(0, repo.trashedCount.first())
+
+    val p1 = repo.allPersonnel.first().first { it.id == id1 }
+    val p2 = repo.allPersonnel.first().first { it.id == id2 }
+
+    // Move first to trash -> active list has 1, trash has 1
+    repo.moveToTrash(p1.id)
+    assertEquals(1, repo.allPersonnel.first().size)
+    assertEquals(1, repo.trashedCount.first())
+    assertEquals(p1.id, repo.trashedPersonnel.first().first().id)
+
+    // Restore from trash -> active list back to 2, trash empty
+    repo.restoreFromTrash(p1.id)
+    assertEquals(2, repo.allPersonnel.first().size)
+    assertEquals(0, repo.trashedCount.first())
+
+    // Move both to trash, then permanently empty trash
+    repo.moveToTrash(p1.id)
+    repo.moveToTrash(p2.id)
+    assertEquals(0, repo.allPersonnel.first().size)
+    assertEquals(2, repo.trashedCount.first())
+
+    repo.emptyTrash()
+    assertEquals(0, repo.allPersonnel.first().size)
+    assertEquals(0, repo.trashedCount.first())
+
+    inMemoryDb.close()
+  }
+
+  @Test
+  fun `verify 0_5s hold and directional swipe delete rules for Arabic Left and English Right`() {
+    assertEquals(500L, com.example.ui.components.SwipeDeleteGestureHelper.HOLD_ARM_DURATION_MS)
+
+    // Arabic (RTL): swipe LEFT (negative X) deletes; positive right drag is clamped to 0
+    assertEquals(-1f, com.example.ui.components.SwipeDeleteGestureHelper.expectedDirectionSign(AppLanguage.ARABIC))
+    assertEquals(0f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(260f, AppLanguage.ARABIC))
+    assertEquals(-320f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(-320f, AppLanguage.ARABIC))
+    assertTrue(com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(-320f, 900f, AppLanguage.ARABIC))
+    assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(320f, 900f, AppLanguage.ARABIC))
+    assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(-120f, 900f, AppLanguage.ARABIC))
+
+    // English & French (LTR): swipe RIGHT (positive X) deletes; negative left drag is clamped to 0
+    listOf(AppLanguage.ENGLISH, AppLanguage.FRENCH).forEach { lang ->
+      assertEquals(1f, com.example.ui.components.SwipeDeleteGestureHelper.expectedDirectionSign(lang))
+      assertEquals(0f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(-260f, lang))
+      assertEquals(320f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(320f, lang))
+      assertTrue(com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(320f, 900f, lang))
+      assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(-320f, 900f, lang))
+      assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(120f, 900f, lang))
+    }
   }
 }
 

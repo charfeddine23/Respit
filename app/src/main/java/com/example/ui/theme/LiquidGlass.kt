@@ -1,5 +1,6 @@
 package com.example.ui.theme
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -11,7 +12,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +25,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 object LiquidGlassDefaults {
     val CardShape = RoundedCornerShape(24.dp)
@@ -35,8 +38,8 @@ object LiquidGlassDefaults {
 
 /**
  * Dynamic Aurora & Neumorphic background:
- * - In Neumorphism: Clean solid GPU-fast canvas (#E6EEF8 in light, #131926 in dark).
- * - In Glassmorphism: Smoothly drifting aurora ambient glowing mesh with remembered gradients.
+ * - In Neumorphism (without Living Mode): Clean solid GPU-fast canvas.
+ * - When Living & Ultra-Luxury Mode is enabled: Organic breathing harmonic waves + floating luminous bokeh particles.
  */
 @Composable
 fun DynamicAuroraBackground(
@@ -46,8 +49,9 @@ fun DynamicAuroraBackground(
     modifier: Modifier = Modifier
 ) {
     val preset = LocalThemePreset.current
+    val isLiving = LocalLivingLuxuryMode.current
     val effectiveDark = preset?.isDark ?: isDark
-    val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
+    val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true) && !isLiving
 
     if (effectiveNeumorphic) {
         val canvasBg = preset?.backgroundMid ?: if (effectiveDark) Color(0xFF131926) else Color(0xFFE6EEF8)
@@ -57,7 +61,7 @@ fun DynamicAuroraBackground(
         return
     }
 
-    val staticBrush = remember(effectiveDark, preset?.id) {
+    val staticBrush = remember(effectiveDark, preset?.id, isLiving, isNeumorphic) {
         if (preset != null) {
             Brush.verticalGradient(
                 listOf(
@@ -66,6 +70,12 @@ fun DynamicAuroraBackground(
                     preset.backgroundBottom
                 )
             )
+        } else if (isLiving && isNeumorphic) {
+            if (effectiveDark) {
+                Brush.verticalGradient(listOf(Color(0xFF0A101F), Color(0xFF131D33), Color(0xFF0F172A)))
+            } else {
+                Brush.verticalGradient(listOf(Color(0xFFE4EEFC), Color(0xFFEDF4FF), Color(0xFFE1EAFA)))
+            }
         } else if (effectiveDark) {
             Brush.verticalGradient(
                 listOf(
@@ -87,38 +97,42 @@ fun DynamicAuroraBackground(
         }
     }
 
-    if (!animationsEnabled) {
+    if (!animationsEnabled && !isLiving) {
         Canvas(modifier = modifier.fillMaxSize()) {
             drawRect(brush = staticBrush)
         }
         return
     }
 
-    val orb1Colors = remember(effectiveDark, preset?.id) {
+    val orbBoost = if (isLiving) 1.42f else 1f
+    val orb1Colors = remember(effectiveDark, preset?.id, isLiving) {
         if (preset != null) {
-            listOf(preset.orb1, preset.orb1.copy(alpha = preset.orb1.alpha * 0.45f), Color.Transparent)
+            val base = preset.orb1.copy(alpha = (preset.orb1.alpha * orbBoost).coerceAtMost(0.55f))
+            listOf(base, base.copy(alpha = base.alpha * 0.45f), Color.Transparent)
         } else if (effectiveDark) {
-            listOf(Color(0x3800E5FF), Color(0x1800BCD4), Color.Transparent)
+            listOf(Color(0x3800E5FF).copy(alpha = (0.22f * orbBoost).coerceAtMost(0.45f)), Color(0x1800BCD4), Color.Transparent)
         } else {
-            listOf(Color(0x3B00E5FF), Color(0x1A00BCD4), Color.Transparent)
+            listOf(Color(0x3B00E5FF).copy(alpha = (0.24f * orbBoost).coerceAtMost(0.44f)), Color(0x1A00BCD4), Color.Transparent)
         }
     }
-    val orb2Colors = remember(effectiveDark, preset?.id) {
+    val orb2Colors = remember(effectiveDark, preset?.id, isLiving) {
         if (preset != null) {
-            listOf(preset.orb2, preset.orb2.copy(alpha = preset.orb2.alpha * 0.45f), Color.Transparent)
+            val base = preset.orb2.copy(alpha = (preset.orb2.alpha * orbBoost).coerceAtMost(0.52f))
+            listOf(base, base.copy(alpha = base.alpha * 0.45f), Color.Transparent)
         } else if (effectiveDark) {
-            listOf(Color(0x2E7C4DFF), Color(0x126366F1), Color.Transparent)
+            listOf(Color(0x2E7C4DFF).copy(alpha = (0.19f * orbBoost).coerceAtMost(0.42f)), Color(0x126366F1), Color.Transparent)
         } else {
-            listOf(Color(0x308B5CF6), Color(0x12A855F7), Color.Transparent)
+            listOf(Color(0x308B5CF6).copy(alpha = (0.20f * orbBoost).coerceAtMost(0.40f)), Color(0x12A855F7), Color.Transparent)
         }
     }
-    val orb3Colors = remember(effectiveDark, preset?.id) {
+    val orb3Colors = remember(effectiveDark, preset?.id, isLiving) {
         if (preset != null) {
-            listOf(preset.orb3, preset.orb3.copy(alpha = preset.orb3.alpha * 0.45f), Color.Transparent)
+            val base = preset.orb3.copy(alpha = (preset.orb3.alpha * orbBoost).coerceAtMost(0.48f))
+            listOf(base, base.copy(alpha = base.alpha * 0.45f), Color.Transparent)
         } else if (effectiveDark) {
-            listOf(Color(0x2810B981), Color(0x10059669), Color.Transparent)
+            listOf(Color(0x2810B981).copy(alpha = (0.17f * orbBoost).coerceAtMost(0.38f)), Color(0x10059669), Color.Transparent)
         } else {
-            listOf(Color(0x2E00BCD4), Color(0x120284C7), Color.Transparent)
+            listOf(Color(0x2E00BCD4).copy(alpha = (0.19f * orbBoost).coerceAtMost(0.38f)), Color(0x120284C7), Color.Transparent)
         }
     }
 
@@ -128,7 +142,7 @@ fun DynamicAuroraBackground(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 10000, easing = LinearEasing),
+            animation = tween(durationMillis = if (isLiving) 7800 else 10000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "orb1Anim"
@@ -138,7 +152,7 @@ fun DynamicAuroraBackground(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 14000, easing = LinearEasing),
+            animation = tween(durationMillis = if (isLiving) 10500 else 14000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "orb2Anim"
@@ -148,80 +162,118 @@ fun DynamicAuroraBackground(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 12000, easing = LinearEasing),
+            animation = tween(durationMillis = if (isLiving) 9200 else 12000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "orb3Anim"
     )
 
+    val breathWave by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "livingBreathWave"
+    )
+
+    val particleAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+    val particleSecondary = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else RoyalBlueAccent
+
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
-        val baseDim = kotlin.math.sqrt(w * h)
+        val baseDim = sqrt(w * h)
+        val breathExpand = if (isLiving) 1f + 0.14f * breathWave else 1f
 
         drawRect(brush = staticBrush)
 
         if (effectiveDark) {
-            val orb1X = w * (0.65f + 0.22f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
-            val orb1Y = h * (0.15f + 0.12f * kotlin.math.cos(t1 * kotlin.math.PI).toFloat())
-            val orb1Radius = baseDim * (0.46f + 0.08f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
+            val orb1X = w * (0.65f + 0.22f * sin(t1 * Math.PI).toFloat())
+            val orb1Y = h * (0.15f + 0.12f * cos(t1 * Math.PI).toFloat())
+            val orb1Radius = baseDim * (0.46f + 0.08f * sin(t2 * Math.PI).toFloat()) * breathExpand
             drawCircle(
                 brush = Brush.radialGradient(orb1Colors, center = Offset(orb1X, orb1Y), radius = orb1Radius),
                 center = Offset(orb1X, orb1Y),
                 radius = orb1Radius
             )
 
-            val orb2X = w * (0.18f + 0.16f * kotlin.math.cos(t2 * kotlin.math.PI).toFloat())
-            val orb2Y = h * (0.52f + 0.10f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
-            val orb2Radius = baseDim * (0.48f + 0.06f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
+            val orb2X = w * (0.18f + 0.16f * cos(t2 * Math.PI).toFloat())
+            val orb2Y = h * (0.52f + 0.10f * sin(t2 * Math.PI).toFloat())
+            val orb2Radius = baseDim * (0.48f + 0.06f * cos(t3 * Math.PI).toFloat()) * breathExpand
             drawCircle(
                 brush = Brush.radialGradient(orb2Colors, center = Offset(orb2X, orb2Y), radius = orb2Radius),
                 center = Offset(orb2X, orb2Y),
                 radius = orb2Radius
             )
 
-            val orb3X = w * (0.80f - 0.20f * kotlin.math.sin(t3 * kotlin.math.PI).toFloat())
-            val orb3Y = h * (0.82f - 0.08f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
-            val orb3Radius = baseDim * (0.42f + 0.06f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
+            val orb3X = w * (0.80f - 0.20f * sin(t3 * Math.PI).toFloat())
+            val orb3Y = h * (0.82f - 0.08f * cos(t3 * Math.PI).toFloat())
+            val orb3Radius = baseDim * (0.42f + 0.06f * sin(t1 * Math.PI).toFloat()) * breathExpand
             drawCircle(
                 brush = Brush.radialGradient(orb3Colors, center = Offset(orb3X, orb3Y), radius = orb3Radius),
                 center = Offset(orb3X, orb3Y),
                 radius = orb3Radius
             )
         } else {
-            val orb1X = w * (0.12f + 0.18f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
-            val orb1Y = h * (0.14f + 0.10f * kotlin.math.cos(t1 * kotlin.math.PI).toFloat())
-            val orb1Radius = baseDim * (0.50f + 0.06f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
+            val orb1X = w * (0.12f + 0.18f * sin(t1 * Math.PI).toFloat())
+            val orb1Y = h * (0.14f + 0.10f * cos(t1 * Math.PI).toFloat())
+            val orb1Radius = baseDim * (0.50f + 0.06f * sin(t2 * Math.PI).toFloat()) * breathExpand
             drawCircle(
                 brush = Brush.radialGradient(orb1Colors, center = Offset(orb1X, orb1Y), radius = orb1Radius),
                 center = Offset(orb1X, orb1Y),
                 radius = orb1Radius
             )
 
-            val orb2X = w * (0.88f - 0.18f * kotlin.math.cos(t2 * kotlin.math.PI).toFloat())
-            val orb2Y = h * (0.40f + 0.12f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
-            val orb2Radius = baseDim * (0.46f + 0.06f * kotlin.math.cos(t3 * kotlin.math.PI).toFloat())
+            val orb2X = w * (0.88f - 0.18f * cos(t2 * Math.PI).toFloat())
+            val orb2Y = h * (0.40f + 0.12f * sin(t2 * Math.PI).toFloat())
+            val orb2Radius = baseDim * (0.46f + 0.06f * cos(t3 * Math.PI).toFloat()) * breathExpand
             drawCircle(
                 brush = Brush.radialGradient(orb2Colors, center = Offset(orb2X, orb2Y), radius = orb2Radius),
                 center = Offset(orb2X, orb2Y),
                 radius = orb2Radius
             )
 
-            val orb3X = w * (0.40f + 0.25f * kotlin.math.sin(t3 * kotlin.math.PI).toFloat())
-            val orb3Y = h * (0.82f - 0.08f * kotlin.math.cos(t1 * kotlin.math.PI).toFloat())
-            val orb3Radius = baseDim * (0.46f + 0.06f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
+            val orb3X = w * (0.40f + 0.25f * sin(t3 * Math.PI).toFloat())
+            val orb3Y = h * (0.82f - 0.08f * cos(t1 * Math.PI).toFloat())
+            val orb3Radius = baseDim * (0.46f + 0.06f * sin(t1 * Math.PI).toFloat()) * breathExpand
             drawCircle(
                 brush = Brush.radialGradient(orb3Colors, center = Offset(orb3X, orb3Y), radius = orb3Radius),
                 center = Offset(orb3X, orb3Y),
                 radius = orb3Radius
             )
         }
+
+        // Living Breathing Mode: 16 floating luminous bokeh micro-motes
+        if (isLiving) {
+            val phase = (t1 * 2f + t2 * 3f) * Math.PI
+            for (i in 0 until 16) {
+                val seed = (i + 1) * 0.6180339f
+                val fracX = ((seed * 1.73f) % 1f) + 0.06f * sin(phase + i * 0.9).toFloat()
+                val baseY = ((seed * 2.41f) % 1f)
+                val driftY = (baseY - (t3 * 0.14f) + 0.04f * cos(phase + i * 1.1).toFloat() + 1f) % 1f
+                val radius = (3.5f + (i % 4) * 2.4f) * (0.85f + 0.35f * breathWave)
+                val alpha = (if (effectiveDark) 0.24f else 0.18f) * (0.55f + 0.45f * sin(phase * 0.5 + i).toFloat().let { (it + 1f) * 0.5f })
+                val c = if (i % 2 == 0) particleAccent else particleSecondary
+                val center = Offset(w * fracX.coerceIn(0.03f, 0.97f), h * driftY)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(c.copy(alpha = alpha), c.copy(alpha = alpha * 0.3f), Color.Transparent),
+                        center = center,
+                        radius = radius * 3.4f
+                    ),
+                    center = center,
+                    radius = radius * 3.4f
+                )
+            }
+        }
     }
 }
 
 /**
  * Hardware-accelerated Glassmorphism & Tactile Neumorphism container modifier.
- * Automatically adopts active ThemeEngine palette when a preset is selected.
+ * Automatically adopts active ThemeEngine palette and Living & Ultra-Luxury specular effects.
  */
 @Composable
 fun Modifier.liquidGlass(
@@ -233,51 +285,91 @@ fun Modifier.liquidGlass(
     cornerRadius: Dp = 24.dp
 ): Modifier {
     val preset = LocalThemePreset.current
+    val isLiving = LocalLivingLuxuryMode.current
     val effectiveDark = preset?.isDark ?: isDark
     val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
 
+    val shimmerPhase = if (isLiving) {
+        val transition = rememberInfiniteTransition(label = "livingGlassShimmer")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4800, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "glassSpecularShift"
+        ).value
+    } else 0f
+
     if (effectiveNeumorphic) {
         val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
-        val borderBrush = remember(effectiveDark, borderAlpha, preset?.id) {
+        val borderBrush = if (isLiving) {
+            val shift = shimmerPhase * 420f
+            val accent = preset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
             Brush.linearGradient(
-                if (preset != null) {
-                    if (effectiveDark) {
+                colors = if (effectiveDark) {
+                    listOf(
+                        Color.White.copy(alpha = 0.28f),
+                        accent.copy(alpha = 0.50f),
+                        Color.White.copy(alpha = 0.14f),
+                        Color.Black.copy(alpha = 0.45f)
+                    )
+                } else {
+                    listOf(
+                        Color.White.copy(alpha = 0.98f),
+                        accent.copy(alpha = 0.34f),
+                        Color.White.copy(alpha = 0.72f),
+                        Color(0x4564748B)
+                    )
+                },
+                start = Offset(shift, 0f),
+                end = Offset(shift + 520f, 520f)
+            )
+        } else {
+            remember(effectiveDark, borderAlpha, preset?.id) {
+                Brush.linearGradient(
+                    if (preset != null) {
+                        if (effectiveDark) {
+                            listOf(
+                                preset.borderHighlight,
+                                preset.borderAccent.copy(alpha = 0.25f),
+                                Color.Black.copy(alpha = 0.50f)
+                            )
+                        } else {
+                            listOf(
+                                Color.White.copy(alpha = 0.96f),
+                                preset.borderHighlight,
+                                preset.borderAccent.copy(alpha = 0.35f)
+                            )
+                        }
+                    } else if (effectiveDark) {
                         listOf(
-                            preset.borderHighlight,
-                            preset.borderAccent.copy(alpha = 0.25f),
-                            Color.Black.copy(alpha = 0.50f)
+                            Color.White.copy(alpha = 0.17f),
+                            Color(0xFF334155).copy(alpha = 0.28f),
+                            Color.Black.copy(alpha = 0.55f)
                         )
                     } else {
                         listOf(
                             Color.White.copy(alpha = 0.96f),
-                            preset.borderHighlight,
-                            preset.borderAccent.copy(alpha = 0.35f)
+                            Color.White.copy(alpha = 0.48f),
+                            Color(0x3894A3B8),
+                            Color(0x4564748B)
                         )
-                    }
-                } else if (effectiveDark) {
-                    listOf(
-                        Color.White.copy(alpha = 0.17f),
-                        Color(0xFF334155).copy(alpha = 0.28f),
-                        Color.Black.copy(alpha = 0.55f)
-                    )
-                } else {
-                    listOf(
-                        Color.White.copy(alpha = 0.96f),
-                        Color.White.copy(alpha = 0.48f),
-                        Color(0x3894A3B8),
-                        Color(0x4564748B)
-                    )
-                },
-                start = Offset.Zero,
-                end = Offset(500f, 500f)
-            )
+                    },
+                    start = Offset.Zero,
+                    end = Offset(500f, 500f)
+                )
+            }
         }
-        val ambientShadow = if (effectiveDark) Color(0xAA070B12) else Color(0x4D7A8FA8)
+        val ambientShadow = if (isLiving) {
+            (preset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent).copy(alpha = if (effectiveDark) 0.26f else 0.18f)
+        } else if (effectiveDark) Color(0xAA070B12) else Color(0x4D7A8FA8)
         val spotShadow = if (effectiveDark) Color(0xCC05080E) else Color(0x5A6C829C)
 
         return this
             .shadow(
-                elevation = (elevation + 2.dp),
+                elevation = if (isLiving) elevation + 5.dp else elevation + 2.dp,
                 shape = shape,
                 clip = false,
                 ambientColor = ambientShadow,
@@ -285,68 +377,94 @@ fun Modifier.liquidGlass(
             )
             .clip(shape)
             .background(surfaceColor)
-            .border(BorderStroke(1.dp, borderBrush), shape)
+            .border(BorderStroke(if (isLiving) 1.35.dp else 1.dp, borderBrush), shape)
     }
 
-    val bgBrush = remember(effectiveDark, preset?.id) {
+    val bgBrush = remember(effectiveDark, preset?.id, isLiving) {
         if (preset != null) {
             Brush.verticalGradient(listOf(preset.cardTintTop, preset.cardTintBottom))
         } else if (effectiveDark) {
-            Brush.verticalGradient(listOf(Color(0xEB1E293B), Color(0xDF0F172A)))
+            if (isLiving) {
+                Brush.verticalGradient(listOf(Color(0xF21E293B), Color(0xE80F172A)))
+            } else {
+                Brush.verticalGradient(listOf(Color(0xEB1E293B), Color(0xDF0F172A)))
+            }
         } else {
-            Brush.verticalGradient(listOf(Color(0xF0FFFFFF), Color(0xD9FFFFFF), Color(0xD4FFFFFF)))
+            if (isLiving) {
+                Brush.verticalGradient(listOf(Color(0xF8FFFFFF), Color(0xE6F8FAFC), Color(0xE0F1F5F9)))
+            } else {
+                Brush.verticalGradient(listOf(Color(0xF0FFFFFF), Color(0xD9FFFFFF), Color(0xD4FFFFFF)))
+            }
         }
     }
 
-    val borderBrush = remember(effectiveDark, borderAlpha, preset?.id) {
-        if (preset != null) {
-            if (preset.isLiquidGlass) {
-                Brush.linearGradient(
-                    listOf(
-                        preset.borderHighlight,
-                        preset.borderAccent,
-                        preset.secondary.copy(alpha = 0.45f),
-                        preset.borderHighlight.copy(alpha = 0.6f)
+    val borderBrush = if (isLiving) {
+        val shift = shimmerPhase * 520f
+        val accent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+        val secondary = preset?.secondary ?: if (effectiveDark) PurpleAccent else RoyalBlueAccent
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = if (effectiveDark) 0.45f else 0.98f),
+                accent.copy(alpha = if (effectiveDark) 0.85f else 0.62f),
+                secondary.copy(alpha = if (effectiveDark) 0.55f else 0.36f),
+                Color.White.copy(alpha = if (effectiveDark) 0.25f else 0.92f)
+            ),
+            start = Offset(shift, 0f),
+            end = Offset(shift + 540f, 540f)
+        )
+    } else {
+        remember(effectiveDark, borderAlpha, preset?.id) {
+            if (preset != null) {
+                if (preset.isLiquidGlass) {
+                    Brush.linearGradient(
+                        listOf(
+                            preset.borderHighlight,
+                            preset.borderAccent,
+                            preset.secondary.copy(alpha = 0.45f),
+                            preset.borderHighlight.copy(alpha = 0.6f)
+                        )
                     )
-                )
+                } else if (effectiveDark) {
+                    Brush.linearGradient(
+                        listOf(
+                            preset.borderHighlight,
+                            preset.borderAccent,
+                            Color.White.copy(alpha = 0.12f)
+                        )
+                    )
+                } else {
+                    Brush.linearGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.95f),
+                            preset.borderAccent,
+                            Color.White.copy(alpha = 0.85f)
+                        )
+                    )
+                }
             } else if (effectiveDark) {
                 Brush.linearGradient(
                     listOf(
-                        preset.borderHighlight,
-                        preset.borderAccent,
-                        Color.White.copy(alpha = 0.12f)
+                        Color.White.copy(alpha = borderAlpha * 0.35f),
+                        Color(0xFF00E5FF).copy(alpha = borderAlpha * 0.6f),
+                        Color.White.copy(alpha = borderAlpha * 0.15f)
                     )
                 )
             } else {
                 Brush.linearGradient(
                     listOf(
                         Color.White.copy(alpha = 0.95f),
-                        preset.borderAccent,
-                        Color.White.copy(alpha = 0.85f)
+                        Color(0x66CBD5E1).copy(alpha = borderAlpha * 0.8f),
+                        VibrantCyan.copy(alpha = borderAlpha * 0.25f),
+                        Color.White.copy(alpha = 0.90f)
                     )
                 )
             }
-        } else if (effectiveDark) {
-            Brush.linearGradient(
-                listOf(
-                    Color.White.copy(alpha = borderAlpha * 0.35f),
-                    Color(0xFF00E5FF).copy(alpha = borderAlpha * 0.6f),
-                    Color.White.copy(alpha = borderAlpha * 0.15f)
-                )
-            )
-        } else {
-            Brush.linearGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    Color(0x66CBD5E1).copy(alpha = borderAlpha * 0.8f),
-                    VibrantCyan.copy(alpha = borderAlpha * 0.25f),
-                    Color.White.copy(alpha = 0.90f)
-                )
-            )
         }
     }
 
     val shadowAmbient = when {
+        isLiving && preset != null -> preset.primary.copy(alpha = if (effectiveDark) 0.34f else 0.20f)
+        isLiving -> (if (effectiveDark) CyanGlow else RoyalBlueAccent).copy(alpha = if (effectiveDark) 0.30f else 0.18f)
         preset != null -> if (effectiveDark) preset.primary.copy(alpha = 0.22f) else Color(0x140F172A)
         effectiveDark -> Color(0x3300BCD4)
         else -> Color(0x140F172A)
@@ -359,7 +477,7 @@ fun Modifier.liquidGlass(
 
     return this
         .shadow(
-            elevation = elevation,
+            elevation = if (isLiving) elevation + 3.dp else elevation,
             shape = shape,
             clip = false,
             ambientColor = shadowAmbient,
@@ -367,7 +485,13 @@ fun Modifier.liquidGlass(
         )
         .clip(shape)
         .background(bgBrush)
-        .border(BorderStroke(if (preset?.isLiquidGlass == true) 1.35.dp else 1.2.dp, borderBrush), shape)
+        .border(
+            BorderStroke(
+                if (isLiving) 1.55.dp else if (preset?.isLiquidGlass == true) 1.35.dp else 1.2.dp,
+                borderBrush
+            ),
+            shape
+        )
 }
 
 @Composable
@@ -407,32 +531,60 @@ fun Modifier.liquidGlassInteractive(
     cornerRadius: Dp = 18.dp
 ): Modifier {
     val preset = LocalThemePreset.current
+    val isLiving = LocalLivingLuxuryMode.current
     val effectiveDark = preset?.isDark ?: isDark
     val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
 
+    val shimmerPhase = if (isLiving) {
+        val transition = rememberInfiniteTransition(label = "interactiveLuxuryShimmer")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3600, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "interactiveSpecularShift"
+        ).value
+    } else 0f
+
     if (effectiveNeumorphic) {
         val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
-        val borderBrush = remember(effectiveDark, preset?.id) {
+        val borderBrush = if (isLiving) {
+            val shift = shimmerPhase * 160f
+            val accent = preset?.primary ?: glowColor
             Brush.linearGradient(
-                if (effectiveDark) {
-                    listOf(
-                        preset?.borderHighlight ?: Color.White.copy(alpha = 0.16f),
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.50f)
-                    )
-                } else {
-                    listOf(Color.White.copy(alpha = 0.96f), Color.White.copy(alpha = 0.45f), Color(0x3094A3B8), Color(0x4064748B))
-                },
-                start = Offset.Zero,
-                end = Offset(160f, 160f)
+                listOf(
+                    Color.White.copy(alpha = if (effectiveDark) 0.25f else 0.98f),
+                    accent.copy(alpha = 0.55f),
+                    Color.Black.copy(alpha = if (effectiveDark) 0.45f else 0.18f)
+                ),
+                start = Offset(shift, 0f),
+                end = Offset(shift + 180f, 180f)
             )
+        } else {
+            remember(effectiveDark, preset?.id) {
+                Brush.linearGradient(
+                    if (effectiveDark) {
+                        listOf(
+                            preset?.borderHighlight ?: Color.White.copy(alpha = 0.16f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.50f)
+                        )
+                    } else {
+                        listOf(Color.White.copy(alpha = 0.96f), Color.White.copy(alpha = 0.45f), Color(0x3094A3B8), Color(0x4064748B))
+                    },
+                    start = Offset.Zero,
+                    end = Offset(160f, 160f)
+                )
+            }
         }
         val ambientShadow = if (effectiveDark) Color(0xAA070B12) else Color(0x457A8FA8)
         val spotShadow = if (effectiveDark) Color(0xCC05080E) else Color(0x506C829C)
 
         return this
             .shadow(
-                elevation = 4.dp,
+                elevation = if (isLiving) 6.dp else 4.dp,
                 shape = shape,
                 clip = false,
                 ambientColor = ambientShadow,
@@ -440,23 +592,36 @@ fun Modifier.liquidGlassInteractive(
             )
             .clip(shape)
             .background(surfaceColor)
-            .border(BorderStroke(0.9.dp, borderBrush), shape)
+            .border(BorderStroke(if (isLiving) 1.25.dp else 0.9.dp, borderBrush), shape)
     }
 
     val bg = preset?.surfacePrimary?.copy(alpha = if (preset.isLiquidGlass) 0.78f else 0.92f)
         ?: if (effectiveDark) Color(0xEE1E293B) else Color(0xEBFFFFFF)
     val effectiveGlow = preset?.primary ?: glowColor
-    val borderBrush = remember(effectiveDark, effectiveGlow, preset?.id) {
+    val borderBrush = if (isLiving) {
+        val shift = shimmerPhase * 180f
         Brush.linearGradient(
             listOf(
-                preset?.borderHighlight ?: Color.White.copy(alpha = if (effectiveDark) 0.5f else 0.95f),
-                effectiveGlow.copy(alpha = if (effectiveDark) 0.72f else 0.5f),
-                (preset?.secondary ?: Color.White).copy(alpha = if (effectiveDark) 0.35f else 0.85f)
-            )
+                Color.White.copy(alpha = if (effectiveDark) 0.55f else 0.98f),
+                effectiveGlow.copy(alpha = 0.85f),
+                (preset?.secondary ?: Color(0xFF8B5CF6)).copy(alpha = 0.55f)
+            ),
+            start = Offset(shift, 0f),
+            end = Offset(shift + 180f, 180f)
         )
+    } else {
+        remember(effectiveDark, effectiveGlow, preset?.id) {
+            Brush.linearGradient(
+                listOf(
+                    preset?.borderHighlight ?: Color.White.copy(alpha = if (effectiveDark) 0.5f else 0.95f),
+                    effectiveGlow.copy(alpha = if (effectiveDark) 0.72f else 0.5f),
+                    (preset?.secondary ?: Color.White).copy(alpha = if (effectiveDark) 0.35f else 0.85f)
+                )
+            )
+        }
     }
     return this
         .clip(shape)
         .background(bg)
-        .border(BorderStroke(1.2.dp, borderBrush), shape)
+        .border(BorderStroke(if (isLiving) 1.45.dp else 1.2.dp, borderBrush), shape)
 }

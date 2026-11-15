@@ -52,6 +52,8 @@ val LocalThemePreset = staticCompositionLocalOf<AppThemePreset?> { null }
 
 object ThemeEngine {
 
+    const val DEFAULT_ID = ""
+
     val allThemes: List<AppThemePreset> = listOf(
         // 1. Monokai
         darkPreset(

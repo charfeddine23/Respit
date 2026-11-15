@@ -2,6 +2,7 @@ package com.example.data
 
 import com.example.BuildConfig
 import com.example.ui.DashboardStats
+import com.example.ui.theme.ThemeEngine
 import com.example.util.AppLanguage
 import org.json.JSONArray
 import org.json.JSONObject
@@ -17,6 +18,7 @@ data class RestorableSettings(
     val language: String?,
     val isFocusMode: Boolean?,
     val isDynamicAnimationsEnabled: Boolean?,
+    val isLivingLuxuryMode: Boolean? = null,
     val isBiometricEnabled: Boolean?,
     val isNoScreenshotEnabled: Boolean?,
     val isDriveSyncEnabled: Boolean?,
@@ -49,6 +51,7 @@ object FullBackupCodec {
         language: AppLanguage,
         isFocusMode: Boolean,
         isDynamicAnimationsEnabled: Boolean,
+        isLivingLuxuryMode: Boolean = false,
         isBiometricEnabled: Boolean,
         isNoScreenshotEnabled: Boolean,
         isDriveSyncEnabled: Boolean,
@@ -108,6 +111,7 @@ object FullBackupCodec {
                 put("language", language.code)
                 put("isFocusMode", isFocusMode)
                 put("isDynamicAnimationsEnabled", isDynamicAnimationsEnabled)
+                put("isLivingLuxuryMode", isLivingLuxuryMode)
                 put("isBiometricEnabled", isBiometricEnabled)
                 put("isNoScreenshotEnabled", isNoScreenshotEnabled)
                 put("isDriveSyncEnabled", isDriveSyncEnabled)
@@ -238,6 +242,7 @@ object FullBackupCodec {
                     language = if (sObj.has("language")) sObj.optString("language") else null,
                     isFocusMode = if (sObj.has("isFocusMode")) sObj.optBoolean("isFocusMode") else null,
                     isDynamicAnimationsEnabled = if (sObj.has("isDynamicAnimationsEnabled")) sObj.optBoolean("isDynamicAnimationsEnabled") else null,
+                    isLivingLuxuryMode = if (sObj.has("isLivingLuxuryMode")) sObj.optBoolean("isLivingLuxuryMode") else null,
                     isBiometricEnabled = if (sObj.has("isBiometricEnabled")) sObj.optBoolean("isBiometricEnabled") else null,
                     isNoScreenshotEnabled = if (sObj.has("isNoScreenshotEnabled")) sObj.optBoolean("isNoScreenshotEnabled") else null,
                     isDriveSyncEnabled = if (sObj.has("isDriveSyncEnabled")) sObj.optBoolean("isDriveSyncEnabled") else null,
