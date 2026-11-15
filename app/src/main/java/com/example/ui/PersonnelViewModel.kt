@@ -322,34 +322,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             list = list.filter { it.wilaya == params.wilaya }
         }
 
-        // Sorting
-        when (params.sort) {
-            SortOption.RETURN_SOON -> list.sortedWith(
-                compareBy<Personnel> {
-                    when (it.status) {
-                        LeaveStatus.RETURNING_TODAY -> 0
-                        LeaveStatus.AT_HOME -> 1
-                        LeaveStatus.OVERDUE -> 2
-                        LeaveStatus.UPCOMING -> 3
-                        LeaveStatus.ON_DUTY -> 4
-                    }
-                }.thenBy { it.returnDateMillis }
-            )
-            SortOption.OVERDUE_FIRST -> list.sortedWith(
-                compareBy<Personnel> {
-                    when (it.status) {
-                        LeaveStatus.OVERDUE -> 0
-                        LeaveStatus.RETURNING_TODAY -> 1
-                        LeaveStatus.AT_HOME -> 2
-                        LeaveStatus.UPCOMING -> 3
-                        LeaveStatus.ON_DUTY -> 4
-                    }
-                }.thenByDescending { it.daysOverdue }
-            )
-            SortOption.START_DESC -> list.sortedByDescending { it.startDateMillis }
-            SortOption.NAME_ASC -> list.sortedBy { it.fullName }
-            SortOption.REG_ASC -> list.sortedBy { it.registrationNumber }
-        }
+        // Sorting: Pinned personnel always rise to the top (most recently pinned first)
+        sortPersonnelPinnedFirst(list, params.sort)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val stats: StateFlow<DashboardStats> = combine(
@@ -914,6 +888,41 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val nextPinned = !personnel.isPinned
             val pinnedAt = if (nextPinned) System.currentTimeMillis() else 0L
             repository.setPinned(personnel.id, nextPinned, pinnedAt)
+        }
+    }
+
+    companion object {
+        fun sortPersonnelPinnedFirst(list: List<Personnel>, sort: SortOption): List<Personnel> {
+            val pinFirstComparator = compareByDescending<Personnel> { it.isPinned }
+                .thenByDescending { if (it.isPinned) it.pinnedAtMillis else 0L }
+
+            val secondaryComparator: Comparator<Personnel> = when (sort) {
+                SortOption.RETURN_SOON -> compareBy<Personnel> {
+                    when (it.status) {
+                        LeaveStatus.RETURNING_TODAY -> 0
+                        LeaveStatus.AT_HOME -> 1
+                        LeaveStatus.OVERDUE -> 2
+                        LeaveStatus.UPCOMING -> 3
+                        LeaveStatus.ON_DUTY -> 4
+                    }
+                }.thenBy { it.returnDateMillis }
+
+                SortOption.OVERDUE_FIRST -> compareBy<Personnel> {
+                    when (it.status) {
+                        LeaveStatus.OVERDUE -> 0
+                        LeaveStatus.RETURNING_TODAY -> 1
+                        LeaveStatus.AT_HOME -> 2
+                        LeaveStatus.UPCOMING -> 3
+                        LeaveStatus.ON_DUTY -> 4
+                    }
+                }.thenByDescending { it.daysOverdue }
+
+                SortOption.START_DESC -> compareByDescending { it.startDateMillis }
+                SortOption.NAME_ASC -> compareBy { it.fullName }
+                SortOption.REG_ASC -> compareBy { it.registrationNumber }
+            }
+
+            return list.sortedWith(pinFirstComparator.thenComparing(secondaryComparator))
         }
     }
 

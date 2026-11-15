@@ -1369,7 +1369,13 @@ fun LeaveTrackerMainApp(
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
-                                                    onTogglePin = { viewModel.togglePinPersonnel(person) },
+                                                    onTogglePin = {
+                                                        val willPin = !person.isPinned
+                                                        viewModel.togglePinPersonnel(person)
+                                                        if (willPin && dashboardListState.firstVisibleItemIndex > 4) {
+                                                            scope.launch { dashboardListState.animateScrollToItem(4) }
+                                                        }
+                                                    },
                                                     onSwipeDelete = {
                                                         viewModel.deletePersonnel(person)
                                                         lastSwipeDeletedPerson = person
@@ -1661,7 +1667,13 @@ fun LeaveTrackerMainApp(
                                                                 animationsEnabled = isDynamicAnimationsEnabled,
                                                                 currentLang = currentLang,
                                                                 effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
-                                                                onTogglePin = { viewModel.togglePinPersonnel(person) },
+                                                                onTogglePin = {
+                                                                    val willPin = !person.isPinned
+                                                                    viewModel.togglePinPersonnel(person)
+                                                                    if (willPin && recordsListState.firstVisibleItemIndex > 2) {
+                                                                        scope.launch { recordsListState.animateScrollToItem(2) }
+                                                                    }
+                                                                },
                                                                 onSwipeDelete = {
                                                                     viewModel.deletePersonnel(person)
                                                                     lastSwipeDeletedPerson = person
@@ -1706,7 +1718,13 @@ fun LeaveTrackerMainApp(
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
-                                                    onTogglePin = { viewModel.togglePinPersonnel(person) },
+                                                    onTogglePin = {
+                                                        val willPin = !person.isPinned
+                                                        viewModel.togglePinPersonnel(person)
+                                                        if (willPin && recordsListState.firstVisibleItemIndex > 2) {
+                                                            scope.launch { recordsListState.animateScrollToItem(2) }
+                                                        }
+                                                    },
                                                     onSwipeDelete = {
                                                         viewModel.deletePersonnel(person)
                                                         lastSwipeDeletedPerson = person

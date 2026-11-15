@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PersonnelDao {
-    @Query("SELECT * FROM personnel WHERE isDeleted = 0 ORDER BY returnDateMillis ASC")
+    @Query("SELECT * FROM personnel WHERE isDeleted = 0 ORDER BY isPinned DESC, pinnedAtMillis DESC, returnDateMillis ASC")
     fun getAllPersonnel(): Flow<List<Personnel>>
 
     @Query("SELECT * FROM personnel WHERE isDeleted = 1 ORDER BY deletedAtMillis DESC")

@@ -1006,6 +1006,83 @@ class ExampleRobolectricTest {
       )
     )
   }
+
+  @Test
+  fun `verify pinning any personnel automatically moves them to the top in Room DAO and all SortOptions`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val inMemoryDb = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+    val repo = PersonnelRepository(inMemoryDb.personnelDao(), inMemoryDb.leaveRecordDao())
+
+    // Insert 3 personnel: id1 earliest return, id2 mid, id3 on-duty (would normally be last)
+    val id1 = repo.insert(
+      Personnel(
+        fullName = "أحمد",
+        rank = "نقيب - Capitaine",
+        registrationNumber = "DZ-100",
+        startDateMillis = getOffsetDateMillis(-5),
+        returnDateMillis = getOffsetDateMillis(0), // returning today -> #1 unpinned
+        isReturnedToDuty = false
+      )
+    )
+    val id2 = repo.insert(
+      Personnel(
+        fullName = "بلال",
+        rank = "رقيب - Sergent",
+        registrationNumber = "DZ-200",
+        startDateMillis = getOffsetDateMillis(-3),
+        returnDateMillis = getOffsetDateMillis(4),
+        isReturnedToDuty = false
+      )
+    )
+    val id3 = repo.insert(
+      Personnel(
+        fullName = "زياد",
+        rank = "عريف - Caporal",
+        registrationNumber = "DZ-300",
+        startDateMillis = getOffsetDateMillis(-40),
+        returnDateMillis = getOffsetDateMillis(-30),
+        isReturnedToDuty = true // on duty -> normally last
+      )
+    )
+
+    // Initially unpinned: DAO orders by returnDateMillis ASC (-30, 0, +4); RETURN_SOON puts RETURNING_TODAY (id1) first and ON_DUTY (id3) last
+    val initialDaoOrder = repo.allPersonnel.first()
+    assertEquals(listOf(id3, id1, id2), initialDaoOrder.map { it.id })
+    assertEquals(
+      listOf(id1, id2, id3),
+      com.example.ui.PersonnelViewModel.sortPersonnelPinnedFirst(initialDaoOrder, com.example.ui.SortOption.RETURN_SOON).map { it.id }
+    )
+
+    // Pin id3 -> id3 automatically rises to index 0 in Room DAO
+    repo.setPinned(id3, true, 1_000L)
+    val afterFirstPinDao = repo.allPersonnel.first()
+    assertEquals(id3, afterFirstPinDao.first().id)
+
+    // Pin id2 later (higher pinnedAtMillis) -> id2 jumps to index 0, id3 stays #2 above unpinned id1
+    repo.setPinned(id2, true, 2_000L)
+    val afterSecondPinDao = repo.allPersonnel.first()
+    assertEquals(listOf(id2, id3, id1), afterSecondPinDao.map { it.id })
+
+    // Verify sortPersonnelPinnedFirst keeps pinned items at the very top across ALL SortOptions
+    com.example.ui.SortOption.entries.forEach { sortOption ->
+      val sorted = com.example.ui.PersonnelViewModel.sortPersonnelPinnedFirst(afterSecondPinDao, sortOption)
+      assertEquals("Failed top-pinned order for $sortOption", listOf(id2, id3, id1), sorted.map { it.id })
+    }
+
+    // Unpin id2 -> id3 becomes #1 and id2 returns below pinned items
+    repo.setPinned(id2, false, 0L)
+    val afterUnpin = repo.allPersonnel.first()
+    val sortedDefault = com.example.ui.PersonnelViewModel.sortPersonnelPinnedFirst(
+      afterUnpin,
+      com.example.ui.SortOption.RETURN_SOON
+    )
+    assertEquals(id3, sortedDefault.first().id)
+    assertEquals(listOf(id3, id1, id2), sortedDefault.map { it.id })
+
+    inMemoryDb.close()
+  }
 }
 
 
