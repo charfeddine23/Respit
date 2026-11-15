@@ -1357,6 +1357,7 @@ fun LeaveTrackerMainApp(
                                                 PersonnelCard(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
+                                                    modifier = Modifier.animateItem(),
                                                     isFocusMode = isFocusMode,
                                                     isDarkMode = isDarkMode,
                                                     isNeumorphic = isNeumorphic,
@@ -1639,7 +1640,9 @@ fun LeaveTrackerMainApp(
                                                 contentType = { "personnel_tablet_row" }
                                             ) { rowItems ->
                                                 Row(
-                                                    modifier = Modifier.fillMaxWidth(),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .animateItem(),
                                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                                                 ) {
                                                     for (person in rowItems) {
@@ -1691,6 +1694,7 @@ fun LeaveTrackerMainApp(
                                                 PersonnelCard(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
+                                                    modifier = Modifier.animateItem(),
                                                     isFocusMode = isFocusMode,
                                                     isDarkMode = isDarkMode,
                                                     isNeumorphic = isNeumorphic,

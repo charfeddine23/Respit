@@ -942,6 +942,70 @@ class ExampleRobolectricTest {
       assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(120f, 900f, lang))
     }
   }
+
+  @Test
+  fun `verify realistic swipe physics elastic opposite damping and velocity fling detection`() {
+    val cardWidth = 1000f // threshold = 280f
+
+    // 1. Opposite direction gives smooth asymptotic rubber-band resistance capped < 22px
+    val arabicWrongDirSmall = com.example.ui.components.SwipeDeleteGestureHelper.applyElasticDrag(40f, AppLanguage.ARABIC)
+    val arabicWrongDirHuge = com.example.ui.components.SwipeDeleteGestureHelper.applyElasticDrag(500f, AppLanguage.ARABIC)
+    assertTrue(arabicWrongDirSmall in 0.1f..22f)
+    assertTrue(arabicWrongDirHuge > arabicWrongDirSmall && arabicWrongDirHuge <= 22f)
+
+    val englishWrongDir = com.example.ui.components.SwipeDeleteGestureHelper.applyElasticDrag(-300f, AppLanguage.ENGLISH)
+    assertTrue(englishWrongDir in -22f..-0.1f)
+
+    // Valid direction tracks finger 1:1 without distortion
+    assertEquals(-185f, com.example.ui.components.SwipeDeleteGestureHelper.applyElasticDrag(-185f, AppLanguage.ARABIC), 0.001f)
+    assertEquals(185f, com.example.ui.components.SwipeDeleteGestureHelper.applyElasticDrag(185f, AppLanguage.ENGLISH), 0.001f)
+
+    // 2. Fast directional flick triggers delete after >= 38% of threshold (~106.4f)
+    assertTrue(
+      com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDeleteWithVelocity(
+        dragOffsetX = -140f,
+        velocityX = -1100f,
+        cardWidthPx = cardWidth,
+        lang = AppLanguage.ARABIC
+      )
+    )
+    assertTrue(
+      com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDeleteWithVelocity(
+        dragOffsetX = 140f,
+        velocityX = 1100f,
+        cardWidthPx = cardWidth,
+        lang = AppLanguage.ENGLISH
+      )
+    )
+
+    // Fast flick too early (< 38% threshold) should NOT trigger accidental delete
+    assertTrue(
+      !com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDeleteWithVelocity(
+        dragOffsetX = -60f,
+        velocityX = -1500f,
+        cardWidthPx = cardWidth,
+        lang = AppLanguage.ARABIC
+      )
+    )
+
+    // 3. Strong flick BACK toward rest cancels delete even if past distance threshold
+    assertTrue(
+      !com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDeleteWithVelocity(
+        dragOffsetX = -310f,
+        velocityX = 950f,
+        cardWidthPx = cardWidth,
+        lang = AppLanguage.ARABIC
+      )
+    )
+    assertTrue(
+      !com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDeleteWithVelocity(
+        dragOffsetX = 310f,
+        velocityX = -950f,
+        cardWidthPx = cardWidth,
+        lang = AppLanguage.ENGLISH
+      )
+    )
+  }
 }
 
 
