@@ -45,16 +45,28 @@ fun DynamicAuroraBackground(
     animationsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    if (isNeumorphic) {
-        val canvasBg = if (isDark) Color(0xFF131926) else Color(0xFFE6EEF8)
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
+
+    if (effectiveNeumorphic) {
+        val canvasBg = preset?.backgroundMid ?: if (effectiveDark) Color(0xFF131926) else Color(0xFFE6EEF8)
         Canvas(modifier = modifier.fillMaxSize()) {
             drawRect(color = canvasBg)
         }
         return
     }
 
-    val staticBrush = remember(isDark) {
-        if (isDark) {
+    val staticBrush = remember(effectiveDark, preset?.id) {
+        if (preset != null) {
+            Brush.verticalGradient(
+                listOf(
+                    preset.backgroundTop,
+                    preset.backgroundMid,
+                    preset.backgroundBottom
+                )
+            )
+        } else if (effectiveDark) {
             Brush.verticalGradient(
                 listOf(
                     Color(0xFF090D1A),
@@ -82,22 +94,28 @@ fun DynamicAuroraBackground(
         return
     }
 
-    val orb1Colors = remember(isDark) {
-        if (isDark) {
+    val orb1Colors = remember(effectiveDark, preset?.id) {
+        if (preset != null) {
+            listOf(preset.orb1, preset.orb1.copy(alpha = preset.orb1.alpha * 0.45f), Color.Transparent)
+        } else if (effectiveDark) {
             listOf(Color(0x3800E5FF), Color(0x1800BCD4), Color.Transparent)
         } else {
             listOf(Color(0x3B00E5FF), Color(0x1A00BCD4), Color.Transparent)
         }
     }
-    val orb2Colors = remember(isDark) {
-        if (isDark) {
+    val orb2Colors = remember(effectiveDark, preset?.id) {
+        if (preset != null) {
+            listOf(preset.orb2, preset.orb2.copy(alpha = preset.orb2.alpha * 0.45f), Color.Transparent)
+        } else if (effectiveDark) {
             listOf(Color(0x2E7C4DFF), Color(0x126366F1), Color.Transparent)
         } else {
             listOf(Color(0x308B5CF6), Color(0x12A855F7), Color.Transparent)
         }
     }
-    val orb3Colors = remember(isDark) {
-        if (isDark) {
+    val orb3Colors = remember(effectiveDark, preset?.id) {
+        if (preset != null) {
+            listOf(preset.orb3, preset.orb3.copy(alpha = preset.orb3.alpha * 0.45f), Color.Transparent)
+        } else if (effectiveDark) {
             listOf(Color(0x2810B981), Color(0x10059669), Color.Transparent)
         } else {
             listOf(Color(0x2E00BCD4), Color(0x120284C7), Color.Transparent)
@@ -143,7 +161,7 @@ fun DynamicAuroraBackground(
 
         drawRect(brush = staticBrush)
 
-        if (isDark) {
+        if (effectiveDark) {
             val orb1X = w * (0.65f + 0.22f * kotlin.math.sin(t1 * kotlin.math.PI).toFloat())
             val orb1Y = h * (0.15f + 0.12f * kotlin.math.cos(t1 * kotlin.math.PI).toFloat())
             val orb1Radius = baseDim * (0.46f + 0.08f * kotlin.math.sin(t2 * kotlin.math.PI).toFloat())
@@ -203,7 +221,7 @@ fun DynamicAuroraBackground(
 
 /**
  * Hardware-accelerated Glassmorphism & Tactile Neumorphism container modifier.
- * Avoids CPU software shadow-layer allocations on every draw frame for silky 60-120fps scrolling and navigation.
+ * Automatically adopts active ThemeEngine palette when a preset is selected.
  */
 @Composable
 fun Modifier.liquidGlass(
@@ -214,11 +232,29 @@ fun Modifier.liquidGlass(
     isNeumorphic: Boolean = false,
     cornerRadius: Dp = 24.dp
 ): Modifier {
-    if (isNeumorphic) {
-        val surfaceColor = if (isDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
-        val borderBrush = remember(isDark, borderAlpha) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
+
+    if (effectiveNeumorphic) {
+        val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
+        val borderBrush = remember(effectiveDark, borderAlpha, preset?.id) {
             Brush.linearGradient(
-                if (isDark) {
+                if (preset != null) {
+                    if (effectiveDark) {
+                        listOf(
+                            preset.borderHighlight,
+                            preset.borderAccent.copy(alpha = 0.25f),
+                            Color.Black.copy(alpha = 0.50f)
+                        )
+                    } else {
+                        listOf(
+                            Color.White.copy(alpha = 0.96f),
+                            preset.borderHighlight,
+                            preset.borderAccent.copy(alpha = 0.35f)
+                        )
+                    }
+                } else if (effectiveDark) {
                     listOf(
                         Color.White.copy(alpha = 0.17f),
                         Color(0xFF334155).copy(alpha = 0.28f),
@@ -236,8 +272,8 @@ fun Modifier.liquidGlass(
                 end = Offset(500f, 500f)
             )
         }
-        val ambientShadow = if (isDark) Color(0xAA070B12) else Color(0x4D7A8FA8)
-        val spotShadow = if (isDark) Color(0xCC05080E) else Color(0x5A6C829C)
+        val ambientShadow = if (effectiveDark) Color(0xAA070B12) else Color(0x4D7A8FA8)
+        val spotShadow = if (effectiveDark) Color(0xCC05080E) else Color(0x5A6C829C)
 
         return this
             .shadow(
@@ -252,16 +288,45 @@ fun Modifier.liquidGlass(
             .border(BorderStroke(1.dp, borderBrush), shape)
     }
 
-    val bgBrush = remember(isDark) {
-        if (isDark) {
+    val bgBrush = remember(effectiveDark, preset?.id) {
+        if (preset != null) {
+            Brush.verticalGradient(listOf(preset.cardTintTop, preset.cardTintBottom))
+        } else if (effectiveDark) {
             Brush.verticalGradient(listOf(Color(0xEB1E293B), Color(0xDF0F172A)))
         } else {
             Brush.verticalGradient(listOf(Color(0xF0FFFFFF), Color(0xD9FFFFFF), Color(0xD4FFFFFF)))
         }
     }
 
-    val borderBrush = remember(isDark, borderAlpha) {
-        if (isDark) {
+    val borderBrush = remember(effectiveDark, borderAlpha, preset?.id) {
+        if (preset != null) {
+            if (preset.isLiquidGlass) {
+                Brush.linearGradient(
+                    listOf(
+                        preset.borderHighlight,
+                        preset.borderAccent,
+                        preset.secondary.copy(alpha = 0.45f),
+                        preset.borderHighlight.copy(alpha = 0.6f)
+                    )
+                )
+            } else if (effectiveDark) {
+                Brush.linearGradient(
+                    listOf(
+                        preset.borderHighlight,
+                        preset.borderAccent,
+                        Color.White.copy(alpha = 0.12f)
+                    )
+                )
+            } else {
+                Brush.linearGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.95f),
+                        preset.borderAccent,
+                        Color.White.copy(alpha = 0.85f)
+                    )
+                )
+            }
+        } else if (effectiveDark) {
             Brush.linearGradient(
                 listOf(
                     Color.White.copy(alpha = borderAlpha * 0.35f),
@@ -281,8 +346,16 @@ fun Modifier.liquidGlass(
         }
     }
 
-    val shadowAmbient = if (isDark) Color(0x3300BCD4) else Color(0x140F172A)
-    val shadowSpot = if (isDark) Color(0x33000000) else Color(0x1A00BCD4)
+    val shadowAmbient = when {
+        preset != null -> if (effectiveDark) preset.primary.copy(alpha = 0.22f) else Color(0x140F172A)
+        effectiveDark -> Color(0x3300BCD4)
+        else -> Color(0x140F172A)
+    }
+    val shadowSpot = when {
+        preset != null -> if (effectiveDark) Color(0x44000000) else preset.primary.copy(alpha = 0.14f)
+        effectiveDark -> Color(0x33000000)
+        else -> Color(0x1A00BCD4)
+    }
 
     return this
         .shadow(
@@ -294,7 +367,7 @@ fun Modifier.liquidGlass(
         )
         .clip(shape)
         .background(bgBrush)
-        .border(BorderStroke(1.2.dp, borderBrush), shape)
+        .border(BorderStroke(if (preset?.isLiquidGlass == true) 1.35.dp else 1.2.dp, borderBrush), shape)
 }
 
 @Composable
@@ -333,12 +406,20 @@ fun Modifier.liquidGlassInteractive(
     isNeumorphic: Boolean = false,
     cornerRadius: Dp = 18.dp
 ): Modifier {
-    if (isNeumorphic) {
-        val surfaceColor = if (isDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
-        val borderBrush = remember(isDark) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
+
+    if (effectiveNeumorphic) {
+        val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF161F30) else Color(0xFFE6EEF8)
+        val borderBrush = remember(effectiveDark, preset?.id) {
             Brush.linearGradient(
-                if (isDark) {
-                    listOf(Color.White.copy(alpha = 0.16f), Color.Transparent, Color.Black.copy(alpha = 0.50f))
+                if (effectiveDark) {
+                    listOf(
+                        preset?.borderHighlight ?: Color.White.copy(alpha = 0.16f),
+                        Color.Transparent,
+                        Color.Black.copy(alpha = 0.50f)
+                    )
                 } else {
                     listOf(Color.White.copy(alpha = 0.96f), Color.White.copy(alpha = 0.45f), Color(0x3094A3B8), Color(0x4064748B))
                 },
@@ -346,8 +427,8 @@ fun Modifier.liquidGlassInteractive(
                 end = Offset(160f, 160f)
             )
         }
-        val ambientShadow = if (isDark) Color(0xAA070B12) else Color(0x457A8FA8)
-        val spotShadow = if (isDark) Color(0xCC05080E) else Color(0x506C829C)
+        val ambientShadow = if (effectiveDark) Color(0xAA070B12) else Color(0x457A8FA8)
+        val spotShadow = if (effectiveDark) Color(0xCC05080E) else Color(0x506C829C)
 
         return this
             .shadow(
@@ -362,13 +443,15 @@ fun Modifier.liquidGlassInteractive(
             .border(BorderStroke(0.9.dp, borderBrush), shape)
     }
 
-    val bg = if (isDark) Color(0xEE1E293B) else Color(0xEBFFFFFF)
-    val borderBrush = remember(isDark, glowColor) {
+    val bg = preset?.surfacePrimary?.copy(alpha = if (preset.isLiquidGlass) 0.78f else 0.92f)
+        ?: if (effectiveDark) Color(0xEE1E293B) else Color(0xEBFFFFFF)
+    val effectiveGlow = preset?.primary ?: glowColor
+    val borderBrush = remember(effectiveDark, effectiveGlow, preset?.id) {
         Brush.linearGradient(
             listOf(
-                Color.White.copy(alpha = if (isDark) 0.5f else 0.95f),
-                glowColor.copy(alpha = if (isDark) 0.7f else 0.5f),
-                Color.White.copy(alpha = if (isDark) 0.25f else 0.85f)
+                preset?.borderHighlight ?: Color.White.copy(alpha = if (effectiveDark) 0.5f else 0.95f),
+                effectiveGlow.copy(alpha = if (effectiveDark) 0.72f else 0.5f),
+                (preset?.secondary ?: Color.White).copy(alpha = if (effectiveDark) 0.35f else 0.85f)
             )
         )
     }

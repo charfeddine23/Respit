@@ -113,6 +113,8 @@ import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
+import com.example.ui.theme.LocalThemePreset
+import com.example.ui.theme.ThemeEngine
 import com.example.ui.theme.liquidGlassInteractive
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
@@ -139,6 +141,8 @@ fun SideNavigationDrawerContent(
     onSelectThemeMode: (AppThemeMode) -> Unit = {},
     currentThemeStyle: AppThemeStyle = AppThemeStyle.GLASSMORPHISM,
     onSelectThemeStyle: (AppThemeStyle) -> Unit = {},
+    selectedThemeEngineId: String = "",
+    onSelectThemeEngine: (String) -> Unit = {},
     isFocusMode: Boolean = false,
     onToggleFocusMode: () -> Unit = {},
     dutyThreshold: Int = 45,
@@ -162,7 +166,24 @@ fun SideNavigationDrawerContent(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     var isSettingsPageOpen by rememberSaveable { mutableStateOf(false) }
+    var showThemeEngineDialog by remember { mutableStateOf(false) }
+    val activeThemePreset = LocalThemePreset.current
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+
+    if (showThemeEngineDialog) {
+        ThemeEnginePickerDialog(
+            selectedThemeId = selectedThemeEngineId,
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            onSelectTheme = { presetId ->
+                onSelectThemeEngine(presetId)
+            },
+            onResetDefault = {
+                onSelectThemeEngine("")
+            },
+            onDismiss = { showThemeEngineDialog = false }
+        )
+    }
 
     LaunchedEffect(drawerIsOpen) {
         if (!drawerIsOpen && isSettingsPageOpen) {
@@ -189,7 +210,10 @@ fun SideNavigationDrawerContent(
         modifier = Modifier
             .fillMaxHeight()
             .fillMaxWidth()
-            .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC))
+            .background(
+                activeThemePreset?.backgroundMid
+                    ?: if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+            )
             .testTag("side_navigation_drawer")
     ) { inSettings ->
         if (!inSettings) {
@@ -788,6 +812,131 @@ fun SideNavigationDrawerContent(
 
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = dividerColor)
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 1.25 Theme Engine (60 Pro Palettes & Liquid Glass)
+                    val engineAccent = activeThemePreset?.primary ?: accentCyan
+                    val engineInteraction = remember { MutableInteractionSource() }
+                    val enginePressed by engineInteraction.collectIsPressedAsState()
+                    val engineScale by animateFloatAsState(
+                        targetValue = if (enginePressed) 0.97f else 1f,
+                        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
+                        label = "themeEngineRowScale"
+                    )
+                    Surface(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            showThemeEngineDialog = true
+                        },
+                        interactionSource = engineInteraction,
+                        shape = RoundedCornerShape(14.dp),
+                        color = engineAccent.copy(alpha = if (isDarkMode) 0.14f else 0.08f),
+                        border = BorderStroke(
+                            1.1.dp,
+                            Brush.linearGradient(
+                                listOf(
+                                    engineAccent.copy(alpha = 0.55f),
+                                    (activeThemePreset?.secondary ?: Color(0xFF8B5CF6)).copy(alpha = 0.45f)
+                                )
+                            )
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 56.dp)
+                            .graphicsLayer {
+                                scaleX = engineScale
+                                scaleY = engineScale
+                            }
+                            .testTag("drawer_theme_engine_button")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                engineAccent.copy(alpha = 0.28f),
+                                                (activeThemePreset?.secondary ?: Color(0xFF8B5CF6)).copy(alpha = 0.24f)
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = engineAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = AppStrings.get("theme_engine_title", currentLang),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = activeThemePreset?.textPrimary
+                                            ?: if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(50.dp),
+                                        color = engineAccent.copy(alpha = 0.20f)
+                                    ) {
+                                        Text(
+                                            text = "${ThemeEngine.allThemes.size}",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = engineAccent,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                val previewPreset = ThemeEngine.findById(selectedThemeEngineId)
+                                Text(
+                                    text = previewPreset?.name ?: AppStrings.get("theme_engine_sub", currentLang),
+                                    fontSize = 10.5.sp,
+                                    color = if (previewPreset != null) engineAccent
+                                    else (activeThemePreset?.textSecondary ?: if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)),
+                                    fontWeight = if (previewPreset != null) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (previewPreset != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        previewPreset.previewSwatches.forEach { swatch ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(9.dp)
+                                                    .clip(CircleShape)
+                                                    .background(swatch)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = engineAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = dividerColor)
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // 1.3 Focus Mode Toggle Row (full-row clickable with press feedback)
@@ -1242,12 +1391,14 @@ private fun CleanSettingsCard(
     isDarkMode: Boolean,
     content: @Composable () -> Unit
 ) {
+    val activeThemePreset = LocalThemePreset.current
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = if (isDarkMode) Color(0xFF1E293B) else Color.White,
+        color = activeThemePreset?.surfacePrimary ?: if (isDarkMode) Color(0xFF1E293B) else Color.White,
         border = BorderStroke(
             1.dp,
-            if (isDarkMode) Color(0x33475569) else Color(0x38CBD5E1)
+            activeThemePreset?.borderAccent?.copy(alpha = 0.45f)
+                ?: if (isDarkMode) Color(0x33475569) else Color(0x38CBD5E1)
         ),
         shadowElevation = if (isDarkMode) 2.dp else 1.dp,
         modifier = Modifier.fillMaxWidth()

@@ -49,6 +49,7 @@ class SettingsManager(context: Context) {
         private const val KEY_LAST_DRIVE_BACKUP = "pref_last_drive_backup_time"
         private const val KEY_DYNAMIC_ANIMATIONS = "pref_dynamic_animations_enabled"
         private const val KEY_NO_SCREENSHOT_ENABLED = "pref_no_screenshot_enabled"
+        private const val KEY_THEME_ENGINE_ID = "pref_theme_engine_id"
         const val DEFAULT_DUTY_THRESHOLD = 45
     }
 
@@ -91,6 +92,10 @@ class SettingsManager(context: Context) {
         set(value) {
             prefs.edit().putString(KEY_THEME_STYLE, value.code).apply()
         }
+
+    var selectedThemeEngineId: String
+        get() = prefs.getString(KEY_THEME_ENGINE_ID, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_THEME_ENGINE_ID, value).apply()
 
     var isPinEnabled: Boolean
         get() = prefs.getBoolean(KEY_PIN_ENABLED, false)

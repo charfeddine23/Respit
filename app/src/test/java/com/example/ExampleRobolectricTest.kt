@@ -768,6 +768,45 @@ class ExampleRobolectricTest {
     migratedDb.close()
     dbFile.delete()
   }
+
+  @Test
+  fun `verify ThemeEngine provides all 60 named themes and SettingsManager persists selection`() {
+    val expectedNames = listOf(
+      "Monokai", "Monokai Pro", "Solarized Dark", "Solarized Light", "One Dark Pro",
+      "One Light", "Dracula", "Tomorrow Night Eighties", "Nord", "Night Owl",
+      "Bluloco Dark", "Ayu Dark", "Ayu Mirage", "Ayu Light", "Winter is Coming",
+      "Zenburn", "SynthWave '84", "Shades of Purple", "LaserWave", "Abyss",
+      "Cobalt2", "Red", "Poimandres", "Hopscotch", "Gruvbox Dark",
+      "Gruvbox Light", "Oceanic Next", "Base16 Eighties", "Tomorrow Night Blue", "Material Theme (Oceanic)",
+      "Material Theme (Palenight)", "Material Theme (Darker)", "Catppuccin (Mocha)", "Kanagawa", "Rose Pine",
+      "GitHub Dark", "GitHub Light", "Panda Theme", "Atom One Dark", "Tokyo Night",
+      "Obsidian Liquid Glass", "Frosted Arctic Glass", "Cyber Neon Liquid", "Smoked Quartz Glass", "Midnight Velvet Glass",
+      "Aurora Borealis Glass", "Crystal Prism Liquid", "Deep Ocean Glass", "Amber Mercury Glass", "Titanium Mist Glass",
+      "Holographic Liquid Glass", "Carbon Blur Glass", "Emerald Translucent Glass", "Ultraviolet Frost Glass", "Sapphire Liquid Glass",
+      "Pearlescent Dark Glass", "Ruby Refractive Glass", "Chromatic Aberration Glass", "Liquid Mercury Dark", "Bioluminescent Glass"
+    )
+    assertEquals(60, expectedNames.size)
+
+    val themes = com.example.ui.theme.ThemeEngine.allThemes
+    assertEquals(60, themes.size)
+    assertEquals(expectedNames, themes.map { it.name })
+    assertEquals(60, themes.map { it.id }.distinct().size)
+
+    assertEquals(20, themes.count { it.isLiquidGlass })
+    assertEquals(8, themes.count { !it.isDark })
+
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val settings = com.example.data.SettingsManager(context)
+    settings.selectedThemeEngineId = "cyber_neon_liquid"
+    val reloaded = com.example.data.SettingsManager(context)
+    assertEquals("cyber_neon_liquid", reloaded.selectedThemeEngineId)
+    val found = com.example.ui.theme.ThemeEngine.findById(reloaded.selectedThemeEngineId)
+    assertEquals("Cyber Neon Liquid", found?.name)
+    assertTrue(found?.isLiquidGlass == true)
+    assertTrue(found?.isDark == true)
+
+    settings.selectedThemeEngineId = ""
+  }
 }
 
 

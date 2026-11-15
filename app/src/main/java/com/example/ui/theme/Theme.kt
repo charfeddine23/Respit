@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
@@ -59,9 +60,65 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = false,
-    dynamicColor: Boolean = false, // Keep custom Light Mode Aurora palette strictly consistent
+    themePreset: AppThemePreset? = null,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    val colorScheme = if (themePreset != null) {
+        if (themePreset.isDark) {
+            darkColorScheme(
+                primary = themePreset.primary,
+                onPrimary = themePreset.onPrimary,
+                primaryContainer = themePreset.primary.copy(alpha = 0.24f),
+                onPrimaryContainer = themePreset.textPrimary,
+                secondary = themePreset.secondary,
+                onSecondary = themePreset.onSecondary,
+                secondaryContainer = themePreset.secondary.copy(alpha = 0.22f),
+                onSecondaryContainer = themePreset.textPrimary,
+                tertiary = themePreset.tertiary,
+                onTertiary = themePreset.onTertiary,
+                background = themePreset.backgroundMid,
+                onBackground = themePreset.textPrimary,
+                surface = themePreset.surfacePrimary,
+                onSurface = themePreset.textPrimary,
+                surfaceVariant = themePreset.surfaceVariant,
+                onSurfaceVariant = themePreset.textSecondary,
+                outline = themePreset.borderAccent,
+                outlineVariant = themePreset.borderHighlight,
+                error = RedDanger,
+                onError = Color.White
+            )
+        } else {
+            lightColorScheme(
+                primary = themePreset.primary,
+                onPrimary = themePreset.onPrimary,
+                primaryContainer = themePreset.primary.copy(alpha = 0.14f),
+                onPrimaryContainer = themePreset.textPrimary,
+                secondary = themePreset.secondary,
+                onSecondary = themePreset.onSecondary,
+                secondaryContainer = themePreset.secondary.copy(alpha = 0.14f),
+                onSecondaryContainer = themePreset.textPrimary,
+                tertiary = themePreset.tertiary,
+                onTertiary = themePreset.onTertiary,
+                background = themePreset.backgroundMid,
+                onBackground = themePreset.textPrimary,
+                surface = themePreset.surfacePrimary,
+                onSurface = themePreset.textPrimary,
+                surfaceVariant = themePreset.surfaceVariant,
+                onSurfaceVariant = themePreset.textSecondary,
+                outline = themePreset.borderAccent,
+                outlineVariant = themePreset.borderHighlight,
+                error = CoralRedAccent,
+                onError = Color.White,
+                errorContainer = RedContainer,
+                onErrorContainer = OnRedContainer
+            )
+        }
+    } else {
+        if (darkTheme) DarkColorScheme else LightColorScheme
+    }
+
+    CompositionLocalProvider(LocalThemePreset provides themePreset) {
+        MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    }
 }

@@ -246,11 +246,22 @@ object AppStrings {
         "certified_developer" to "المطور المعتمد",
         "app_icon_desc" to "شعار التطبيق",
 
-        // Theme Styles
+        // Theme Styles & Theme Engine
         "theme_style_title" to "نمط التصميم",
         "theme_style_desc" to "اختر بين النمط الزجاجي الشفاف أو النمط البارز",
         "theme_style_glass" to "الزجاجي الشفاف",
         "theme_style_neumorph" to "النمط البارز",
+        "theme_engine_title" to "Theme Engine",
+        "theme_engine_sub" to "60 ثيماً احترافياً ونيون وزجاجاً سائلاً",
+        "theme_engine_default" to "الثيم الافتراضي",
+        "theme_engine_search_hint" to "ابحث في 60 ثيماً (مثل: Dracula, Nord, Glass...)",
+        "theme_engine_cat_all" to "الكل (60)",
+        "theme_engine_cat_dark" to "داكن كلاسيكي",
+        "theme_engine_cat_light" to "فاتح كلاسيكي",
+        "theme_engine_cat_glass" to "زجاج سائل",
+        "theme_engine_active" to "مفعّل",
+        "theme_engine_no_results" to "لا يوجد ثيم مطابق لبحثك",
+        "theme_engine_done" to "تم",
 
         // Security Lock (PIN, Pattern, Biometric)
         "fingerprint_lock_title" to "قفل بصمة الإصبع",
@@ -747,11 +758,22 @@ object AppStrings {
         "certified_developer" to "Développeur Certifié",
         "app_icon_desc" to "Logo de l'application",
 
-        // Theme Styles
+        // Theme Styles & Theme Engine
         "theme_style_title" to "Style d'interface et design",
         "theme_style_desc" to "Choisir entre le verre dépoli ou le neumorphisme",
         "theme_style_glass" to "🔮 Verre Dépoli (Glass)",
         "theme_style_neumorph" to "🧊 Neumorphisme (Soft UI)",
+        "theme_engine_title" to "Theme Engine",
+        "theme_engine_sub" to "60 thèmes pro, néon et verre liquide",
+        "theme_engine_default" to "Thème par défaut",
+        "theme_engine_search_hint" to "Rechercher parmi 60 thèmes...",
+        "theme_engine_cat_all" to "Tous (60)",
+        "theme_engine_cat_dark" to "Sombre",
+        "theme_engine_cat_light" to "Clair",
+        "theme_engine_cat_glass" to "Verre Liquide",
+        "theme_engine_active" to "Actif",
+        "theme_engine_no_results" to "Aucun thème trouvé",
+        "theme_engine_done" to "Terminé",
 
         // Security Lock (Fingerprint Authentication)
         "fingerprint_lock_title" to "Verrouillage par Empreinte Digitale",
@@ -1252,11 +1274,22 @@ object AppStrings {
         "certified_developer" to "Certified Developer",
         "app_icon_desc" to "App Logo",
 
-        // Theme Styles
+        // Theme Styles & Theme Engine
         "theme_style_title" to "Interface & Design Style",
         "theme_style_desc" to "Choose between Aurora Glassmorphism or Tactile Neumorphism",
         "theme_style_glass" to "🔮 Glassmorphism",
         "theme_style_neumorph" to "🧊 Neumorphism",
+        "theme_engine_title" to "Theme Engine",
+        "theme_engine_sub" to "60 pro palettes & refractive liquid glass",
+        "theme_engine_default" to "Default Theme",
+        "theme_engine_search_hint" to "Search 60 themes (e.g. Dracula, Nord, Glass...)",
+        "theme_engine_cat_all" to "All (60)",
+        "theme_engine_cat_dark" to "Classic Dark",
+        "theme_engine_cat_light" to "Classic Light",
+        "theme_engine_cat_glass" to "Liquid Glass",
+        "theme_engine_active" to "Active",
+        "theme_engine_no_results" to "No matching themes",
+        "theme_engine_done" to "Done",
 
         // Security Lock (Fingerprint Authentication)
         "fingerprint_lock_title" to "Fingerprint Lock",

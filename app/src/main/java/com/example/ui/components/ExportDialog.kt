@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,9 +27,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -59,8 +63,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.FileProvider
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun ExportDialog(
@@ -75,6 +84,33 @@ fun ExportDialog(
     var selectedTab by remember { mutableIntStateOf(0) }
     var importJsonText by remember { mutableStateOf("") }
     var replaceAllMode by remember { mutableStateOf(false) }
+
+    val jsonFileImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    stream.bufferedReader(Charsets.UTF_8).readText()
+                }
+            }.onSuccess { loadedText ->
+                if (!loadedText.isNullOrBlank()) {
+                    importJsonText = loadedText
+                    Toast.makeText(
+                        context,
+                        AppStrings.get("import_pasted_toast", currentLang),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }.onFailure {
+                Toast.makeText(
+                    context,
+                    AppStrings.get("import_file_error", currentLang),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -165,7 +201,35 @@ fun ExportDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = AppStrings.get("full_backup_summary_badge", currentLang),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Primary PDF Export Button
                     Button(
@@ -191,7 +255,13 @@ fun ExportDialog(
                     // Export to CSV
                     Button(
                         onClick = {
-                            shareText(context, csvContent, AppStrings.get("export_share_csv", currentLang))
+                            shareBackupFile(
+                                context = context,
+                                content = csvContent,
+                                fileExtension = "csv",
+                                mimeType = "text/csv",
+                                title = AppStrings.get("export_share_csv", currentLang)
+                            )
                             onDismiss()
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -209,10 +279,16 @@ fun ExportDialog(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Export to JSON
+                    // Export Complete Full-Fidelity JSON File
                     OutlinedButton(
                         onClick = {
-                            shareText(context, jsonContent, AppStrings.get("export_share_json", currentLang))
+                            shareBackupFile(
+                                context = context,
+                                content = jsonContent,
+                                fileExtension = "json",
+                                mimeType = "application/json",
+                                title = AppStrings.get("export_share_json", currentLang)
+                            )
                             onDismiss()
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -224,15 +300,15 @@ fun ExportDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text(AppStrings.get("export_share_json", currentLang))
+                        Text(AppStrings.get("export_share_json", currentLang), fontWeight = FontWeight.SemiBold)
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Copy JSON to Clipboard
+                    // Copy Complete Full-Fidelity JSON to Clipboard
                     OutlinedButton(
                         onClick = {
-                            copyToClipboard(context, jsonContent, "JSON Backup")
+                            copyToClipboard(context, jsonContent, "RespitePulse Full JSON Backup")
                             Toast.makeText(
                                 context,
                                 AppStrings.get("export_json_copied_toast", currentLang),
@@ -261,11 +337,27 @@ fun ExportDialog(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Paste Button
+                    // Pick File & Paste Buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        OutlinedButton(
+                            onClick = {
+                                jsonFileImportLauncher.launch(arrayOf("application/json", "text/*"))
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FileOpen,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(AppStrings.get("import_pick_file_btn", currentLang), fontSize = 11.5.sp)
+                        }
+
                         OutlinedButton(
                             onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -280,7 +372,8 @@ fun ExportDialog(
                                     ).show()
                                 }
                             },
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentPaste,
@@ -288,7 +381,7 @@ fun ExportDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(AppStrings.get("import_paste_btn", currentLang), fontSize = 12.sp)
+                            Text(AppStrings.get("import_paste_btn", currentLang), fontSize = 11.5.sp)
                         }
                     }
 
@@ -300,7 +393,7 @@ fun ExportDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(140.dp),
-                        placeholder = { Text("[{\"fullName\": \"...\", \"rank\": \"...\"}]") },
+                        placeholder = { Text("{\"personnel\": [...], \"leaveRecords\": [...], \"settings\": {...}}") },
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -381,15 +474,43 @@ fun ExportDialog(
     }
 }
 
-private fun shareText(context: Context, text: String, title: String) {
-    val sendIntent = Intent().apply {
-        action = Intent.ACTION_SEND
-        putExtra(Intent.EXTRA_TEXT, text)
-        putExtra(Intent.EXTRA_TITLE, title)
-        type = "text/plain"
+private fun shareBackupFile(
+    context: Context,
+    content: String,
+    fileExtension: String,
+    mimeType: String,
+    title: String
+) {
+    val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+    val fileName = "RespitePulse_FullBackup_$stamp.$fileExtension"
+    val fileResult = runCatching {
+        val outFile = File(context.cacheDir, fileName)
+        outFile.writeText(content, Charsets.UTF_8)
+        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", outFile)
     }
-    val shareIntent = Intent.createChooser(sendIntent, title)
-    context.startActivity(shareIntent)
+
+    val sendIntent = fileResult.fold(
+        onSuccess = { uri ->
+            Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, title)
+                putExtra(Intent.EXTRA_TITLE, title)
+                if (content.length <= 16_000) {
+                    putExtra(Intent.EXTRA_TEXT, content)
+                }
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        },
+        onFailure = {
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, content)
+                putExtra(Intent.EXTRA_TITLE, title)
+            }
+        }
+    )
+    context.startActivity(Intent.createChooser(sendIntent, title))
 }
 
 private fun copyToClipboard(context: Context, text: String, label: String) {

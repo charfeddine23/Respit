@@ -14,6 +14,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +41,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
@@ -54,21 +57,33 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.example.data.LeaveStatus
 import com.example.data.Personnel
 import com.example.data.formatLeaveType
@@ -99,7 +114,8 @@ fun PersonnelCard(
     isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
     currentLang: AppLanguage = AppLanguage.ARABIC,
-    effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn
+    effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn,
+    onTogglePin: () -> Unit = {}
 ) {
     val status = personnel.status
     val isEligible = personnel.isReturnedToDuty && effectiveDaysSinceDuty >= dutyThresholdDays
@@ -172,17 +188,100 @@ fun PersonnelCard(
         label = "arrowRotation"
     )
 
+    val haptic = LocalHapticFeedback.current
+    val holdScope = rememberCoroutineScope()
+    val latestOnTogglePin by rememberUpdatedState(onTogglePin)
+    var holdProgress by remember { mutableFloatStateOf(0f) }
+    val cardPressScale by animateFloatAsState(
+        targetValue = if (holdProgress > 0.02f) 0.982f else 1f,
+        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        label = "pinHoldScale"
+    )
+
+    val pinBorderModifier = if (personnel.isPinned) {
+        Modifier.border(
+            BorderStroke(
+                1.6.dp,
+                Brush.linearGradient(
+                    listOf(
+                        AmberWarning.copy(alpha = 0.85f),
+                        CyanGlow.copy(alpha = 0.55f),
+                        AmberWarning.copy(alpha = 0.70f)
+                    )
+                )
+            ),
+            RoundedCornerShape(24.dp)
+        )
+    } else {
+        Modifier
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                if (animationsEnabled) {
+                    scaleX = cardPressScale
+                    scaleY = cardPressScale
+                }
+            }
             .liquidGlass(
                 shape = RoundedCornerShape(24.dp),
-                elevation = if (isFocusMode) 7.dp else 4.dp,
+                elevation = if (personnel.isPinned || isFocusMode) 7.dp else 4.dp,
                 borderAlpha = if (isFocusMode) 0.95f else 0.85f,
                 isDark = isDarkMode,
                 isNeumorphic = isNeumorphic,
                 cornerRadius = 24.dp
             )
+            .then(pinBorderModifier)
+            .pointerInput(personnel.id, personnel.isPinned) {
+                val slop = viewConfiguration.touchSlop
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val startPos = down.position
+                    var triggered = false
+                    var finished = false
+                    val holdJob = holdScope.launch {
+                        // Brief grace delay so taps and quick scrolls never show hold progress
+                        delay(150L)
+                        val startTime = System.currentTimeMillis()
+                        val remainingMs = 850L // 150ms + 850ms = exact 1000ms (1 second) long press
+                        while (!finished) {
+                            val elapsed = System.currentTimeMillis() - startTime
+                            val p = (elapsed.toFloat() / remainingMs.toFloat()).coerceIn(0f, 1f)
+                            holdProgress = p
+                            if (p >= 1f) {
+                                triggered = true
+                                holdProgress = 0f
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                latestOnTogglePin()
+                                break
+                            }
+                            delay(16L)
+                        }
+                    }
+
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val matching = event.changes.firstOrNull { it.id == down.id }
+                        if (matching == null || !matching.pressed) {
+                            if (triggered) {
+                                event.changes.forEach { it.consume() }
+                            }
+                            break
+                        }
+                        if (triggered) {
+                            event.changes.forEach { it.consume() }
+                        } else if ((matching.position - startPos).getDistance() > slop) {
+                            break
+                        }
+                    }
+
+                    finished = true
+                    holdJob.cancel()
+                    holdProgress = 0f
+                }
+            }
             .testTag("personnel_item_${personnel.id}")
     ) {
         Column(
@@ -191,6 +290,77 @@ fun PersonnelCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (holdProgress > 0.02f) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LinearProgressIndicator(
+                        progress = { holdProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(50.dp)),
+                        color = AmberWarning,
+                        trackColor = AmberWarning.copy(alpha = 0.18f)
+                    )
+                    Text(
+                        text = AppStrings.get(
+                            if (personnel.isPinned) "unpin_hold_hint" else "pin_hold_hint",
+                            currentLang
+                        ),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AmberWarning
+                    )
+                }
+            }
+
+            if (personnel.isPinned) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = AmberWarning.copy(alpha = if (isDarkMode) 0.22f else 0.14f),
+                        border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.6f)),
+                        onClick = onTogglePin,
+                        modifier = Modifier.testTag("pinned_badge_${personnel.id}")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PushPin,
+                                contentDescription = AppStrings.get("pinned_badge", currentLang),
+                                tint = AmberWarning,
+                                modifier = Modifier
+                                    .size(13.dp)
+                                    .rotate(30f)
+                            )
+                            Text(
+                                text = AppStrings.get("pinned_badge", currentLang),
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isDarkMode) Color(0xFFFBBF24) else Color(0xFFB45309)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = AppStrings.get("pin_tap_to_unpin", currentLang),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onTogglePin() }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
             // Coordinated Card Header:
             // Leading side: Days count badge + Full Name + FlowRow(Rank + Reg Number)
             // Trailing side: Status Badge + Wilaya (without code) directly underneath

@@ -64,7 +64,9 @@ data class Personnel(
     val leaveType: String = "عطلة سنوية",
     val wilaya: String = "16 - الجزائر - Alger",
     val notes: String = "",
-    val addedAtMillis: Long = System.currentTimeMillis() // تاريخ إضافة الفرد في قاعدة البيانات
+    val addedAtMillis: Long = System.currentTimeMillis(), // تاريخ إضافة الفرد في قاعدة البيانات
+    val isPinned: Boolean = false,
+    val pinnedAtMillis: Long = 0L
 ) {
     companion object {
         fun toStartOfDay(timeMillis: Long): Long {

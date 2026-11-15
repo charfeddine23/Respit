@@ -37,6 +37,10 @@ class PersonnelRepository(
         personnelDao.grantNewLeave(id, startMillis, returnMillis)
     }
 
+    suspend fun setPinned(id: Long, pinned: Boolean, pinnedAt: Long) {
+        personnelDao.setPinned(id, pinned, pinnedAt)
+    }
+
     suspend fun insertAll(list: List<Personnel>) {
         personnelDao.insertAll(list)
     }

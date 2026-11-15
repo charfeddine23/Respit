@@ -72,13 +72,18 @@ fun AppBottomNavigationPanel(
     currentLang: AppLanguage,
     modifier: Modifier = Modifier
 ) {
+    val preset = com.example.ui.theme.LocalThemePreset.current
+    val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
+
     val containerBg = when {
-        isNeumorphic -> if (isDarkMode) Color(0xFF161F30) else Color(0xFFE6EEF8)
+        preset != null -> preset.surfacePrimary.copy(alpha = if (preset.isLiquidGlass) 0.88f else 0.96f)
+        effectiveNeumorphic -> if (isDarkMode) Color(0xFF161F30) else Color(0xFFE6EEF8)
         else -> if (isDarkMode) Color(0xF00F172A) else Color(0xF5FFFFFF)
     }
 
     val borderColor = when {
-        isNeumorphic -> if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1)
+        preset != null -> preset.borderAccent.copy(alpha = 0.55f)
+        effectiveNeumorphic -> if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1)
         else -> if (isDarkMode) Color(0x3300E5FF) else Color(0x3300BCD4)
     }
 
@@ -88,10 +93,11 @@ fun AppBottomNavigationPanel(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(
-                elevation = if (isNeumorphic) 10.dp else 8.dp,
+                elevation = if (effectiveNeumorphic) 10.dp else 8.dp,
                 shape = RoundedCornerShape(28.dp),
                 ambientColor = if (isDarkMode) Color(0x40000000) else Color(0x308DA0B5),
-                spotColor = if (isDarkMode) Color(0x6000E5FF) else Color(0x352563EB)
+                spotColor = preset?.primary?.copy(alpha = 0.35f)
+                    ?: if (isDarkMode) Color(0x6000E5FF) else Color(0x352563EB)
             )
             .testTag("bottom_nav_panel"),
         shape = RoundedCornerShape(28.dp),
@@ -112,7 +118,7 @@ fun AppBottomNavigationPanel(
                 isSelected = selectedPage == AppNavPage.DASHBOARD,
                 badgeCount = 0,
                 isDarkMode = isDarkMode,
-                isNeumorphic = isNeumorphic,
+                isNeumorphic = effectiveNeumorphic,
                 animationsEnabled = animationsEnabled,
                 onClick = { onSelectPage(AppNavPage.DASHBOARD) },
                 testTag = "bottom_nav_dashboard"
@@ -125,7 +131,7 @@ fun AppBottomNavigationPanel(
                 isSelected = selectedPage == AppNavPage.RECORDS,
                 badgeCount = 0,
                 isDarkMode = isDarkMode,
-                isNeumorphic = isNeumorphic,
+                isNeumorphic = effectiveNeumorphic,
                 animationsEnabled = animationsEnabled,
                 onClick = { onSelectPage(AppNavPage.RECORDS) },
                 testTag = "bottom_nav_records"
@@ -138,7 +144,7 @@ fun AppBottomNavigationPanel(
                 isSelected = selectedPage == AppNavPage.DATABASE,
                 badgeCount = 0,
                 isDarkMode = isDarkMode,
-                isNeumorphic = isNeumorphic,
+                isNeumorphic = effectiveNeumorphic,
                 animationsEnabled = animationsEnabled,
                 onClick = { onSelectPage(AppNavPage.DATABASE) },
                 testTag = "bottom_nav_database"
@@ -151,7 +157,7 @@ fun AppBottomNavigationPanel(
                 isSelected = selectedPage == AppNavPage.ANALYTICS,
                 badgeCount = 0,
                 isDarkMode = isDarkMode,
-                isNeumorphic = isNeumorphic,
+                isNeumorphic = effectiveNeumorphic,
                 animationsEnabled = animationsEnabled,
                 onClick = { onSelectPage(AppNavPage.ANALYTICS) },
                 testTag = "bottom_nav_analytics"
@@ -172,8 +178,9 @@ private fun BottomNavItem(
     onClick: () -> Unit,
     testTag: String
 ) {
-    val activeColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF2563EB)
-    val inactiveColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF64748B)
+    val preset = com.example.ui.theme.LocalThemePreset.current
+    val activeColor = preset?.primary ?: if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF2563EB)
+    val inactiveColor = preset?.textSecondary ?: if (isDarkMode) Color(0xFF64748B) else Color(0xFF64748B)
 
     val itemColor by animateColorAsState(
         targetValue = if (isSelected) activeColor else inactiveColor,

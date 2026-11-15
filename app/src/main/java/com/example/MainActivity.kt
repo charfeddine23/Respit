@@ -207,7 +207,11 @@ class MainActivity : FragmentActivity() {
         WindowSecurityHelper.applySecureFlag(this, viewModel.isNoScreenshotEnabled.value)
         setContent {
             val themeMode by viewModel.currentThemeMode.collectAsState()
-            val isDarkTheme = themeMode == AppThemeMode.DARK
+            val selectedThemeEngineId by viewModel.selectedThemeEngineId.collectAsState()
+            val activeThemePreset = remember(selectedThemeEngineId) {
+                com.example.ui.theme.ThemeEngine.findById(selectedThemeEngineId)
+            }
+            val isDarkTheme = activeThemePreset?.isDark ?: (themeMode == AppThemeMode.DARK)
 
             LaunchedEffect(isDarkTheme) {
                 viewModel.isDarkMode.value = isDarkTheme
@@ -215,7 +219,10 @@ class MainActivity : FragmentActivity() {
 
             val currentLang by viewModel.currentLanguage.collectAsState()
             val navSignal by openNotificationsSignal
-            MyApplicationTheme(darkTheme = isDarkTheme) {
+            MyApplicationTheme(
+                darkTheme = isDarkTheme,
+                themePreset = activeThemePreset
+            ) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
                 ) {
@@ -247,6 +254,8 @@ fun LeaveTrackerMainApp(
     val isLocked by viewModel.isLocked.collectAsState()
     val currentThemeMode by viewModel.currentThemeMode.collectAsState()
     val currentThemeStyle by viewModel.currentThemeStyle.collectAsState()
+    val selectedThemeEngineId by viewModel.selectedThemeEngineId.collectAsState()
+    val activeThemePreset = com.example.ui.theme.LocalThemePreset.current
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val isFocusMode by viewModel.isFocusMode.collectAsState()
@@ -254,7 +263,7 @@ fun LeaveTrackerMainApp(
     val lastUndo by viewModel.lastUndoAction.collectAsState()
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isNoScreenshotEnabled by viewModel.isNoScreenshotEnabled.collectAsState()
-    val isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM
+    val isNeumorphic = (currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM) && (activeThemePreset?.isLiquidGlass != true)
 
     LaunchedEffect(isNoScreenshotEnabled) {
         WindowSecurityHelper.applySecureFlag(context as? android.app.Activity, isNoScreenshotEnabled)
@@ -426,7 +435,8 @@ fun LeaveTrackerMainApp(
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.widthIn(max = 340.dp),
-                    drawerContainerColor = if (isDarkMode) Color(0xFF0F172A) else Color(0xFFFFFFFF),
+                    drawerContainerColor = activeThemePreset?.backgroundMid
+                        ?: if (isDarkMode) Color(0xFF0F172A) else Color(0xFFFFFFFF),
                     drawerTonalElevation = 6.dp
                 ) {
                     CompositionLocalProvider(
@@ -477,6 +487,8 @@ fun LeaveTrackerMainApp(
                             onSelectThemeMode = { viewModel.setThemeMode(it) },
                             currentThemeStyle = currentThemeStyle,
                             onSelectThemeStyle = { viewModel.setThemeStyle(it) },
+                            selectedThemeEngineId = selectedThemeEngineId,
+                            onSelectThemeEngine = { viewModel.setThemeEngine(it) },
                             isFocusMode = isFocusMode,
                             onToggleFocusMode = { viewModel.toggleFocusMode() },
                             dutyThreshold = dutyThreshold,

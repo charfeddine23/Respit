@@ -100,7 +100,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     // User preferences & settings state
     val currentThemeMode = MutableStateFlow(settingsManager.themeMode)
     val currentThemeStyle = MutableStateFlow(settingsManager.themeStyle)
-    val isDarkMode = MutableStateFlow(settingsManager.isDarkMode)
+    val selectedThemeEngineId = MutableStateFlow(settingsManager.selectedThemeEngineId)
+    val isDarkMode = MutableStateFlow(
+        com.example.ui.theme.ThemeEngine.findById(settingsManager.selectedThemeEngineId)?.isDark
+            ?: settingsManager.isDarkMode
+    )
     val dutyThresholdDays = MutableStateFlow(settingsManager.dutyThresholdDays)
     val isBiometricEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
     val isPinEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
@@ -388,6 +392,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun setThemeMode(mode: AppThemeMode) {
+        selectedThemeEngineId.value = ""
+        settingsManager.selectedThemeEngineId = ""
         currentThemeMode.value = mode
         settingsManager.themeMode = mode
         if (mode == AppThemeMode.DARK) {
@@ -395,6 +401,21 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         } else if (mode == AppThemeMode.LIGHT) {
             isDarkMode.value = false
         }
+    }
+
+    fun setThemeEngine(presetId: String) {
+        val preset = com.example.ui.theme.ThemeEngine.findById(presetId)
+        if (preset == null) {
+            selectedThemeEngineId.value = ""
+            settingsManager.selectedThemeEngineId = ""
+            return
+        }
+        selectedThemeEngineId.value = preset.id
+        settingsManager.selectedThemeEngineId = preset.id
+        val mode = if (preset.isDark) AppThemeMode.DARK else AppThemeMode.LIGHT
+        currentThemeMode.value = mode
+        settingsManager.themeMode = mode
+        isDarkMode.value = preset.isDark
     }
 
     fun setLanguage(lang: AppLanguage) {
