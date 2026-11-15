@@ -461,17 +461,20 @@ fun LeaveTrackerMainApp(
         return
     }
 
-    // Back navigation: Pop sub-screens back to previous or Dashboard
-    BackHandler(enabled = selectedNavPage != AppNavPage.DASHBOARD) {
+    // Back navigation: Close open Settings/Drawer first, otherwise pop sub-screens back to previous or Dashboard
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+    BackHandler(enabled = !drawerState.isOpen && selectedNavPage != AppNavPage.DASHBOARD) {
         selectedNavPage = if (selectedNavPage == AppNavPage.NOTIFICATIONS) previousNavPage else AppNavPage.DASHBOARD
     }
 
-    // In Arabic, anchor ModalNavigationDrawer on the LEFT edge (LTR) so swiping left-to-right opens it from the left side
-    val drawerAnchorDirection = if (currentLang == AppLanguage.ARABIC) LayoutDirection.Ltr else LayoutDirection.Rtl
+    // Match drawer anchor side to layout direction (Right in Arabic/RTL, Left in EN/FR) and disable swipe-to-open
+    val drawerAnchorDirection = if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
     CompositionLocalProvider(LocalLayoutDirection provides drawerAnchorDirection) {
         ModalNavigationDrawer(
             drawerState = drawerState,
-            gesturesEnabled = true, // edge swipe gesture enabled
+            gesturesEnabled = drawerState.isOpen, // Swiping left/right cannot open settings; scrim/drag close works when already open
             drawerContent = {
                 ModalDrawerSheet(
                     modifier = Modifier.widthIn(max = 340.dp),
@@ -587,7 +590,9 @@ fun LeaveTrackerMainApp(
                             .testTag("main_scaffold"),
                         containerColor = Color.Transparent,
                         topBar = {
-                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                            CompositionLocalProvider(
+                                LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+                            ) {
                                 Surface(
                                     color = Color.Transparent,
                                     modifier = Modifier
