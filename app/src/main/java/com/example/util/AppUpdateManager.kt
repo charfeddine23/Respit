@@ -166,7 +166,7 @@ object AppUpdateManager {
 
         val releaseTitle = release.optString("name", "").ifBlank { "v$remoteVersion" }
         val releaseNotes = release.optString("body", "").trim()
-        val fileName = apkAsset.optString("name", "RespitePulse-$remoteVersion.apk")
+        val fileName = apkAsset.optString("name", "RespitePulse.v$remoteVersion.apk")
         val sizeBytes = apkAsset.optLong("size", 0L)
 
         return AppUpdateState.UpdateAvailable(
@@ -229,8 +229,8 @@ object AppUpdateManager {
             }
 
             val safeVersion = versionName.replace(Regex("[^A-Za-z0-9._-]"), "_")
-            val tempFile = File(updatesDir, "RespitePulse-$safeVersion.apk.part")
-            val finalFile = File(updatesDir, "RespitePulse-$safeVersion.apk")
+            val tempFile = File(updatesDir, "RespitePulse.v$safeVersion.apk.part")
+            val finalFile = File(updatesDir, "RespitePulse.v$safeVersion.apk")
 
             val request = Request.Builder()
                 .url(downloadUrl)

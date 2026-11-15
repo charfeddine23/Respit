@@ -276,6 +276,7 @@ class ExampleRobolectricTest {
   @Test
   fun `verify AppUpdateManager version comparison and GitHub release parsing`() {
     assertTrue(AppUpdateManager.compareVersions("1.43.0", "1.42.4") > 0)
+    assertTrue(AppUpdateManager.compareVersions("1.43.0", "1.42.99") > 0)
     assertTrue(AppUpdateManager.compareVersions("v2.0.0", "1.99.9") > 0)
     assertEquals(0, AppUpdateManager.compareVersions("v1.42.4", "1.42.4"))
     assertTrue(AppUpdateManager.compareVersions("1.42.3", "1.42.4") < 0)
@@ -288,8 +289,8 @@ class ExampleRobolectricTest {
         "assets",
         JSONArray().put(
           JSONObject().apply {
-            put("name", "RespitePulse-v1.43.0.apk")
-            put("browser_download_url", "https://github.com/charfeddine23/Respit/releases/download/v1.43.0/RespitePulse-v1.43.0.apk")
+            put("name", "RespitePulse.v1.43.0.apk")
+            put("browser_download_url", "https://github.com/charfeddine23/Respit/releases/download/v1.43.0/RespitePulse.v1.43.0.apk")
             put("size", 12_582_912L)
           }
         )
@@ -300,7 +301,7 @@ class ExampleRobolectricTest {
     assertTrue(newerState is AppUpdateState.UpdateAvailable)
     val available = newerState as AppUpdateState.UpdateAvailable
     assertEquals("1.43.0", available.versionName)
-    assertEquals("RespitePulse-v1.43.0.apk", available.fileName)
+    assertEquals("RespitePulse.v1.43.0.apk", available.fileName)
     assertTrue(available.downloadUrl.startsWith("https://github.com/charfeddine23/Respit"))
 
     val sameVersionState = AppUpdateManager.parseReleaseObject(releaseJson, "1.43.0")

@@ -17,7 +17,8 @@ android {
   val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
     ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
 
-  val dynamicVersionCode = if (runNumber != null) baseCode + runNumber else baseCode
+  val dynamicVersionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull()
+    ?: if (runNumber != null) baseCode + runNumber else baseCode
   val dynamicVersionName = System.getenv("APP_VERSION_NAME")
     ?: (project.findProperty("versionName") as? String)
     ?: if (runNumber != null) "$baseMajor.$baseMinor.${basePatch + runNumber}" else "$baseMajor.$baseMinor.$basePatch"

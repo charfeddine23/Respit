@@ -3,19 +3,21 @@ name: Android Release Build & Publish
 on:
   push:
     branches:
-      - main
-    tags:
-      - 'v*'
+      - '**'
   workflow_dispatch:
     inputs:
       release_notes:
         description: 'ملاحظات الإصدار (Release Notes)'
         required: false
-        default: 'تحديث وتحسينات دورية للتطبيق'
+        default: 'تحديث تلقائي وتحسينات شاملة للتطبيق'
 
 permissions:
   contents: write
   actions: write
+
+concurrency:
+  group: android-release-pipeline
+  cancel-in-progress: false
 
 jobs:
   build-and-release:
@@ -38,41 +40,99 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew
 
-      - name: Resolve Dynamic Version Info
+      - name: Resolve Dynamic App Name & Auto-Increment Version
         id: version_info
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
         run: |
-          # Read dynamic version from Gradle
-          GRADLE_OUT=$(./gradlew :app:printVersion -q --no-daemon 2>/dev/null || true)
-          VERSION_NAME=$(echo "$GRADLE_OUT" | grep 'VERSION_NAME=' | cut -d'=' -f2)
-          VERSION_CODE=$(echo "$GRADLE_OUT" | grep 'VERSION_CODE=' | cut -d'=' -f2)
+          python3 - << 'PYEOF'
+          import json, os, re, subprocess, xml.etree.ElementTree as ET
 
-          # Fallback to direct calculation if not found
-          if [ -z "$VERSION_NAME" ]; then
-            BASE_MAJOR=1
-            BASE_MINOR=42
-            BASE_PATCH=4
-            VERSION_NAME="$BASE_MAJOR.$BASE_MINOR.$((BASE_PATCH + GITHUB_RUN_NUMBER))"
-          fi
+          # 1. Extract app_name from strings.xml and sanitize for APK filename ([app_name].v1.x.x.apk)
+          app_prefix = "RespitePulse"
+          strings_path = "app/src/main/res/values/strings.xml"
+          if os.path.exists(strings_path):
+              try:
+                  tree = ET.parse(strings_path)
+                  for elem in tree.getroot().findall("string"):
+                      if elem.attrib.get("name") == "app_name" and elem.text:
+                          cleaned = re.sub(r"[^A-Za-z0-9._-]", "", elem.text.strip())
+                          if cleaned:
+                              app_prefix = cleaned
+                          break
+              except Exception:
+                  pass
 
-          if [ -z "$VERSION_CODE" ]; then
-            VERSION_CODE=$((144 + GITHUB_RUN_NUMBER))
-          fi
+          # 2. Compute baseline version from build number
+          run_number = int(os.environ.get("GITHUB_RUN_NUMBER", "1") or "1")
+          base_major, base_minor, base_patch, base_code = 1, 42, 4, 144
+          total_patch = base_patch + run_number
+          run_minor = base_minor + (total_patch // 100)
+          run_patch = total_patch % 100
+          best_ver = (base_major, run_minor, run_patch)
+          best_code = base_code + run_number
 
-          APP_ID="com.aistudio.leavetracker.kpqvbn"
-          TAG="v${VERSION_NAME}"
+          # 3. Inspect existing GitHub Releases & git tags so every push strictly advances version
+          def parse_ver(s):
+              m = re.search(r"v?1\.(\d+)\.(\d+)", s or "")
+              return (1, int(m.group(1)), int(m.group(2))) if m else None
 
-          echo "Computed Version Name: $VERSION_NAME"
-          echo "Computed Version Code: $VERSION_CODE"
-          echo "Target Release Tag: $TAG"
+          repo = os.environ.get("REPO", "")
+          try:
+              out = subprocess.check_output(
+                  ["gh", "api", f"repos/{repo}/releases?per_page=100"],
+                  text=True,
+                  stderr=subprocess.DEVNULL
+              )
+              releases = json.loads(out or "[]")
+              if isinstance(releases, list):
+                  for rel in releases:
+                      v = parse_ver(rel.get("tag_name", "")) or parse_ver(rel.get("name", ""))
+                      if v and v >= best_ver:
+                          np = v[2] + 1
+                          nm = v[1] + (np // 100)
+                          best_ver = (1, nm, np % 100)
+                      body = rel.get("body", "") or ""
+                      cm = re.search(r"(?:Version Code|كود الإصدار)[^0-9]*(\d+)", body)
+                      if cm:
+                          best_code = max(best_code, int(cm.group(1)) + 1)
+          except Exception:
+              pass
 
-          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-          echo "application_id=$APP_ID" >> "$GITHUB_OUTPUT"
-          echo "tag_name=$TAG" >> "$GITHUB_OUTPUT"
+          try:
+              tags_out = subprocess.check_output(["git", "tag", "-l", "v*"], text=True, stderr=subprocess.DEVNULL)
+              for line in tags_out.splitlines():
+                  v = parse_ver(line.strip())
+                  if v and v >= best_ver:
+                      np = v[2] + 1
+                      nm = v[1] + (np // 100)
+                      best_ver = (1, nm, np % 100)
+          except Exception:
+              pass
 
-      - name: Configure Signing Keystore
+          version_name = f"{best_ver[0]}.{best_ver[1]}.{best_ver[2]}"
+          tag_name = f"v{version_name}"
+          apk_filename = f"{app_prefix}.v{version_name}.apk"
+          app_id = "com.aistudio.leavetracker.kpqvbn"
+
+          print(f"App Prefix: {app_prefix}")
+          print(f"Computed Version Name: {version_name}")
+          print(f"Computed Version Code: {best_code}")
+          print(f"Target APK Filename: {apk_filename}")
+
+          gh_out = os.environ["GITHUB_OUTPUT"]
+          with open(gh_out, "a", encoding="utf-8") as f:
+              f.write(f"app_prefix={app_prefix}\n")
+              f.write(f"version_name={version_name}\n")
+              f.write(f"version_code={best_code}\n")
+              f.write(f"application_id={app_id}\n")
+              f.write(f"tag_name={tag_name}\n")
+              f.write(f"apk_filename={apk_filename}\n")
+          PYEOF
+
+      - name: Configure Permanent Signing Keystore
         id: keystore_setup
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -81,34 +141,28 @@ jobs:
         run: |
           KEYSTORE_FILE="${GITHUB_WORKSPACE}/my-upload-key.jks"
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Using production signing keystore provided via GitHub Secrets..."
+            echo "Using production signing keystore from GitHub Secrets..."
             echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_FILE"
-            echo "store_pass=$STORE_PASSWORD" >> "$GITHUB_OUTPUT"
-            echo "key_pass=$KEY_PASSWORD" >> "$GITHUB_OUTPUT"
+            STORE_PASS="${STORE_PASSWORD:-android}"
+            KEY_PASS="${KEY_PASSWORD:-android}"
           elif [ -f "my-upload-key.jks.base64" ]; then
-            echo "Restoring permanent repository release signing keystore..."
+            echo "Restoring permanent repository release signing keystore (in-place update compatible)..."
             base64 -d my-upload-key.jks.base64 > "$KEYSTORE_FILE"
-            echo "store_pass=android" >> "$GITHUB_OUTPUT"
-            echo "key_pass=android" >> "$GITHUB_OUTPUT"
+            STORE_PASS="android"
+            KEY_PASS="android"
           elif [ -f "my-upload-key.jks" ]; then
-            echo "Using existing repository release signing keystore..."
-            echo "store_pass=android" >> "$GITHUB_OUTPUT"
-            echo "key_pass=android" >> "$GITHUB_OUTPUT"
-          elif [ -f "debug.keystore.base64" ]; then
-            echo "Using repository debug keystore for update compatibility..."
-            base64 -d debug.keystore.base64 > "$KEYSTORE_FILE"
-            keytool -changealias -keystore "$KEYSTORE_FILE" -storepass android -alias androiddebugkey -destalias upload 2>/dev/null || true
-            echo "store_pass=android" >> "$GITHUB_OUTPUT"
-            echo "key_pass=android" >> "$GITHUB_OUTPUT"
+            echo "Using repository release signing keystore..."
+            STORE_PASS="android"
+            KEY_PASS="android"
           else
-            echo "Generating fallback signing keystore..."
-            keytool -genkey -v -keystore "$KEYSTORE_FILE" \
-              -storepass android -alias upload -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Respite Pulse,O=AI Studio,C=US"
-            echo "store_pass=android" >> "$GITHUB_OUTPUT"
-            echo "key_pass=android" >> "$GITHUB_OUTPUT"
+            echo "ERROR: Permanent release keystore missing! Aborting to prevent breaking in-place updates."
+            exit 1
           fi
+
+          # Verify alias and fingerprint for consistent in-place updates
+          keytool -list -v -keystore "$KEYSTORE_FILE" -storepass "$STORE_PASS" -alias upload | grep -E "Alias name:|SHA256:"
+          echo "store_pass=$STORE_PASS" >> "$GITHUB_OUTPUT"
+          echo "key_pass=$KEY_PASS" >> "$GITHUB_OUTPUT"
 
       - name: Setup Environment File (.env)
         run: |
@@ -121,15 +175,17 @@ jobs:
       - name: Build Signed Release APK with Gradle
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          APP_VERSION_NAME: ${{ steps.version_info.outputs.version_name }}
+          APP_VERSION_CODE: ${{ steps.version_info.outputs.version_code }}
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: ${{ steps.keystore_setup.outputs.store_pass }}
           KEY_PASSWORD: ${{ steps.keystore_setup.outputs.key_pass }}
           JAVA_TOOL_OPTIONS: "-Djava.awt.headless=true"
         run: |
-          echo "Building Release APK with dynamic versioning (Build #${{ github.run_number }})..."
+          echo "Building signed Release APK v${APP_VERSION_NAME} (code ${APP_VERSION_CODE})..."
           ./gradlew :app:assembleRelease --no-daemon --stacktrace -Djava.awt.headless=true
 
-      - name: Prepare Single Release APK
+      - name: Rename APK & Verify In-Place Update Signature
         run: |
           mkdir -p release-apk
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
@@ -142,56 +198,64 @@ jobs:
             exit 1
           fi
 
-          VER="${{ steps.version_info.outputs.version_name }}"
-          cp "$APK_PATH" "release-apk/RespitePulse-v${VER}.apk"
-          cp "$APK_PATH" "release-apk/RespitePulse-Release.apk"
-          echo "Release APKs prepared at release-apk/:"
-          ls -lh release-apk/
+          TARGET_APK="release-apk/${{ steps.version_info.outputs.apk_filename }}"
+          cp "$APK_PATH" "$TARGET_APK"
+          ls -lh "$TARGET_APK"
 
-      - name: Clean up Old Workflow Artifacts to Free Storage Quota
+          APKSIGNER=$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools" -name "apksigner" 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs "$TARGET_APK"
+          fi
+
+      - name: Clean Up Actions History & Old Artifacts (Keep Only Current Run)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Cleaning up old workflow artifacts from previous builds to prevent exceeding Actions storage quota..."
-          ARTIFACT_IDS=$(gh api --paginate "repos/${{ github.repository }}/actions/artifacts" --jq '.artifacts[].id' 2>/dev/null || true)
+          echo "Deleting all old workflow artifacts..."
+          ARTIFACT_IDS=$(gh api --paginate "repos/${{ github.repository }}/actions/artifacts?per_page=100" --jq '.artifacts[].id' 2>/dev/null || true)
           for art_id in $ARTIFACT_IDS; do
             if [ -n "$art_id" ]; then
-              echo "Deleting old workflow artifact ID: $art_id"
               gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$art_id" 2>/dev/null || true
             fi
           done
 
-      - name: Upload Release APK as Workflow Artifact
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: RespitePulse-v${{ steps.version_info.outputs.version_name }}
-          path: release-apk/RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk
-          retention-days: 1
-
-      - name: Clean up Older Releases and Tags (Keep Only Latest)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Checking for previous releases and tags to keep only the latest release..."
-          # 1. Delete all existing GitHub releases along with their tags
-          PREV_RELEASES=$(gh release list --limit 100 --json tagName --jq '.[].tagName' 2>/dev/null || true)
-          for rel in $PREV_RELEASES; do
-            if [ -n "$rel" ]; then
-              echo "Deleting older release and tag: $rel"
-              gh release delete "$rel" --yes --cleanup-tag 2>/dev/null || true
+          echo "Cleaning up old workflow run history (preserving active run ${{ github.run_id }})..."
+          RUN_IDS=$(gh api --paginate "repos/${{ github.repository }}/actions/runs?per_page=100" --jq ".workflow_runs[] | select(.id != ${{ github.run_id }}) | .id" 2>/dev/null || true)
+          for run_id in $RUN_IDS; do
+            if [ -n "$run_id" ]; then
+              if ! gh api -X DELETE "repos/${{ github.repository }}/actions/runs/$run_id" 2>/dev/null; then
+                gh api -X POST "repos/${{ github.repository }}/actions/runs/$run_id/cancel" 2>/dev/null || true
+                sleep 1
+                gh api -X DELETE "repos/${{ github.repository }}/actions/runs/$run_id" 2>/dev/null || true
+              fi
+              echo "Removed old workflow run ID: $run_id"
             fi
           done
 
-          # 2. Delete any lingering remote tags from git repository
-          git fetch --tags 2>/dev/null || true
-          for tag in $(git tag -l); do
-            echo "Deleting remote tag: $tag"
-            git push origin --delete "$tag" 2>/dev/null || true
-            git tag -d "$tag" 2>/dev/null || true
+      - name: Delete All Older Releases and Tags (Keep Only Latest)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Removing all previous GitHub releases (including drafts/prereleases)..."
+          REL_IDS=$(gh api --paginate "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].id' 2>/dev/null || true)
+          for rel_id in $REL_IDS; do
+            if [ -n "$rel_id" ]; then
+              echo "Deleting release ID: $rel_id"
+              gh api -X DELETE "repos/${{ github.repository }}/releases/$rel_id" 2>/dev/null || true
+            fi
           done
 
-      - name: Publish Official GitHub Release
+          echo "Removing all old git tags so only the latest version tag exists..."
+          TAG_REFS=$(gh api --paginate "repos/${{ github.repository }}/git/matching-refs/tags?per_page=100" --jq '.[].ref' 2>/dev/null || true)
+          for ref in $TAG_REFS; do
+            TAG_NAME="${ref#refs/tags/}"
+            if [ -n "$TAG_NAME" ]; then
+              echo "Deleting tag: $TAG_NAME"
+              gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/${TAG_NAME}" 2>/dev/null || true
+            fi
+          done
+
+      - name: Publish Latest GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version_info.outputs.tag_name }}
@@ -199,34 +263,22 @@ jobs:
           draft: false
           prerelease: false
           make_latest: true
-          files: |
-            release-apk/RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk
-            release-apk/RespitePulse-Release.apk
+          files: release-apk/${{ steps.version_info.outputs.apk_filename }}
           body: |
             ## 📱 تطبيق Respite Pulse v${{ steps.version_info.outputs.version_name }}
 
-            ### 📋 معلومات الإصدار وحزمة التطبيق (Build & Release Info):
-            - **اسم ملف التثبيت المباشر:** `RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk`
+            ### 📋 معلومات الإصدار (Release Info)
+            - **اسم ملف APK:** `${{ steps.version_info.outputs.apk_filename }}`
             - **رقم الإصدار (Version Name):** `${{ steps.version_info.outputs.version_name }}`
             - **كود الإصدار (Version Code):** `${{ steps.version_info.outputs.version_code }}`
             - **معرّف الحزمة (Application ID):** `${{ steps.version_info.outputs.application_id }}`
-            - **نوع الحزمة:** نسخة إطلاق رسمية موقعة بمفتاح دائم موحد (Compatible In-Place Updates)
-            - **التاريخ:** ${{ github.event.head_commit.timestamp || 'Latest' }}
+            - **التوافق:** يدعم التحديث المباشر فوق النسخة المثبتة مسبقاً دون حذف التطبيق أو فقدان البيانات (توقيع موحد دائم).
 
             ---
 
-            ### 📥 رابط التحميل المباشر لملف الـ APK:
-            - **[تحميل RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk)**
-            - **[تحميل RespitePulse-Release.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/RespitePulse-Release.apk)**
+            ### 📥 التحميل المباشر (Direct Download)
+            - **[تحميل ${{ steps.version_info.outputs.apk_filename }}](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_info.outputs.tag_name }}/${{ steps.version_info.outputs.apk_filename }})**
 
-            ---
-
-            ### 🚀 أبرز ميزات وتحسينات هذا الإصدار:
-            - 🔄 **تثبيت التحديث مباشرة فوق النسخ السابقة**: توحيد مفتاح التوقيع الرقمي لمنع أي تعارض في الشهادات.
-            - 🧹 **حذف الإصدارات والوسوم السابقة تلقائياً**: إبقاء أحدث نسخة فقط على المستودع.
-            - 🏷️ **تسمية التطبيق متبوعة برقم الإصدار**: `RespitePulse-v${{ steps.version_info.outputs.version_name }}.apk`.
-            - 🛡️ **قفل الحماية المتعدد**: دعم القفل بالرمز (PIN) ورسم النمط (Pattern) وبصمة الإصبع (Biometric).
-            - 🎨 **ثيم النيومورفيزم (Neumorphism)**: إضافة نمط التصميم البارز والمجسم بجانب الزجاج الشفاف.
-            - 🌐 **تعريب وترجمة شاملة لكافة عناصر التطبيق**.
+            - **ملاحظات التحديث:** ${{ github.event.inputs.release_notes || 'تحديث تلقائي مباشر عند الرفع إلى GitHub' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
