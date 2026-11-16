@@ -309,13 +309,13 @@ fun PersonnelCard(
 
     val cardPressScale by animateFloatAsState(
         targetValue = when {
-            isHorizontalDragging -> 1.015f // Subtle physical lift off the deck while sliding
-            isSwipeArmed -> 0.982f
-            holdProgress > 0.02f -> 0.986f
+            isHorizontalDragging -> 1.012f // Subtle physical lift off the deck while sliding
+            isSwipeArmed -> 0.985f
+            holdProgress > 0.02f -> 0.988f
             else -> 1f
         },
         animationSpec = spring(
-            dampingRatio = if (isLivingLuxury) Spring.DampingRatioMediumBouncy else 0.68f,
+            dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "pinHoldScale"
@@ -387,6 +387,161 @@ fun PersonnelCard(
         modifier = modifier
             .fillMaxWidth()
             .onSizeChanged { cardWidthPx = it.width.toFloat() }
+            .pointerInput(personnel.id, personnel.isPinned, currentLang) {
+                val slop = viewConfiguration.touchSlop
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val startPos = down.position
+                    val velocityTracker = VelocityTracker()
+                    velocityTracker.addPointerInputChange(down)
+
+                    var triggeredPin = false
+                    var dragging = false
+                    var finished = false
+                    var dragOriginX = startPos.x
+                    var lastDragX = 0f
+                    var wasPastDetent = false
+
+                    val holdJob = holdScope.launch {
+                        // Exact 0.5s (500ms) hold arms directional swipe-to-delete
+                        delay(SwipeDeleteGestureHelper.HOLD_ARM_DURATION_MS)
+                        if (finished) return@launch
+                        isSwipeArmed = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+
+                        // Continuing stationary hold toggles Pin after an extra 700ms
+                        val pinStartTime = System.currentTimeMillis()
+                        val pinRemainingMs = 700L
+                        while (!finished && !dragging) {
+                            val elapsed = System.currentTimeMillis() - pinStartTime
+                            val p = (elapsed.toFloat() / pinRemainingMs.toFloat()).coerceIn(0f, 1f)
+                            holdProgress = p
+                            if (p >= 1f) {
+                                triggeredPin = true
+                                holdProgress = 0f
+                                isSwipeArmed = false
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                latestOnTogglePin()
+                                break
+                            }
+                            delay(16L)
+                        }
+                    }
+
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val matching = event.changes.firstOrNull { it.id == down.id }
+                        if (matching == null || !matching.pressed) {
+                            if (triggeredPin || dragging) {
+                                event.changes.forEach { it.consume() }
+                            }
+                            break
+                        }
+                        velocityTracker.addPointerInputChange(matching)
+
+                        if (triggeredPin) {
+                            event.changes.forEach { it.consume() }
+                            continue
+                        }
+
+                        val totalDx = matching.position.x - startPos.x
+                        val totalDy = matching.position.y - startPos.y
+
+                        if (!isSwipeArmed) {
+                            if (hypot(totalDx, totalDy) > slop) {
+                                break
+                            }
+                        } else {
+                            if (!dragging) {
+                                val dirSign = SwipeDeleteGestureHelper.expectedDirectionSign(latestLang)
+                                val directionalDx = totalDx * dirSign
+                                if (directionalDx > slop * 0.55f && abs(totalDx) > abs(totalDy) * 0.65f) {
+                                    dragging = true
+                                    isHorizontalDragging = true
+                                    isFingerTracking = true
+                                    // Anchor at current finger position on the stationary outer box -> zero jump & zero coordinate loop!
+                                    dragOriginX = matching.position.x
+                                    fingerDragX = 0f
+                                    lastDragX = 0f
+                                    holdProgress = 0f
+                                    holdJob.cancel()
+                                } else if (abs(totalDy) > slop * 2.2f && directionalDx <= slop) {
+                                    break
+                                }
+                            }
+                            if (dragging) {
+                                event.changes.forEach { it.consume() }
+                                val rawDeltaFromAnchor = matching.position.x - dragOriginX
+                                val physicalX = SwipeDeleteGestureHelper.applyElasticDrag(rawDeltaFromAnchor, latestLang)
+                                lastDragX = physicalX
+                                // Direct synchronous state write from stationary coordinates: 0ms lag, 0 trembling!
+                                fingerDragX = physicalX
+
+                                val nowPastDetent = SwipeDeleteGestureHelper.shouldTriggerDelete(
+                                    physicalX,
+                                    cardWidthPx,
+                                    latestLang
+                                )
+                                if (nowPastDetent != wasPastDetent) {
+                                    wasPastDetent = nowPastDetent
+                                    // Physical magnetic detent feedback when crossing delete threshold!
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            }
+                        }
+                    }
+
+                    finished = true
+                    holdJob.cancel()
+                    holdProgress = 0f
+
+                    if (dragging) {
+                        val releaseVelX = velocityTracker.calculateVelocity().x
+                        val shouldDelete = SwipeDeleteGestureHelper.shouldTriggerDeleteWithVelocity(
+                            dragOffsetX = lastDragX,
+                            velocityX = releaseVelX,
+                            cardWidthPx = cardWidthPx,
+                            lang = latestLang
+                        )
+                        isHorizontalDragging = false
+                        isSwipeArmed = false
+
+                        holdScope.launch {
+                            releaseOffsetAnim.snapTo(lastDragX)
+                            isFingerTracking = false
+                            fingerDragX = 0f
+
+                            if (shouldDelete) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                val dirSign = SwipeDeleteGestureHelper.expectedDirectionSign(latestLang)
+                                val exitX = dirSign * (cardWidthPx.coerceAtLeast(650f) * 1.18f)
+                                releaseOffsetAnim.animateTo(
+                                    targetValue = exitX,
+                                    animationSpec = tween(durationMillis = 165, easing = FastOutLinearInEasing),
+                                    initialVelocity = if (releaseVelX * dirSign > 0f) releaseVelX else dirSign * 650f
+                                )
+                                latestOnSwipeDelete()
+                                releaseOffsetAnim.snapTo(0f)
+                            } else {
+                                // Smooth damped spring rebound inheriting actual finger release velocity
+                                releaseOffsetAnim.animateTo(
+                                    targetValue = 0f,
+                                    initialVelocity = releaseVelX,
+                                    animationSpec = spring(
+                                        dampingRatio = 0.72f,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        isHorizontalDragging = false
+                        isFingerTracking = false
+                        fingerDragX = 0f
+                        isSwipeArmed = false
+                    }
+                }
+            }
     ) {
         // Directional Trash Bin Reveal Backdrop (pure GPU-drawn ripple & smooth icon scale, zero frame recomposition lag)
         if (showBackdrop) {
@@ -530,161 +685,6 @@ fun PersonnelCard(
                     cornerRadius = 24.dp
                 )
                 .then(pinBorderModifier)
-                .pointerInput(personnel.id, personnel.isPinned, currentLang) {
-                    val slop = viewConfiguration.touchSlop
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                        val startPos = down.position
-                        val velocityTracker = VelocityTracker()
-                        velocityTracker.addPointerInputChange(down)
-
-                        var triggeredPin = false
-                        var dragging = false
-                        var finished = false
-                        var dragOriginX = startPos.x
-                        var lastDragX = 0f
-                        var wasPastDetent = false
-
-                        val holdJob = holdScope.launch {
-                            // Exact 0.5s (500ms) hold arms directional swipe-to-delete
-                            delay(SwipeDeleteGestureHelper.HOLD_ARM_DURATION_MS)
-                            if (finished) return@launch
-                            isSwipeArmed = true
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                            // Continuing stationary hold toggles Pin after an extra 700ms
-                            val pinStartTime = System.currentTimeMillis()
-                            val pinRemainingMs = 700L
-                            while (!finished && !dragging) {
-                                val elapsed = System.currentTimeMillis() - pinStartTime
-                                val p = (elapsed.toFloat() / pinRemainingMs.toFloat()).coerceIn(0f, 1f)
-                                holdProgress = p
-                                if (p >= 1f) {
-                                    triggeredPin = true
-                                    holdProgress = 0f
-                                    isSwipeArmed = false
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    latestOnTogglePin()
-                                    break
-                                }
-                                delay(16L)
-                            }
-                        }
-
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            val matching = event.changes.firstOrNull { it.id == down.id }
-                            if (matching == null || !matching.pressed) {
-                                if (triggeredPin || dragging) {
-                                    event.changes.forEach { it.consume() }
-                                }
-                                break
-                            }
-                            velocityTracker.addPointerInputChange(matching)
-
-                            if (triggeredPin) {
-                                event.changes.forEach { it.consume() }
-                                continue
-                            }
-
-                            val totalDx = matching.position.x - startPos.x
-                            val totalDy = matching.position.y - startPos.y
-
-                            if (!isSwipeArmed) {
-                                if (hypot(totalDx, totalDy) > slop) {
-                                    break
-                                }
-                            } else {
-                                if (!dragging) {
-                                    val dirSign = SwipeDeleteGestureHelper.expectedDirectionSign(latestLang)
-                                    val directionalDx = totalDx * dirSign
-                                    if (directionalDx > slop * 0.55f && abs(totalDx) > abs(totalDy) * 0.65f) {
-                                        dragging = true
-                                        isHorizontalDragging = true
-                                        isFingerTracking = true
-                                        // Anchor at current finger position so displacement starts at exact 0px with zero jump!
-                                        dragOriginX = matching.position.x
-                                        fingerDragX = 0f
-                                        lastDragX = 0f
-                                        holdProgress = 0f
-                                        holdJob.cancel()
-                                    } else if (abs(totalDy) > slop * 2.2f && directionalDx <= slop) {
-                                        break
-                                    }
-                                }
-                                if (dragging) {
-                                    event.changes.forEach { it.consume() }
-                                    val rawDeltaFromAnchor = matching.position.x - dragOriginX
-                                    val physicalX = SwipeDeleteGestureHelper.applyElasticDrag(rawDeltaFromAnchor, latestLang)
-                                    lastDragX = physicalX
-                                    // Direct synchronous state write: 0ms lag at 120Hz, zero per-frame coroutine!
-                                    fingerDragX = physicalX
-
-                                    val nowPastDetent = SwipeDeleteGestureHelper.shouldTriggerDelete(
-                                        physicalX,
-                                        cardWidthPx,
-                                        latestLang
-                                    )
-                                    if (nowPastDetent != wasPastDetent) {
-                                        wasPastDetent = nowPastDetent
-                                        // Physical magnetic detent feedback when crossing delete threshold!
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                }
-                            }
-                        }
-
-                        finished = true
-                        holdJob.cancel()
-                        holdProgress = 0f
-
-                        if (dragging) {
-                            val releaseVelX = velocityTracker.calculateVelocity().x
-                            val shouldDelete = SwipeDeleteGestureHelper.shouldTriggerDeleteWithVelocity(
-                                dragOffsetX = lastDragX,
-                                velocityX = releaseVelX,
-                                cardWidthPx = cardWidthPx,
-                                lang = latestLang
-                            )
-                            isHorizontalDragging = false
-                            isSwipeArmed = false
-
-                            holdScope.launch {
-                                releaseOffsetAnim.snapTo(lastDragX)
-                                isFingerTracking = false
-                                fingerDragX = 0f
-
-                                if (shouldDelete) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val dirSign = SwipeDeleteGestureHelper.expectedDirectionSign(latestLang)
-                                    val exitX = dirSign * (cardWidthPx.coerceAtLeast(650f) * 1.18f)
-                                    releaseOffsetAnim.animateTo(
-                                        targetValue = exitX,
-                                        animationSpec = tween(durationMillis = 165, easing = FastOutLinearInEasing),
-                                        initialVelocity = if (releaseVelX * dirSign > 0f) releaseVelX else dirSign * 650f
-                                    )
-                                    latestOnSwipeDelete()
-                                    releaseOffsetAnim.snapTo(0f)
-                                } else {
-                                    // Natural physical spring rebound inheriting actual finger release velocity!
-                                    releaseOffsetAnim.animateTo(
-                                        targetValue = 0f,
-                                        initialVelocity = releaseVelX,
-                                        animationSpec = spring(
-                                            dampingRatio = 0.64f,
-                                            stiffness = Spring.StiffnessMediumLow
-                                        )
-                                    )
-                                }
-                            }
-                        } else {
-                            isHorizontalDragging = false
-                            isFingerTracking = false
-                            fingerDragX = 0f
-                            isSwipeArmed = false
-                        }
-                    }
-                }
                 .testTag("personnel_item_${personnel.id}")
         ) {
             Column(
@@ -801,7 +801,7 @@ fun PersonnelCard(
                         verticalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Text(
-                            text = personnel.fullName,
+                            text = personnel.getLocalizedName(currentLang),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Black,
                             color = if (isDarkMode) Color.White else SlateTextPrimary,
@@ -1192,19 +1192,14 @@ fun PersonnelCard(
                     }
                 }
             }
+            }
         }
 
-            // Floating zero-layout-shift armed hint & pin progress pill (never pushes card content downward)
+            // Floating zero-layout-shift armed hint & pin progress pill (anchored to stationary outer Box)
             AnimatedVisibility(
                 visible = (isSwipeArmed || holdProgress > 0.02f) && !isHorizontalDragging,
-                enter = fadeIn(animationSpec = tween(150)) + scaleIn(
-                    initialScale = 0.88f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ),
-                exit = fadeOut(animationSpec = tween(100)) + scaleOut(targetScale = 0.90f),
+                enter = fadeIn(animationSpec = tween(140)),
+                exit = fadeOut(animationSpec = tween(100)),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 6.dp)
@@ -1271,6 +1266,5 @@ fun PersonnelCard(
                     }
                 }
             }
-        }
     }
 }

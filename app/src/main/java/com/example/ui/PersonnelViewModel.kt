@@ -295,6 +295,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         if (q.isNotEmpty()) {
             list = list.filter {
                 it.fullName.lowercase(Locale.getDefault()).contains(q) ||
+                        it.fullNameLatin.lowercase(Locale.getDefault()).contains(q) ||
                         it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
                         it.rank.lowercase(Locale.getDefault()).contains(q) ||
                         formatRank(it.rank, params.lang).lowercase(Locale.getDefault()).contains(q) ||
@@ -323,7 +324,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         // Sorting: Pinned personnel always rise to the top (most recently pinned first)
-        sortPersonnelPinnedFirst(list, params.sort)
+        sortPersonnelPinnedFirst(list, params.sort, params.lang)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val stats: StateFlow<DashboardStats> = combine(
@@ -440,6 +441,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val daysUntilReturn = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(returnDay - today)
             val localizedRank = formatRank(p.rank, lang)
             val localizedLeaveType = formatLeaveType(p.leaveType, lang)
+            val displayName = p.getLocalizedName(lang)
 
             // 1. Returning Today
             if (!p.isReturnedToDuty && p.status == LeaveStatus.RETURNING_TODAY) {
@@ -451,9 +453,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "موعد الدخول واستئناف العمل اليوم"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} doit reprendre le service aujourd'hui (${sdf.format(Date(p.returnDateMillis))})."
-                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} is scheduled to resume duty today (${sdf.format(Date(p.returnDateMillis))})."
-                        else -> "على $localizedRank: ${p.fullName}، الالتحاق واستئناف الخدمة اليوم (${sdf.format(Date(p.returnDateMillis))}) بعد إجازة مدتها (${p.totalLeaveDays}) يوم"
+                        AppLanguage.FRENCH -> "$localizedRank $displayName doit reprendre le service aujourd'hui (${sdf.format(Date(p.returnDateMillis))})."
+                        AppLanguage.ENGLISH -> "$localizedRank $displayName is scheduled to resume duty today (${sdf.format(Date(p.returnDateMillis))})."
+                        else -> "على $localizedRank: $displayName، الالتحاق واستئناف الخدمة اليوم (${sdf.format(Date(p.returnDateMillis))}) بعد إجازة مدتها (${p.totalLeaveDays}) يوم"
                     }
                     result.add(
                         AppNotification(
@@ -480,9 +482,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "تنبيه: تأخر عن موعد الدخول"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a dépassé la date de retour (${p.getCountdownText(lang)})."
-                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} is overdue for duty return (${p.getCountdownText(lang)})."
-                        else -> "تأخر $localizedRank: ${p.fullName}، عن موعد الدخول المقرر (${sdf.format(Date(p.returnDateMillis))}) بـ (${p.daysOverdue}) يوم"
+                        AppLanguage.FRENCH -> "$localizedRank $displayName a dépassé la date de retour (${p.getCountdownText(lang)})."
+                        AppLanguage.ENGLISH -> "$localizedRank $displayName is overdue for duty return (${p.getCountdownText(lang)})."
+                        else -> "تأخر $localizedRank: $displayName، عن موعد الدخول المقرر (${sdf.format(Date(p.returnDateMillis))}) بـ (${p.daysOverdue}) يوم"
                     }
                     result.add(
                         AppNotification(
@@ -509,11 +511,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "اقتراب موعد استئناف الخدمة"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "Il reste $daysUntilReturn jour(s) pour $localizedRank ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
-                        AppLanguage.ENGLISH -> "$daysUntilReturn day(s) remaining for $localizedRank ${p.fullName} (${sdf.format(Date(p.returnDateMillis))})."
+                        AppLanguage.FRENCH -> "Il reste $daysUntilReturn jour(s) pour $localizedRank $displayName (${sdf.format(Date(p.returnDateMillis))})."
+                        AppLanguage.ENGLISH -> "$daysUntilReturn day(s) remaining for $localizedRank $displayName (${sdf.format(Date(p.returnDateMillis))})."
                         else -> {
                             val timeNotice = if (daysUntilReturn == 1L) "بقي يوم واحد (غداً)" else "بقي يومان (خلال يومين)"
-                            "$timeNotice لاستئناف $localizedRank: ${p.fullName}، للخدمة بتاريخ (${sdf.format(Date(p.returnDateMillis))})"
+                            "$timeNotice لاستئناف $localizedRank: $displayName، للخدمة بتاريخ (${sdf.format(Date(p.returnDateMillis))})"
                         }
                     }
                     result.add(
@@ -541,9 +543,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "موعد انطلاق الإجازة"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} commence son congé le ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
-                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} starts leave on ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
-                        else -> "يستفيد $localizedRank: ${p.fullName}، من $localizedLeaveType مدتها (${p.totalLeaveDays}) يوم ابتداءً من (${sdf.format(Date(p.startDateMillis))})"
+                        AppLanguage.FRENCH -> "$localizedRank $displayName commence son congé le ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
+                        AppLanguage.ENGLISH -> "$localizedRank $displayName starts leave on ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
+                        else -> "يستفيد $localizedRank: $displayName، من $localizedLeaveType مدتها (${p.totalLeaveDays}) يوم ابتداءً من (${sdf.format(Date(p.startDateMillis))})"
                     }
                     result.add(
                         AppNotification(
@@ -571,9 +573,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                         else -> "استحقاق إجازة جديدة"
                     }
                     val msg = when (lang) {
-                        AppLanguage.FRENCH -> "$localizedRank ${p.fullName} a accompli $daysServedRef jours de service (seuil : $threshold jours)."
-                        AppLanguage.ENGLISH -> "$localizedRank ${p.fullName} has completed $daysServedRef duty days (threshold: $threshold days)."
-                        else -> "قضى $localizedRank: ${p.fullName}، مدة $daysServedRef يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold) يوم"
+                        AppLanguage.FRENCH -> "$localizedRank $displayName a accompli $daysServedRef jours de service (seuil : $threshold jours)."
+                        AppLanguage.ENGLISH -> "$localizedRank $displayName has completed $daysServedRef duty days (threshold: $threshold days)."
+                        else -> "قضى $localizedRank: $displayName، مدة $daysServedRef يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold) يوم"
                     }
                     result.add(
                         AppNotification(
@@ -751,6 +753,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     fun savePersonnel(
         id: Long = 0,
         fullName: String,
+        fullNameLatin: String = "",
         rank: String,
         registrationNumber: String,
         startDateMillis: Long,
@@ -770,6 +773,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val entity = Personnel(
                 id = id,
                 fullName = fullName,
+                fullNameLatin = fullNameLatin,
                 rank = normalizeRank(rank),
                 registrationNumber = registrationNumber,
                 startDateMillis = startDateMillis,
@@ -778,7 +782,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 leaveType = leaveType,
                 wilaya = normalizeWilaya(wilaya),
                 notes = notes,
-                addedAtMillis = preservedAddedAt
+                addedAtMillis = preservedAddedAt,
+                isPinned = previous?.isPinned ?: false,
+                pinnedAtMillis = previous?.pinnedAtMillis ?: 0L,
+                isDeleted = previous?.isDeleted ?: false,
+                deletedAtMillis = previous?.deletedAtMillis ?: 0L
             )
             if (id == 0L) {
                 val newId = repository.insert(entity)
@@ -892,7 +900,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     companion object {
-        fun sortPersonnelPinnedFirst(list: List<Personnel>, sort: SortOption): List<Personnel> {
+        fun sortPersonnelPinnedFirst(
+            list: List<Personnel>,
+            sort: SortOption,
+            lang: AppLanguage = AppLanguage.ARABIC
+        ): List<Personnel> {
             val pinFirstComparator = compareByDescending<Personnel> { it.isPinned }
                 .thenByDescending { if (it.isPinned) it.pinnedAtMillis else 0L }
 
@@ -918,7 +930,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 }.thenByDescending { it.daysOverdue }
 
                 SortOption.START_DESC -> compareByDescending { it.startDateMillis }
-                SortOption.NAME_ASC -> compareBy { it.fullName }
+                SortOption.NAME_ASC -> compareBy { it.getLocalizedName(lang) }
                 SortOption.REG_ASC -> compareBy { it.registrationNumber }
             }
 
@@ -946,6 +958,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val seed = listOf(
                 Personnel(
                     fullName = "عبد الرحمن بلقاسمي",
+                    fullNameLatin = "Abderrahmane Belkacemi",
                     rank = "ملازم أول - Lieutenant",
                     registrationNumber = "DZ-160492",
                     startDateMillis = getOffsetDateMillis(-7),
@@ -957,6 +970,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
                 Personnel(
                     fullName = "محمد الأمين يحياوي",
+                    fullNameLatin = "Mohamed El Amine Yahiaoui",
                     rank = "مساعد رئيسي - Adjudant-Major",
                     registrationNumber = "DZ-318920",
                     startDateMillis = getOffsetDateMillis(-4),
@@ -968,6 +982,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
                 Personnel(
                     fullName = "خالد بن عيسى الدراجي",
+                    fullNameLatin = "Khaled Ben Aissa Deradji",
                     rank = "رقيب أول - Sergent-Chef",
                     registrationNumber = "DZ-254100",
                     startDateMillis = getOffsetDateMillis(-10),
@@ -979,6 +994,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
                 Personnel(
                     fullName = "ياسين بوجمعة صوالحي",
+                    fullNameLatin = "Yacine Boudjemaa Soualhi",
                     rank = "مساعد أول - Adjudant-Chef",
                     registrationNumber = "DZ-057812",
                     startDateMillis = getOffsetDateMillis(-12),
@@ -990,6 +1006,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
                 Personnel(
                     fullName = "حمزة بن زروال الماجري",
+                    fullNameLatin = "Hamza Ben Zeroual El Madjri",
                     rank = "عريف أول - Caporal-Chef",
                     registrationNumber = "DZ-194321",
                     startDateMillis = getOffsetDateMillis(-60),
@@ -1001,6 +1018,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
                 Personnel(
                     fullName = "فاروق لعريبي الورتيلاني",
+                    fullNameLatin = "Farouk Laribi El Ouartilani",
                     rank = "نقيب - Capitaine",
                     registrationNumber = "DZ-098871",
                     startDateMillis = getOffsetDateMillis(3),
@@ -1037,7 +1055,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val wFormatted = formatWilaya(p.wilaya, lang, includeCode = false)
             val sFormatted = p.status.getCompactBadgeLabel(lang)
             val cFormatted = p.getCountdownText(lang)
-            sb.append("\"$rFormatted\",\"${p.fullName}\",\"$wFormatted\",\"${p.registrationNumber}\",\"${p.formattedStartDate}\",\"${p.formattedReturnDate}\",${p.totalLeaveDays},\"$sFormatted\",\"$cFormatted\",\"$notesClean\"\r\n")
+            sb.append("\"$rFormatted\",\"${p.getLocalizedName(lang)}\",\"$wFormatted\",\"${p.registrationNumber}\",\"${p.formattedStartDate}\",\"${p.formattedReturnDate}\",${p.totalLeaveDays},\"$sFormatted\",\"$cFormatted\",\"$notesClean\"\r\n")
         }
         return sb.toString()
     }
@@ -1048,7 +1066,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         list.forEachIndexed { i, p ->
             sb.append("  {\n")
             sb.append("    \"id\": ${p.id},\n")
-            sb.append("    \"fullName\": \"${p.fullName}\",\n")
+            sb.append("    \"fullName\": \"${p.fullName.replace("\"", "\\\"")}\",\n")
+            sb.append("    \"fullNameLatin\": \"${p.fullNameLatin.replace("\"", "\\\"")}\",\n")
             sb.append("    \"rank\": \"${p.rank}\",\n")
             sb.append("    \"wilaya\": \"${p.wilaya}\",\n")
             sb.append("    \"registrationNumber\": \"${p.registrationNumber}\",\n")
@@ -1091,9 +1110,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
-                val fullName = obj.optString("fullName", "").ifBlank {
-                    obj.optString("name", "غير محدد")
-                }
+                val fullNameLatin = obj.optString("fullNameLatin", "").ifBlank {
+                    obj.optString("full_name_latin", "")
+                }.trim()
+                val rawFullName = obj.optString("fullName", "").ifBlank {
+                    obj.optString("name", "")
+                }.trim()
+                val fullName = if (rawFullName.isBlank() && fullNameLatin.isBlank()) "غير محدد" else rawFullName
                 val rank = normalizeRank(obj.optString("rank", "جندي - Djoundi / Soldat"))
                 val regNumber = obj.optString("registrationNumber", "").ifBlank {
                     obj.optString("regNumber", "DZ-000000")
@@ -1130,6 +1153,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     Personnel(
                         id = id,
                         fullName = fullName,
+                        fullNameLatin = fullNameLatin,
                         rank = rank,
                         registrationNumber = regNumber,
                         startDateMillis = startMillis,
@@ -1181,7 +1205,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val lang = currentLanguage.value
             val record = LeaveRecord(
                 personnelId = person.id,
-                personnelName = person.fullName,
+                personnelName = person.fullName.ifBlank { person.fullNameLatin },
                 rank = person.rank,
                 registrationNumber = person.registrationNumber,
                 leaveType = person.leaveType,
@@ -1220,7 +1244,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 repository.insertLeave(
                     LeaveRecord(
                         personnelId = person.id,
-                        personnelName = person.fullName,
+                        personnelName = person.fullName.ifBlank { person.fullNameLatin },
                         rank = person.rank,
                         registrationNumber = person.registrationNumber,
                         leaveType = person.leaveType,

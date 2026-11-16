@@ -371,7 +371,7 @@ fun TrashBinDialog(
                                         verticalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
                                         Text(
-                                            text = person.fullName,
+                                            text = person.getLocalizedName(currentLang),
                                             fontWeight = FontWeight.ExtraBold,
                                             fontSize = 14.sp,
                                             color = textPrimary,

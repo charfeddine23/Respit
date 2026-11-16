@@ -1,5 +1,6 @@
 package com.example.data
 
+import com.example.util.AppLanguage
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -31,6 +32,7 @@ data class LeaveTypeStat(
 data class PersonnelAnnualLeaveStat(
     val personnelId: Long,
     val fullName: String,
+    val fullNameLatin: String = "",
     val rankRaw: String,
     val registrationNumber: String,
     val wilayaRaw: String,
@@ -44,6 +46,9 @@ data class PersonnelAnnualLeaveStat(
     val daysSinceReference: Long,
     val isEligible: Boolean
 ) {
+    fun getLocalizedName(lang: AppLanguage): String =
+        Personnel.resolveLocalizedName(fullName, fullNameLatin, lang)
+
     val formattedReferenceDate: String
         get() {
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -186,6 +191,7 @@ object LeaveAnalyticsCalculator {
                 PersonnelAnnualLeaveStat(
                     personnelId = person.id,
                     fullName = person.fullName,
+                    fullNameLatin = person.fullNameLatin,
                     rankRaw = normalizeRank(person.rank),
                     registrationNumber = person.registrationNumber,
                     wilayaRaw = person.wilaya,

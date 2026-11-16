@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
@@ -141,6 +142,7 @@ fun AddEditPersonnelDialog(
     onSave: (
         id: Long,
         fullName: String,
+        fullNameLatin: String,
         rank: String,
         registrationNumber: String,
         startDateMillis: Long,
@@ -159,6 +161,7 @@ fun AddEditPersonnelDialog(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
+    val secondNameFocusRequester = remember { FocusRequester() }
     val regNumberFocusRequester = remember { FocusRequester() }
     val isEdit = personnelToEdit != null
 
@@ -176,6 +179,7 @@ fun AddEditPersonnelDialog(
     }
 
     var fullName by remember { mutableStateOf(personnelToEdit?.fullName ?: "") }
+    var fullNameLatin by remember { mutableStateOf(personnelToEdit?.fullNameLatin ?: "") }
     var rank by remember { mutableStateOf(personnelToEdit?.rank?.let { normalizeRank(it) } ?: algerianRanks.first()) }
     var wilaya by remember { mutableStateOf(personnelToEdit?.wilaya?.let { normalizeWilaya(it) } ?: "16 - الجزائر - Alger") }
     var regNumber by remember { mutableStateOf(personnelToEdit?.registrationNumber ?: "") }
@@ -505,51 +509,127 @@ fun AddEditPersonnelDialog(
                                     borderColor = sectionBorderColor,
                                     isDarkMode = isDarkMode
                                 ) {
-                                    // Full Name
-                                    OutlinedTextField(
-                                        value = fullName,
-                                        onValueChange = {
-                                            fullName = it
-                                            errorMessage = null
-                                        },
-                                        label = { Text(AppStrings.get("full_name_label", currentLang)) },
-                                        placeholder = { Text(AppStrings.get("full_name_placeholder", currentLang)) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.Person,
-                                                contentDescription = null,
-                                                tint = readableAccent,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        },
-                                        trailingIcon = {
-                                            if (fullName.isNotEmpty()) {
-                                                IconButton(
-                                                    onClick = { fullName = "" },
-                                                    modifier = Modifier.size(40.dp)
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Clear,
-                                                        contentDescription = AppStrings.get("clear_icon_desc", currentLang),
-                                                        tint = textSecondary,
-                                                        modifier = Modifier.size(17.dp)
-                                                    )
+                                    // Bilingual Full Names: primary active-language field first, secondary language right below
+                                    val arabicNameField: @Composable (Boolean) -> Unit = { isFirst ->
+                                        OutlinedTextField(
+                                            value = fullName,
+                                            onValueChange = {
+                                                fullName = it
+                                                errorMessage = null
+                                            },
+                                            label = { Text(AppStrings.get("full_name_ar_label", currentLang)) },
+                                            placeholder = { Text(AppStrings.get("full_name_ar_placeholder", currentLang)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    tint = readableAccent,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            },
+                                            trailingIcon = {
+                                                if (fullName.isNotEmpty()) {
+                                                    IconButton(
+                                                        onClick = { fullName = "" },
+                                                        modifier = Modifier.size(40.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Clear,
+                                                            contentDescription = AppStrings.get("clear_icon_desc", currentLang),
+                                                            tint = textSecondary,
+                                                            modifier = Modifier.size(17.dp)
+                                                        )
+                                                    }
                                                 }
-                                            }
-                                        },
-                                        keyboardOptions = KeyboardOptions(
-                                            capitalization = KeyboardCapitalization.Words,
-                                            imeAction = ImeAction.Next
-                                        ),
-                                        keyboardActions = KeyboardActions(
-                                            onNext = { regNumberFocusRequester.requestFocus() }
-                                        ),
-                                        singleLine = true,
-                                        colors = inputColors,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("full_name_input"),
-                                        shape = RoundedCornerShape(14.dp)
+                                            },
+                                            keyboardOptions = KeyboardOptions(
+                                                capitalization = KeyboardCapitalization.Words,
+                                                imeAction = ImeAction.Next
+                                            ),
+                                            keyboardActions = KeyboardActions(
+                                                onNext = {
+                                                    if (isFirst) secondNameFocusRequester.requestFocus()
+                                                    else regNumberFocusRequester.requestFocus()
+                                                }
+                                            ),
+                                            singleLine = true,
+                                            colors = inputColors,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(if (!isFirst) Modifier.focusRequester(secondNameFocusRequester) else Modifier)
+                                                .testTag("full_name_input"),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
+                                    }
+
+                                    val latinNameField: @Composable (Boolean) -> Unit = { isFirst ->
+                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                            OutlinedTextField(
+                                                value = fullNameLatin,
+                                                onValueChange = {
+                                                    fullNameLatin = it
+                                                    errorMessage = null
+                                                },
+                                                label = { Text(AppStrings.get("full_name_latin_label", currentLang)) },
+                                                placeholder = { Text(AppStrings.get("full_name_latin_placeholder", currentLang)) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Translate,
+                                                        contentDescription = null,
+                                                        tint = readableAccent,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                },
+                                                trailingIcon = {
+                                                    if (fullNameLatin.isNotEmpty()) {
+                                                        IconButton(
+                                                            onClick = { fullNameLatin = "" },
+                                                            modifier = Modifier.size(40.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Clear,
+                                                                contentDescription = AppStrings.get("clear_icon_desc", currentLang),
+                                                                tint = textSecondary,
+                                                                modifier = Modifier.size(17.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                keyboardOptions = KeyboardOptions(
+                                                    capitalization = KeyboardCapitalization.Words,
+                                                    imeAction = ImeAction.Next
+                                                ),
+                                                keyboardActions = KeyboardActions(
+                                                    onNext = {
+                                                        if (isFirst) secondNameFocusRequester.requestFocus()
+                                                        else regNumberFocusRequester.requestFocus()
+                                                    }
+                                                ),
+                                                singleLine = true,
+                                                colors = inputColors,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(if (!isFirst) Modifier.focusRequester(secondNameFocusRequester) else Modifier)
+                                                    .testTag("full_name_latin_input"),
+                                                shape = RoundedCornerShape(14.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (currentLang == AppLanguage.ARABIC) {
+                                        arabicNameField(true)
+                                        latinNameField(false)
+                                    } else {
+                                        latinNameField(true)
+                                        arabicNameField(false)
+                                    }
+
+                                    Text(
+                                        text = AppStrings.get("bilingual_name_hint", currentLang),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.5.sp,
+                                        color = textSecondary,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
                                     )
 
                                     // Military Rank Selector
@@ -1109,7 +1189,7 @@ fun AddEditPersonnelDialog(
                             ) {
                                 Button(
                                     onClick = {
-                                        if (fullName.isBlank() || regNumber.isBlank()) {
+                                        if ((fullName.isBlank() && fullNameLatin.isBlank()) || regNumber.isBlank()) {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             errorMessage = AppStrings.get("fill_required", currentLang)
                                             return@Button
@@ -1118,6 +1198,7 @@ fun AddEditPersonnelDialog(
                                         onSave(
                                             personnelToEdit?.id ?: 0L,
                                             fullName.trim(),
+                                            fullNameLatin.trim(),
                                             rank,
                                             regNumber.trim(),
                                             startDateMillis,

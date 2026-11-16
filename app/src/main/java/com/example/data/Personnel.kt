@@ -56,6 +56,7 @@ data class Personnel(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val fullName: String,
+    val fullNameLatin: String = "",
     val rank: String,
     val registrationNumber: String,
     val startDateMillis: Long,     // تاريخ الإستفادة (بداية الإجازة)
@@ -95,7 +96,19 @@ data class Personnel(
                     (regNormalized.isNotBlank() && leave.registrationNumber.trim().equals(regNormalized, ignoreCase = true))
             }
         }
+
+        fun resolveLocalizedName(arabicName: String, latinName: String, lang: AppLanguage): String {
+            val ar = arabicName.trim()
+            val latin = latinName.trim()
+            return when (lang) {
+                AppLanguage.ARABIC -> ar.ifBlank { latin }
+                AppLanguage.FRENCH, AppLanguage.ENGLISH -> latin.ifBlank { ar }
+            }
+        }
     }
+
+    fun getLocalizedName(lang: AppLanguage): String =
+        resolveLocalizedName(fullName, fullNameLatin, lang)
 
     /**
      * يحسب تاريخ بداية احتساب أيام الخدمة والاستحقاق:

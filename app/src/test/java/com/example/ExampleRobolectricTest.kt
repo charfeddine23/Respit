@@ -758,7 +758,12 @@ class ExampleRobolectricTest {
     sqliteDb.close()
 
     val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, "test_mig_4_5.db")
-      .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7)
+      .addMigrations(
+        AppDatabase.MIGRATION_4_5,
+        AppDatabase.MIGRATION_5_6,
+        AppDatabase.MIGRATION_6_7,
+        AppDatabase.MIGRATION_7_8
+      )
       .allowMainThreadQueries()
       .build()
 
@@ -1082,6 +1087,155 @@ class ExampleRobolectricTest {
     assertEquals(listOf(id3, id1, id2), sortedDefault.map { it.id })
 
     inMemoryDb.close()
+  }
+
+  @Test
+  fun `verify MIGRATION_7_8 adds fullNameLatin column preserving existing personnel`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val dbFile = context.getDatabasePath("test_mig_7_8.db")
+    if (dbFile.exists()) dbFile.delete()
+
+    val sqliteDb = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(dbFile, null)
+    sqliteDb.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS personnel (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        fullName TEXT NOT NULL,
+        rank TEXT NOT NULL,
+        registrationNumber TEXT NOT NULL,
+        startDateMillis INTEGER NOT NULL,
+        returnDateMillis INTEGER NOT NULL,
+        isReturnedToDuty INTEGER NOT NULL,
+        leaveType TEXT NOT NULL,
+        wilaya TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        addedAtMillis INTEGER NOT NULL DEFAULT 0,
+        isPinned INTEGER NOT NULL DEFAULT 0,
+        pinnedAtMillis INTEGER NOT NULL DEFAULT 0,
+        isDeleted INTEGER NOT NULL DEFAULT 0,
+        deletedAtMillis INTEGER NOT NULL DEFAULT 0
+      )
+      """.trimIndent()
+    )
+    sqliteDb.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS leave_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        personnelId INTEGER NOT NULL,
+        personnelName TEXT NOT NULL,
+        rank TEXT NOT NULL,
+        registrationNumber TEXT NOT NULL,
+        leaveType TEXT NOT NULL,
+        startDateMillis INTEGER NOT NULL,
+        returnDateMillis INTEGER NOT NULL,
+        durationDays INTEGER NOT NULL,
+        statusText TEXT NOT NULL,
+        destinationWilaya TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        createdAtMillis INTEGER NOT NULL
+      )
+      """.trimIndent()
+    )
+    sqliteDb.execSQL(
+      """
+      INSERT INTO personnel (fullName, rank, registrationNumber, startDateMillis, returnDateMillis, isReturnedToDuty, leaveType, wilaya, notes, addedAtMillis, isPinned, pinnedAtMillis, isDeleted, deletedAtMillis)
+      VALUES ('خالد منصور', 'ملازم أول - Lieutenant', 'DZ-7878', 1000, 2000, 0, 'إجازة', '16 - الجزائر - Alger', '', 5000, 0, 0, 0, 0)
+      """.trimIndent()
+    )
+    sqliteDb.version = 7
+    sqliteDb.close()
+
+    val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, "test_mig_7_8.db")
+      .addMigrations(AppDatabase.MIGRATION_7_8)
+      .allowMainThreadQueries()
+      .build()
+
+    val list = runBlocking { migratedDb.personnelDao().getAllPersonnel().first() }
+    assertEquals(1, list.size)
+    assertEquals("خالد منصور", list[0].fullName)
+    assertEquals("", list[0].fullNameLatin)
+    assertEquals("خالد منصور", list[0].getLocalizedName(com.example.util.AppLanguage.ENGLISH))
+    migratedDb.close()
+    dbFile.delete()
+  }
+
+  @Test
+  fun `verify bilingual fullName and fullNameLatin display and bidirectional fallback`() {
+    val ar = com.example.util.AppLanguage.ARABIC
+    val fr = com.example.util.AppLanguage.FRENCH
+    val en = com.example.util.AppLanguage.ENGLISH
+
+    // 1. Both names entered -> shows Arabic in AR, Latin in FR and EN
+    val both = Personnel(
+      id = 1L,
+      fullName = "عبد الرحمن بلقاسمي",
+      fullNameLatin = "Abderrahmane Belkacemi",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-101",
+      startDateMillis = 0L,
+      returnDateMillis = 0L
+    )
+    assertEquals("عبد الرحمن بلقاسمي", both.getLocalizedName(ar))
+    assertEquals("Abderrahmane Belkacemi", both.getLocalizedName(fr))
+    assertEquals("Abderrahmane Belkacemi", both.getLocalizedName(en))
+
+    // 2. Only Arabic entered -> FR & EN fall back to Arabic
+    val onlyArabic = both.copy(id = 2L, fullNameLatin = "   ")
+    assertEquals("عبد الرحمن بلقاسمي", onlyArabic.getLocalizedName(ar))
+    assertEquals("عبد الرحمن بلقاسمي", onlyArabic.getLocalizedName(fr))
+    assertEquals("عبد الرحمن بلقاسمي", onlyArabic.getLocalizedName(en))
+
+    // 3. Only French/English entered -> AR falls back to Latin ("والعكس صحيح")
+    val onlyLatin = both.copy(id = 3L, fullName = "")
+    assertEquals("Abderrahmane Belkacemi", onlyLatin.getLocalizedName(ar))
+    assertEquals("Abderrahmane Belkacemi", onlyLatin.getLocalizedName(fr))
+    assertEquals("Abderrahmane Belkacemi", onlyLatin.getLocalizedName(en))
+
+    // 4. Alphabetical sort uses the active language's localized name
+    val aLatinZArabic = both.copy(id = 10L, fullName = "ياسين", fullNameLatin = "Adel")
+    val zLatinAArabic = both.copy(id = 11L, fullName = "أمين", fullNameLatin = "Ziad")
+    val sortedEn = com.example.ui.PersonnelViewModel.sortPersonnelPinnedFirst(
+      listOf(zLatinAArabic, aLatinZArabic),
+      com.example.ui.SortOption.NAME_ASC,
+      en
+    )
+    assertEquals(listOf(10L, 11L), sortedEn.map { it.id })
+
+    val sortedAr = com.example.ui.PersonnelViewModel.sortPersonnelPinnedFirst(
+      listOf(aLatinZArabic, zLatinAArabic),
+      com.example.ui.SortOption.NAME_ASC,
+      ar
+    )
+    assertEquals(listOf(11L, 10L), sortedAr.map { it.id })
+
+    // 5. FullBackupCodec preserves fullNameLatin across export/restore
+    val json = com.example.data.FullBackupCodec.exportFullBackupJson(
+      personnelList = listOf(both, onlyLatin),
+      leaveRecords = emptyList(),
+      stats = com.example.ui.DashboardStats(total = 2),
+      dutyThresholdDays = 30,
+      themeMode = com.example.data.AppThemeMode.LIGHT,
+      themeStyle = com.example.data.AppThemeStyle.GLASSMORPHISM,
+      themeEngineId = "",
+      language = fr,
+      isFocusMode = false,
+      isDynamicAnimationsEnabled = true,
+      isLivingLuxuryMode = false,
+      isBiometricEnabled = false,
+      isNoScreenshotEnabled = false,
+      isDriveSyncEnabled = false,
+      lastDriveBackupTime = 0L,
+      selectedAnalyticsYear = 2026,
+      pinnedNotificationIds = emptySet(),
+      dismissedNotificationIds = emptySet(),
+      recentSearches = emptyList()
+    )
+    val parsed = com.example.data.FullBackupCodec.parseFullBackupJson(json, replaceAll = true)
+    assertEquals(2, parsed.personnelList.size)
+    assertEquals("Abderrahmane Belkacemi", parsed.personnelList[0].fullNameLatin)
+    assertEquals("", parsed.personnelList[1].fullName)
+    assertEquals("Abderrahmane Belkacemi", parsed.personnelList[1].fullNameLatin)
+    assertEquals("Abderrahmane Belkacemi", parsed.personnelList[1].getLocalizedName(ar))
   }
 }
 

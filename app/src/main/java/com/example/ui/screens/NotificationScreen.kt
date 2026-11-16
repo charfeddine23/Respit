@@ -597,7 +597,7 @@ fun NotificationScreen(
                     selectedNotificationForPopup = null
                     Toast.makeText(
                         context,
-                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(linkedPersonnel.rank, currentLang)} / ${linkedPersonnel.fullName}",
+                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(linkedPersonnel.rank, currentLang)} / ${linkedPersonnel.getLocalizedName(currentLang)}",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -1355,7 +1355,7 @@ private fun NotificationDetailPopup(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = "${formatRank(personnel.rank, currentLang)} / ${personnel.fullName}",
+                                                text = "${formatRank(personnel.rank, currentLang)} / ${personnel.getLocalizedName(currentLang)}",
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (isDarkMode) Color.White else Color(0xFF0F172A),

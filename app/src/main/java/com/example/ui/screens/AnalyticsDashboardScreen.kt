@@ -185,6 +185,7 @@ fun AnalyticsDashboardScreen(
         } else {
             report.personnelAnnualStats.filter { stat ->
                 stat.fullName.lowercase(Locale.getDefault()).contains(q) ||
+                    stat.fullNameLatin.lowercase(Locale.getDefault()).contains(q) ||
                     stat.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
                     formatRank(stat.rankRaw, currentLang).lowercase(Locale.getDefault()).contains(q)
             }
@@ -1583,7 +1584,7 @@ private fun PersonnelAnnualStatCard(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = stat.fullName,
+                            text = stat.getLocalizedName(currentLang),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Black,
                             color = textPrimary,

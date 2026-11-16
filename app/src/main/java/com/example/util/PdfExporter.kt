@@ -176,7 +176,7 @@ object PdfExporter {
 
                 val textY = currentY + 18f
                 canvas.drawText(formatRank(p.rank, lang), xRank, textY, rowTextPaint)
-                canvas.drawText(p.fullName, xName, textY, rowTextPaint)
+                canvas.drawText(p.getLocalizedName(lang), xName, textY, rowTextPaint)
                 canvas.drawText(formatWilaya(p.wilaya, lang, includeCode = false), xWilaya, textY, rowTextPaint)
                 canvas.drawText(p.registrationNumber, xReg, textY, rowTextPaint)
                 canvas.drawText(p.formattedStartDate, xStart, textY, rowTextPaint)

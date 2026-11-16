@@ -2,6 +2,7 @@ package com.example.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.util.AppLanguage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -12,6 +13,7 @@ data class LeaveRecord(
     val id: Long = 0,
     val personnelId: Long = 0,
     val personnelName: String,
+    val personnelNameLatin: String = "",
     val rank: String,
     val registrationNumber: String,
     val leaveType: String,
@@ -23,6 +25,17 @@ data class LeaveRecord(
     val notes: String = "",
     val createdAtMillis: Long = System.currentTimeMillis()
 ) {
+    fun getDisplayName(lang: AppLanguage): String = when (lang) {
+        AppLanguage.ARABIC -> personnelName.trim().ifBlank { personnelNameLatin.trim() }
+        AppLanguage.FRENCH, AppLanguage.ENGLISH -> personnelNameLatin.trim().ifBlank { personnelName.trim() }
+    }
+
+    fun matchesNameQuery(normalizedQuery: String): Boolean {
+        if (normalizedQuery.isEmpty()) return true
+        return personnelName.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
+            personnelNameLatin.lowercase(Locale.getDefault()).contains(normalizedQuery)
+    }
+
     val formattedStartDate: String
         get() {
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)

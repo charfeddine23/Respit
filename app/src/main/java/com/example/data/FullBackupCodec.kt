@@ -135,6 +135,8 @@ object FullBackupCodec {
                 JSONObject().apply {
                     put("id", p.id)
                     put("fullName", p.fullName)
+                    put("fullNameLatin", p.fullNameLatin)
+                    put("localizedName", p.getLocalizedName(language))
                     put("rank", p.rank)
                     put("rankLocalized", formatRank(p.rank, language))
                     put("wilaya", p.wilaya)
@@ -266,9 +268,13 @@ object FullBackupCodec {
         val importedPersonnel = mutableListOf<Personnel>()
         for (i in 0 until personnelArray.length()) {
             val obj = personnelArray.getJSONObject(i)
-            val fullName = obj.optString("fullName", "").ifBlank {
-                obj.optString("name", "غير محدد")
-            }
+            val fullNameLatin = obj.optString("fullNameLatin", "").ifBlank {
+                obj.optString("full_name_latin", "")
+            }.trim()
+            val rawFullName = obj.optString("fullName", "").ifBlank {
+                obj.optString("name", "")
+            }.trim()
+            val fullName = if (rawFullName.isBlank() && fullNameLatin.isBlank()) "غير محدد" else rawFullName
             val rank = normalizeRank(obj.optString("rank", "جندي - Djoundi / Soldat"))
             val regNumber = obj.optString("registrationNumber", "").ifBlank {
                 obj.optString("regNumber", "DZ-000000")
@@ -307,6 +313,7 @@ object FullBackupCodec {
                 Personnel(
                     id = id,
                     fullName = fullName,
+                    fullNameLatin = fullNameLatin,
                     rank = rank,
                     registrationNumber = regNumber,
                     startDateMillis = startMillis,

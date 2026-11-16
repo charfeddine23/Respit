@@ -13,7 +13,7 @@ import java.util.Calendar
 
 @Database(
     entities = [Personnel::class, LeaveRecord::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -46,6 +46,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE personnel ADD COLUMN fullNameLatin TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -53,7 +59,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "personnel_leaves_db"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                     .addCallback(AppDatabaseCallback(scope))
                     .build()
@@ -88,6 +94,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val seedPersonnel = listOf(
                     Personnel(
                         fullName = "عبد الرحمن بلقاسمي",
+                        fullNameLatin = "Abderrahmane Belkacemi",
                         rank = "ملازم أول - Lieutenant",
                         registrationNumber = "DZ-160492",
                         startDateMillis = getOffsetDateMillis(-7),
@@ -99,6 +106,7 @@ abstract class AppDatabase : RoomDatabase() {
                     ),
                     Personnel(
                         fullName = "محمد الأمين يحياوي",
+                        fullNameLatin = "Mohamed El Amine Yahiaoui",
                         rank = "مساعد رئيسي - Adjudant-Major",
                         registrationNumber = "DZ-318920",
                         startDateMillis = getOffsetDateMillis(-4),
@@ -110,6 +118,7 @@ abstract class AppDatabase : RoomDatabase() {
                     ),
                     Personnel(
                         fullName = "خالد بن عيسى الدراجي",
+                        fullNameLatin = "Khaled Ben Aissa Deradji",
                         rank = "رقيب أول - Sergent-Chef",
                         registrationNumber = "DZ-254100",
                         startDateMillis = getOffsetDateMillis(-10),
@@ -121,6 +130,7 @@ abstract class AppDatabase : RoomDatabase() {
                     ),
                     Personnel(
                         fullName = "ياسين بوجمعة صوالحي",
+                        fullNameLatin = "Yacine Boudjemaa Soualhi",
                         rank = "مساعد أول - Adjudant-Chef",
                         registrationNumber = "DZ-057812",
                         startDateMillis = getOffsetDateMillis(-12),
@@ -132,6 +142,7 @@ abstract class AppDatabase : RoomDatabase() {
                     ),
                     Personnel(
                         fullName = "حمزة بن زروال الماجري",
+                        fullNameLatin = "Hamza Ben Zeroual El Madjri",
                         rank = "عريف أول - Caporal-Chef",
                         registrationNumber = "DZ-194321",
                         startDateMillis = getOffsetDateMillis(-45),
@@ -143,6 +154,7 @@ abstract class AppDatabase : RoomDatabase() {
                     ),
                     Personnel(
                         fullName = "فاروق لعريبي الورتيلاني",
+                        fullNameLatin = "Farouk Laribi El Ouartilani",
                         rank = "نقيب - Capitaine",
                         registrationNumber = "DZ-098871",
                         startDateMillis = getOffsetDateMillis(3), // إجازة مبرمجة تبدأ بعد 3 أيام

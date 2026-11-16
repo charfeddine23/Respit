@@ -183,10 +183,11 @@ object LeaveNotificationHelper {
             AppLanguage.ARABIC -> "موافقة إجازة • ${personnel.totalLeaveDays} يوم"
         }
 
+        val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
+            AppLanguage.FRENCH -> "$rankStr • $displayName"
+            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summaryLine = when (appLang) {
@@ -250,19 +251,19 @@ object LeaveNotificationHelper {
             when {
                 !p.isReturnedToDuty && p.status == LeaveStatus.OVERDUE -> {
                     sendOverdueNotification(context, p, appLang)
-                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.fullName} — +${p.daysOverdue}d")
+                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.getLocalizedName(appLang)} — +${p.daysOverdue}d")
                 }
                 !p.isReturnedToDuty && p.status == LeaveStatus.RETURNING_TODAY -> {
                     sendReturningTodayNotification(context, p, appLang)
-                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.fullName} — ${p.formattedReturnDate}")
+                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.getLocalizedName(appLang)} — ${p.formattedReturnDate}")
                 }
                 !p.isReturnedToDuty && daysUntilStart in 0..2 && today <= startDay -> {
                     sendApproachingStartNotification(context, p, daysUntilStart, appLang)
-                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.fullName} — ${p.formattedStartDate}")
+                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.getLocalizedName(appLang)} — ${p.formattedStartDate}")
                 }
                 !p.isReturnedToDuty && daysUntilReturn in 1..2 -> {
                     sendApproachingReturnNotification(context, p, daysUntilReturn, appLang)
-                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.fullName} — ${p.formattedReturnDate}")
+                    summaryLines.add("${formatRank(p.rank, appLang)} ${p.getLocalizedName(appLang)} — ${p.formattedReturnDate}")
                 }
             }
         }
@@ -324,10 +325,11 @@ object LeaveNotificationHelper {
             AppLanguage.ARABIC -> "تأخر عن الدخول • +${personnel.daysOverdue} يوم"
         }
 
+        val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
+            AppLanguage.FRENCH -> "$rankStr • $displayName"
+            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {
@@ -410,10 +412,11 @@ object LeaveNotificationHelper {
             AppLanguage.ARABIC -> "انطلاق إجازة • $timeText"
         }
 
+        val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
+            AppLanguage.FRENCH -> "$rankStr • $displayName"
+            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {
@@ -428,7 +431,7 @@ object LeaveNotificationHelper {
             AppLanguage.ARABIC -> "• النوع: $leaveTypeStr ($timeText)\n• الفترة: ${personnel.formattedStartDate} ← ${personnel.formattedReturnDate}\n• الولاية: $wilayaStr"
         }
 
-        val badgeBitmap = createStatusBadgeBitmap(COLOR_EMERALD, COLOR_CYAN, extractInitials(personnel.fullName))
+        val badgeBitmap = createStatusBadgeBitmap(COLOR_EMERALD, COLOR_CYAN, extractInitials(displayName))
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notif_pulse)
@@ -472,10 +475,11 @@ object LeaveNotificationHelper {
             AppLanguage.ARABIC -> "الدخول اليوم"
         }
 
+        val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
+            AppLanguage.FRENCH -> "$rankStr • $displayName"
+            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {
@@ -535,10 +539,11 @@ object LeaveNotificationHelper {
             AppLanguage.ARABIC -> if (daysUntilReturn == 1L) "الدخول غداً" else "الدخول خلال يومين"
         }
 
+        val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ENGLISH -> "$rankStr • ${personnel.fullName}"
-            AppLanguage.ARABIC -> "$rankStr: ${personnel.fullName}"
+            AppLanguage.FRENCH -> "$rankStr • $displayName"
+            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {

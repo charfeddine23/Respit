@@ -304,6 +304,7 @@ fun RoomDatabaseScreen(
                             val q = searchQuery.trim().lowercase(Locale.getDefault())
                             personnelList.filter {
                                 it.fullName.lowercase(Locale.getDefault()).contains(q) ||
+                                        it.fullNameLatin.lowercase(Locale.getDefault()).contains(q) ||
                                         it.registrationNumber.lowercase(Locale.getDefault()).contains(q) ||
                                         it.rank.lowercase(Locale.getDefault()).contains(q) ||
                                         formatRank(it.rank, currentLang).lowercase(Locale.getDefault()).contains(q)
@@ -941,7 +942,7 @@ private fun RoomPersonnelRowCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = personnel.fullName,
+                        text = personnel.getLocalizedName(currentLang),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary

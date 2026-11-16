@@ -1385,7 +1385,7 @@ fun LeaveTrackerMainApp(
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(
                                                             context,
-                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.fullName}",
+                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.getLocalizedName(currentLang)}",
                                                             Toast.LENGTH_SHORT
                                                         ).show()
                                                     },
@@ -1683,7 +1683,7 @@ fun LeaveTrackerMainApp(
                                                                     viewModel.confirmReturnToDuty(person.id)
                                                                     Toast.makeText(
                                                                         context,
-                                                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.fullName}",
+                                                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.getLocalizedName(currentLang)}",
                                                                         Toast.LENGTH_SHORT
                                                                     ).show()
                                                                 },
@@ -1734,7 +1734,7 @@ fun LeaveTrackerMainApp(
                                                         viewModel.confirmReturnToDuty(person.id)
                                                         Toast.makeText(
                                                             context,
-                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.fullName}",
+                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.getLocalizedName(currentLang)}",
                                                             Toast.LENGTH_SHORT
                                                         ).show()
                                                     },
@@ -1796,7 +1796,7 @@ fun LeaveTrackerMainApp(
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                                 Text(
-                                                    text = "${deletedPerson.fullName} — ${AppStrings.get("trash_moved_toast", currentLang)}",
+                                                    text = "${deletedPerson.getLocalizedName(currentLang)} — ${AppStrings.get("trash_moved_toast", currentLang)}",
                                                     color = Color.White,
                                                     fontSize = 12.sp,
                                                     fontWeight = FontWeight.SemiBold,
@@ -1862,10 +1862,11 @@ fun LeaveTrackerMainApp(
                 showAddEditDialog = false
                 personnelToEdit = null
             },
-            onSave = { id, fullName, rank, regNumber, startMillis, returnMillis, isDuty, leaveType, wilaya, notes ->
+            onSave = { id, fullName, fullNameLatin, rank, regNumber, startMillis, returnMillis, isDuty, leaveType, wilaya, notes ->
                 viewModel.savePersonnel(
                     id = id,
                     fullName = fullName,
+                    fullNameLatin = fullNameLatin,
                     rank = rank,
                     registrationNumber = regNumber,
                     startDateMillis = startMillis,
@@ -1901,7 +1902,7 @@ fun LeaveTrackerMainApp(
             },
             text = {
                 val qMark = if (currentLang == AppLanguage.ARABIC) "؟" else "?"
-                Text("${AppStrings.get("confirm_delete_message", currentLang)} ${formatRank(target.rank, currentLang)} / ${target.fullName} (${target.registrationNumber})$qMark")
+                Text("${AppStrings.get("confirm_delete_message", currentLang)} ${formatRank(target.rank, currentLang)} / ${target.getLocalizedName(currentLang)} (${target.registrationNumber})$qMark")
             },
             confirmButton = {
                 TextButton(

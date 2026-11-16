@@ -357,7 +357,7 @@ object ExcelXlsxExporter {
 
             sb.append("""<row r="$rowNum" ht="23" customHeight="1">""")
             appendNumberCell(sb, "A$rowNum", (index + 1).toLong(), styleId = centerStyle)
-            appendTextCell(sb, "B$rowNum", person.fullName, styleId = textStyle)
+            appendTextCell(sb, "B$rowNum", person.getLocalizedName(lang), styleId = textStyle)
             appendTextCell(sb, "C$rowNum", formatRank(person.rank, lang), styleId = centerStyle)
             appendTextCell(sb, "D$rowNum", person.registrationNumber, styleId = centerStyle)
             appendTextCell(sb, "E$rowNum", formatWilaya(person.wilaya, lang, includeCode = false), styleId = centerStyle)
