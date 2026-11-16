@@ -54,15 +54,30 @@ class SettingsManager(context: Context) {
         const val DEFAULT_DUTY_THRESHOLD = 45
     }
 
+    private fun safeGetString(key: String, default: String?): String? =
+        try { prefs.getString(key, default) } catch (_: ClassCastException) { default }
+
+    private fun safeGetBoolean(key: String, default: Boolean): Boolean =
+        try { prefs.getBoolean(key, default) } catch (_: ClassCastException) { default }
+
+    private fun safeGetInt(key: String, default: Int): Int =
+        try { prefs.getInt(key, default) } catch (_: ClassCastException) { default }
+
+    private fun safeGetLong(key: String, default: Long): Long =
+        try { prefs.getLong(key, default) } catch (_: ClassCastException) { default }
+
+    private fun safeGetStringSet(key: String, default: Set<String>): Set<String> =
+        try { prefs.getStringSet(key, default) ?: default } catch (_: ClassCastException) { default }
+
     var themeMode: AppThemeMode
         get() {
-            val code = prefs.getString(KEY_THEME_MODE, null)
+            val code = safeGetString(KEY_THEME_MODE, null)
             return if (code != null) {
                 AppThemeMode.fromCode(code)
             } else {
                 // Default to LIGHT mode unless explicitly saved as dark mode
                 if (prefs.contains(KEY_DARK_MODE)) {
-                    if (prefs.getBoolean(KEY_DARK_MODE, false)) AppThemeMode.DARK else AppThemeMode.LIGHT
+                    if (safeGetBoolean(KEY_DARK_MODE, false)) AppThemeMode.DARK else AppThemeMode.LIGHT
                 } else {
                     AppThemeMode.LIGHT
                 }
@@ -82,12 +97,12 @@ class SettingsManager(context: Context) {
         }
 
     var dutyThresholdDays: Int
-        get() = prefs.getInt(KEY_DUTY_THRESHOLD, DEFAULT_DUTY_THRESHOLD)
+        get() = safeGetInt(KEY_DUTY_THRESHOLD, DEFAULT_DUTY_THRESHOLD)
         set(value) = prefs.edit().putInt(KEY_DUTY_THRESHOLD, value).apply()
 
     var themeStyle: AppThemeStyle
         get() {
-            val code = prefs.getString(KEY_THEME_STYLE, null)
+            val code = safeGetString(KEY_THEME_STYLE, null)
             return if (code != null) AppThemeStyle.fromCode(code) else AppThemeStyle.NEUMORPHISM
         }
         set(value) {
@@ -95,31 +110,31 @@ class SettingsManager(context: Context) {
         }
 
     var selectedThemeEngineId: String
-        get() = prefs.getString(KEY_THEME_ENGINE_ID, "") ?: ""
+        get() = safeGetString(KEY_THEME_ENGINE_ID, "") ?: ""
         set(value) = prefs.edit().putString(KEY_THEME_ENGINE_ID, value).apply()
 
     var isPinEnabled: Boolean
-        get() = prefs.getBoolean(KEY_PIN_ENABLED, false)
+        get() = safeGetBoolean(KEY_PIN_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_PIN_ENABLED, value).apply()
 
     var pinCode: String
-        get() = prefs.getString(KEY_PIN_CODE, "") ?: ""
+        get() = safeGetString(KEY_PIN_CODE, "") ?: ""
         set(value) = prefs.edit().putString(KEY_PIN_CODE, value).apply()
 
     var securityLockType: String
-        get() = prefs.getString(KEY_SECURITY_LOCK_TYPE, "PIN") ?: "PIN"
+        get() = safeGetString(KEY_SECURITY_LOCK_TYPE, "PIN") ?: "PIN"
         set(value) = prefs.edit().putString(KEY_SECURITY_LOCK_TYPE, value).apply()
 
     var patternCode: String
-        get() = prefs.getString(KEY_PATTERN_CODE, "") ?: ""
+        get() = safeGetString(KEY_PATTERN_CODE, "") ?: ""
         set(value) = prefs.edit().putString(KEY_PATTERN_CODE, value).apply()
 
     var isBiometricEnabled: Boolean
-        get() = prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
+        get() = safeGetBoolean(KEY_BIOMETRIC_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_BIOMETRIC_ENABLED, value).apply()
 
     var isFingerprintEnabled: Boolean
-        get() = prefs.getBoolean(KEY_FINGERPRINT_ENABLED, false) || prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
+        get() = safeGetBoolean(KEY_FINGERPRINT_ENABLED, false) || safeGetBoolean(KEY_BIOMETRIC_ENABLED, false)
         set(value) {
             prefs.edit()
                 .putBoolean(KEY_FINGERPRINT_ENABLED, value)
@@ -128,48 +143,48 @@ class SettingsManager(context: Context) {
         }
 
     var isPasskeyEnabled: Boolean
-        get() = prefs.getBoolean(KEY_PASSKEY_ENABLED, false)
+        get() = safeGetBoolean(KEY_PASSKEY_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_PASSKEY_ENABLED, value).apply()
 
     var language: String
-        get() = prefs.getString(KEY_LANGUAGE, "ar") ?: "ar"
+        get() = safeGetString(KEY_LANGUAGE, "ar") ?: "ar"
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
 
     var pinnedNotificationIds: Set<String>
-        get() = prefs.getStringSet(KEY_PINNED_NOTIFICATIONS, emptySet()) ?: emptySet()
+        get() = safeGetStringSet(KEY_PINNED_NOTIFICATIONS, emptySet()).toSet()
         set(value) = prefs.edit().putStringSet(KEY_PINNED_NOTIFICATIONS, value).apply()
 
     var dismissedNotificationIds: Set<String>
-        get() = prefs.getStringSet(KEY_DISMISSED_NOTIFICATIONS, emptySet()) ?: emptySet()
+        get() = safeGetStringSet(KEY_DISMISSED_NOTIFICATIONS, emptySet()).toSet()
         set(value) = prefs.edit().putStringSet(KEY_DISMISSED_NOTIFICATIONS, value).apply()
 
     var isFocusMode: Boolean
-        get() = prefs.getBoolean(KEY_FOCUS_MODE, false)
+        get() = safeGetBoolean(KEY_FOCUS_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_FOCUS_MODE, value).apply()
 
     var isGoogleDriveSyncEnabled: Boolean
-        get() = prefs.getBoolean(KEY_DRIVE_SYNC_ENABLED, false)
+        get() = safeGetBoolean(KEY_DRIVE_SYNC_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_DRIVE_SYNC_ENABLED, value).apply()
 
     var lastGoogleDriveBackupTime: Long
-        get() = prefs.getLong(KEY_LAST_DRIVE_BACKUP, 0L)
+        get() = safeGetLong(KEY_LAST_DRIVE_BACKUP, 0L)
         set(value) = prefs.edit().putLong(KEY_LAST_DRIVE_BACKUP, value).apply()
 
     var isDynamicAnimationsEnabled: Boolean
-        get() = prefs.getBoolean(KEY_DYNAMIC_ANIMATIONS, true) // default true for lively UI
+        get() = safeGetBoolean(KEY_DYNAMIC_ANIMATIONS, true) // default true for lively UI
         set(value) = prefs.edit().putBoolean(KEY_DYNAMIC_ANIMATIONS, value).apply()
 
     var isLivingLuxuryMode: Boolean
-        get() = prefs.getBoolean(KEY_LIVING_LUXURY_MODE, false)
+        get() = safeGetBoolean(KEY_LIVING_LUXURY_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_LIVING_LUXURY_MODE, value).apply()
 
     var isNoScreenshotEnabled: Boolean
-        get() = prefs.getBoolean(KEY_NO_SCREENSHOT_ENABLED, false) // Disabled by default; toggle in Security Settings
+        get() = safeGetBoolean(KEY_NO_SCREENSHOT_ENABLED, false) // Disabled by default; toggle in Security Settings
         set(value) = prefs.edit().putBoolean(KEY_NO_SCREENSHOT_ENABLED, value).apply()
 
     var recentSearches: List<String>
         get() {
-            val raw = prefs.getString("pref_recent_searches", null) ?: return emptyList()
+            val raw = safeGetString("pref_recent_searches", null) ?: return emptyList()
             return try {
                 val array = org.json.JSONArray(raw)
                 val list = mutableListOf<String>()

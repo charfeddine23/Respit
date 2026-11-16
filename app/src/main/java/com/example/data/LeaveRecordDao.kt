@@ -37,6 +37,9 @@ interface LeaveRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(leaves: List<LeaveRecord>)
 
+    @Query("SELECT * FROM leave_records WHERE (personnelId = :personnelId OR (registrationNumber = :regNo AND :regNo != '')) AND startDateMillis = :startMillis AND returnDateMillis = :returnMillis ORDER BY id DESC LIMIT 1")
+    suspend fun findMatchingLeave(personnelId: Long, regNo: String, startMillis: Long, returnMillis: Long): LeaveRecord?
+
     @Update
     suspend fun update(leave: LeaveRecord)
 }

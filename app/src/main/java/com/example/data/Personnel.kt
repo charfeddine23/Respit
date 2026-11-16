@@ -140,12 +140,22 @@ data class Personnel(
 
         return if (lastLeave != null) {
             val refStart = toStartOfDay(lastLeave.returnDateMillis)
-            val days = signedDaysBetween(refStart, todayStart)
+            val days = signedDaysBetween(refStart, todayStart).coerceAtLeast(0L)
             DutyReferenceInfo(
                 referenceDateMillis = refStart,
                 source = ReferenceDateSource.LAST_LEAVE_RETURN,
                 daysSinceReference = days,
                 lastLeaveStartMillis = toStartOfDay(lastLeave.startDateMillis),
+                lastLeaveReturnMillis = refStart
+            )
+        } else if (returnDateMillis > 0L) {
+            val refStart = toStartOfDay(returnDateMillis)
+            val days = signedDaysBetween(refStart, todayStart).coerceAtLeast(0L)
+            DutyReferenceInfo(
+                referenceDateMillis = refStart,
+                source = ReferenceDateSource.LAST_LEAVE_RETURN,
+                daysSinceReference = days,
+                lastLeaveStartMillis = if (startDateMillis > 0L) toStartOfDay(startDateMillis) else null,
                 lastLeaveReturnMillis = refStart
             )
         } else {
@@ -209,7 +219,8 @@ data class Personnel(
         get() {
             val today = toStartOfDay(System.currentTimeMillis())
             val returnDay = toStartOfDay(returnDateMillis)
-            return signedDaysBetween(returnDay, today)
+            val rawDays = signedDaysBetween(returnDay, today)
+            return if (isReturnedToDuty) rawDays.coerceAtLeast(0L) else rawDays
         }
 
     // هل الفرد مستحق للإجازة (تجاوز عتبة الخدمة المحددة)

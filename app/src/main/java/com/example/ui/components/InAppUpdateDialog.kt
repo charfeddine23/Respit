@@ -743,6 +743,7 @@ private fun UpdateHeroEmblem(
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
+            if (size.minDimension <= 0f) return@Canvas
             val c = Offset(size.width / 2f, size.height / 2f)
             val auraAlpha = (if (isDarkMode) 0.46f else 0.30f) * glowPulse
 
@@ -754,10 +755,10 @@ private fun UpdateHeroEmblem(
                         Color.Transparent
                     ),
                     center = c,
-                    radius = size.minDimension * 0.56f
+                    radius = (size.minDimension * 0.56f).coerceAtLeast(1f)
                 ),
                 center = c,
-                radius = size.minDimension * 0.56f
+                radius = (size.minDimension * 0.56f).coerceAtLeast(1f)
             )
 
             drawCircle(
@@ -796,7 +797,7 @@ private fun UpdateHeroEmblem(
                         listOf(Color(0xFFFFFFFF), Color(0xFFF0F9FF))
                     },
                     center = c,
-                    radius = size.minDimension * 0.36f
+                    radius = (size.minDimension * 0.36f).coerceAtLeast(1f)
                 ),
                 radius = size.minDimension * 0.36f,
                 center = c
@@ -958,7 +959,7 @@ private fun UpdateHeroEmblem(
                         brush = Brush.radialGradient(
                             colors = listOf(Color(0xFF7DD3FC), Color(0xFF0284C7)),
                             center = Offset(cx - w * 0.02f, h * 0.415f),
-                            radius = w * 0.07f
+                            radius = (w * 0.07f).coerceAtLeast(1f)
                         ),
                         radius = w * 0.062f,
                         center = windowCenter

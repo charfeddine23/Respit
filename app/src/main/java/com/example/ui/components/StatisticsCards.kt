@@ -235,20 +235,23 @@ fun StatisticsSection(
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(modifier = Modifier.size(canvasSize)) {
+                            if (size.minDimension <= 0f) return@Canvas
                             val strokeWidth = strokeWidthDp.toPx()
                             val trackColor = if (isDarkMode) Color(0x26334155) else Color(0x33CBD5E1)
 
                             if (isLivingLuxury) {
                                 val haloColor = if (isDarkMode) CyanGlow else VibrantCyan
+                                val haloRadius = (size.minDimension * 0.62f).coerceAtLeast(1f)
                                 drawCircle(
                                     brush = Brush.radialGradient(
                                         listOf(
                                             haloColor.copy(alpha = 0.22f * pulseAlpha),
                                             EmeraldSuccess.copy(alpha = 0.12f * pulseAlpha),
                                             Color.Transparent
-                                        )
+                                        ),
+                                        radius = haloRadius
                                     ),
-                                    radius = size.minDimension * 0.62f
+                                    radius = haloRadius
                                 )
                             }
 

@@ -418,6 +418,7 @@ fun LeaveTrackerMainApp(
                     }
                 }
                 Lifecycle.Event.ON_RESUME -> {
+                    viewModel.refreshDateSensitiveState()
                     viewModel.refreshInstallPermissionState()
                 }
                 else -> {}
@@ -2124,11 +2125,12 @@ private fun HeaderUpdateDownloadButton(
             )
             .drawWithContent {
                 drawContent()
+                if (size.width <= 0f || size.height <= 0f) return@drawWithContent
                 val strokePx = 1.6.dp.toPx()
                 val insetPx = 1.4.dp.toPx()
                 val cx = size.width / 2f
                 val cy = size.height / 2f
-                val radius = size.minDimension / 2f
+                val radius = (size.minDimension / 2f).coerceAtLeast(1f)
                 val rad = Math.toRadians(ringRotation.toDouble())
                 val dx = (cos(rad) * radius).toFloat()
                 val dy = (sin(rad) * radius).toFloat()

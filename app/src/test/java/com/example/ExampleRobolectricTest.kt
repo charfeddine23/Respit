@@ -545,30 +545,51 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `verify duty counting starts from last leave return date or addedAtMillis when no leaves exist`() {
+  fun `verify duty counting starts 1 day after last return date and falls back to addedAtMillis only when returnDateMillis is unset`() {
     val added50DaysAgo = getOffsetDateMillis(-50)
     val lastLeaveStart = getOffsetDateMillis(-25)
     val lastLeaveReturn15DaysAgo = getOffsetDateMillis(-15)
     val today = getOffsetDateMillis(0)
 
-    // Case 1: Person has NO leave records in database -> count starts from addedAtMillis (50 days)
-    val personWithoutLeaves = Personnel(
+    // Case 1: Person has NO returnDateMillis (<= 0) and NO leave records -> falls back to addedAtMillis (50 days)
+    val personNoDates = Personnel(
       id = 10L,
       fullName = "عمر بن يوسف",
       rank = "رقيب - Sergent",
       registrationNumber = "DZ-101010",
-      startDateMillis = getOffsetDateMillis(-5),
-      returnDateMillis = getOffsetDateMillis(-2),
+      startDateMillis = 0L,
+      returnDateMillis = 0L,
       isReturnedToDuty = true,
       addedAtMillis = added50DaysAgo
     )
-    val noLeaveInfo = personWithoutLeaves.computeDutyReferenceInfo(emptyList(), today)
-    assertEquals(com.example.data.ReferenceDateSource.PERSONNEL_ADDED_DATE, noLeaveInfo.source)
-    assertEquals(added50DaysAgo, noLeaveInfo.referenceDateMillis)
-    assertEquals(50L, noLeaveInfo.daysSinceReference)
-    assertTrue(personWithoutLeaves.isEligibleForLeave(45, emptyList(), today))
+    val noDateInfo = personNoDates.computeDutyReferenceInfo(emptyList(), today)
+    assertEquals(com.example.data.ReferenceDateSource.PERSONNEL_ADDED_DATE, noDateInfo.source)
+    assertEquals(added50DaysAgo, noDateInfo.referenceDateMillis)
+    assertEquals(50L, noDateInfo.daysSinceReference)
+    assertTrue(personNoDates.isEligibleForLeave(45, emptyList(), today))
 
-    // Case 2: Person HAS leave records -> count starts from returnDateMillis of latest leave (15 days)
+    // Case 2: Person added directly as On Duty with returnDateMillis = 12 days ago and NO LeaveRecord yet
+    // -> must count from returnDateMillis (12 days), NOT addedAtMillis (0 days)
+    val directOnDuty = Personnel(
+      id = 11L,
+      fullName = "عمر بن يوسف",
+      rank = "رقيب - Sergent",
+      registrationNumber = "DZ-101011",
+      startDateMillis = getOffsetDateMillis(-22),
+      returnDateMillis = getOffsetDateMillis(-12),
+      isReturnedToDuty = true,
+      addedAtMillis = today
+    )
+    val directInfo = directOnDuty.computeDutyReferenceInfo(emptyList(), today)
+    assertEquals(com.example.data.ReferenceDateSource.LAST_LEAVE_RETURN, directInfo.source)
+    assertEquals(getOffsetDateMillis(-12), directInfo.referenceDateMillis)
+    assertEquals(12L, directInfo.daysSinceReference)
+    // Day of return -> 0; 1 day after return -> 1; early return before return date -> clamped to 0
+    assertEquals(0L, directOnDuty.computeDutyReferenceInfo(emptyList(), getOffsetDateMillis(-12)).daysSinceReference)
+    assertEquals(1L, directOnDuty.computeDutyReferenceInfo(emptyList(), getOffsetDateMillis(-11)).daysSinceReference)
+    assertEquals(0L, directOnDuty.computeDutyReferenceInfo(emptyList(), getOffsetDateMillis(-15)).daysSinceReference)
+
+    // Case 3: Person HAS leave records -> count starts from returnDateMillis of latest leave (15 days)
     val leaves = listOf(
       LeaveRecord(
         id = 1L,
@@ -593,11 +614,11 @@ class ExampleRobolectricTest {
         durationDays = 10L
       )
     )
-    val withLeaveInfo = personWithoutLeaves.computeDutyReferenceInfo(leaves, today)
+    val withLeaveInfo = personNoDates.computeDutyReferenceInfo(leaves, today)
     assertEquals(com.example.data.ReferenceDateSource.LAST_LEAVE_RETURN, withLeaveInfo.source)
     assertEquals(lastLeaveReturn15DaysAgo, withLeaveInfo.referenceDateMillis)
     assertEquals(15L, withLeaveInfo.daysSinceReference)
-    assertTrue(!personWithoutLeaves.isEligibleForLeave(45, leaves, today))
+    assertTrue(!personNoDates.isEligibleForLeave(45, leaves, today))
   }
 
   @Test
@@ -632,8 +653,8 @@ class ExampleRobolectricTest {
       fullName = "سمير بن علي",
       rank = "رقيب أول - Sergent-Chef",
       registrationNumber = "DZ-222",
-      startDateMillis = dateInYear(2026, Calendar.JANUARY, 1),
-      returnDateMillis = dateInYear(2026, Calendar.JANUARY, 1),
+      startDateMillis = 0L,
+      returnDateMillis = 0L,
       isReturnedToDuty = true,
       addedAtMillis = dateInYear(2026, Calendar.APRIL, 1) // 80 days before June 20
     )
@@ -762,7 +783,8 @@ class ExampleRobolectricTest {
         AppDatabase.MIGRATION_4_5,
         AppDatabase.MIGRATION_5_6,
         AppDatabase.MIGRATION_6_7,
-        AppDatabase.MIGRATION_7_8
+        AppDatabase.MIGRATION_7_8,
+        AppDatabase.MIGRATION_8_9
       )
       .allowMainThreadQueries()
       .build()
@@ -1090,7 +1112,7 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `verify MIGRATION_7_8 adds fullNameLatin column preserving existing personnel`() {
+  fun `verify MIGRATION_7_8 and MIGRATION_8_9 migrate both personnel and leave_records without data loss`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val dbFile = context.getDatabasePath("test_mig_7_8.db")
     if (dbFile.exists()) dbFile.delete()
@@ -1142,11 +1164,17 @@ class ExampleRobolectricTest {
       VALUES ('خالد منصور', 'ملازم أول - Lieutenant', 'DZ-7878', 1000, 2000, 0, 'إجازة', '16 - الجزائر - Alger', '', 5000, 0, 0, 0, 0)
       """.trimIndent()
     )
+    sqliteDb.execSQL(
+      """
+      INSERT INTO leave_records (personnelId, personnelName, rank, registrationNumber, leaveType, startDateMillis, returnDateMillis, durationDays, statusText, destinationWilaya, notes, createdAtMillis)
+      VALUES (1, 'خالد منصور', 'ملازم أول - Lieutenant', 'DZ-7878', 'إجازة', 1000, 2000, 10, 'في إجازة', '16 - الجزائر - Alger', '', 5000)
+      """.trimIndent()
+    )
     sqliteDb.version = 7
     sqliteDb.close()
 
     val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, "test_mig_7_8.db")
-      .addMigrations(AppDatabase.MIGRATION_7_8)
+      .addMigrations(AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9)
       .allowMainThreadQueries()
       .build()
 
@@ -1155,8 +1183,113 @@ class ExampleRobolectricTest {
     assertEquals("خالد منصور", list[0].fullName)
     assertEquals("", list[0].fullNameLatin)
     assertEquals("خالد منصور", list[0].getLocalizedName(com.example.util.AppLanguage.ENGLISH))
+
+    val leaves = runBlocking { migratedDb.leaveRecordDao().getAllLeaves().first() }
+    assertEquals(1, leaves.size)
+    assertEquals("خالد منصور", leaves[0].personnelName)
+    assertEquals("", leaves[0].personnelNameLatin)
+
     migratedDb.close()
     dbFile.delete()
+  }
+
+  @Test
+  fun `verify MIGRATION_8_9 repairs incomplete v8 database missing leave_records personnelNameLatin`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val dbFile = context.getDatabasePath("test_mig_8_9_repair.db")
+    if (dbFile.exists()) dbFile.delete()
+
+    val sqliteDb = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(dbFile, null)
+    sqliteDb.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS personnel (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        fullName TEXT NOT NULL,
+        fullNameLatin TEXT NOT NULL DEFAULT '',
+        rank TEXT NOT NULL,
+        registrationNumber TEXT NOT NULL,
+        startDateMillis INTEGER NOT NULL,
+        returnDateMillis INTEGER NOT NULL,
+        isReturnedToDuty INTEGER NOT NULL,
+        leaveType TEXT NOT NULL,
+        wilaya TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        addedAtMillis INTEGER NOT NULL DEFAULT 0,
+        isPinned INTEGER NOT NULL DEFAULT 0,
+        pinnedAtMillis INTEGER NOT NULL DEFAULT 0,
+        isDeleted INTEGER NOT NULL DEFAULT 0,
+        deletedAtMillis INTEGER NOT NULL DEFAULT 0
+      )
+      """.trimIndent()
+    )
+    sqliteDb.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS leave_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        personnelId INTEGER NOT NULL,
+        personnelName TEXT NOT NULL,
+        rank TEXT NOT NULL,
+        registrationNumber TEXT NOT NULL,
+        leaveType TEXT NOT NULL,
+        startDateMillis INTEGER NOT NULL,
+        returnDateMillis INTEGER NOT NULL,
+        durationDays INTEGER NOT NULL,
+        statusText TEXT NOT NULL,
+        destinationWilaya TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        createdAtMillis INTEGER NOT NULL
+      )
+      """.trimIndent()
+    )
+    sqliteDb.execSQL(
+      """
+      INSERT INTO personnel (fullName, fullNameLatin, rank, registrationNumber, startDateMillis, returnDateMillis, isReturnedToDuty, leaveType, wilaya, notes, addedAtMillis, isPinned, pinnedAtMillis, isDeleted, deletedAtMillis)
+      VALUES ('سمير بن صالح', 'Samir Ben Salah', 'نقيب - Capitaine', 'DZ-8989', 1000, 2000, 1, 'إجازة', '16 - الجزائر - Alger', '', 5000, 0, 0, 0, 0)
+      """.trimIndent()
+    )
+    sqliteDb.execSQL(
+      """
+      INSERT INTO leave_records (personnelId, personnelName, rank, registrationNumber, leaveType, startDateMillis, returnDateMillis, durationDays, statusText, destinationWilaya, notes, createdAtMillis)
+      VALUES (1, 'سمير بن صالح', 'نقيب - Capitaine', 'DZ-8989', 'إجازة', 1000, 2000, 10, 'مكتملة', '16 - الجزائر - Alger', '', 5000)
+      """.trimIndent()
+    )
+    sqliteDb.version = 8
+    sqliteDb.close()
+
+    val repairedDb = Room.databaseBuilder(context, AppDatabase::class.java, "test_mig_8_9_repair.db")
+      .addMigrations(AppDatabase.MIGRATION_8_9)
+      .allowMainThreadQueries()
+      .build()
+
+    val personnel = runBlocking { repairedDb.personnelDao().getAllPersonnel().first() }
+    val leaves = runBlocking { repairedDb.leaveRecordDao().getAllLeaves().first() }
+    assertEquals(1, personnel.size)
+    assertEquals("Samir Ben Salah", personnel[0].fullNameLatin)
+    assertEquals(1, leaves.size)
+    assertEquals("", leaves[0].personnelNameLatin)
+
+    repairedDb.close()
+    dbFile.delete()
+  }
+
+  @Test
+  fun `verify SettingsManager handles corrupted preference types without ClassCastException`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val prefs = context.getSharedPreferences("leave_tracker_prefs", Context.MODE_PRIVATE)
+    prefs.edit()
+      .putInt("pref_theme_mode", 999)
+      .putString("pref_living_luxury_mode", "not_a_boolean")
+      .putString("pref_duty_threshold", "not_an_int")
+      .putString("pref_last_drive_backup_time", "not_a_long")
+      .putInt("pref_recent_searches", 42)
+      .commit()
+
+    val settings = com.example.data.SettingsManager(context)
+    assertEquals(com.example.data.AppThemeMode.LIGHT, settings.themeMode)
+    assertTrue(!settings.isLivingLuxuryMode)
+    assertEquals(com.example.data.SettingsManager.DEFAULT_DUTY_THRESHOLD, settings.dutyThresholdDays)
+    assertEquals(0L, settings.lastGoogleDriveBackupTime)
+    assertEquals(emptyList<String>(), settings.recentSearches)
   }
 
   @Test
@@ -1236,6 +1369,74 @@ class ExampleRobolectricTest {
     assertEquals("", parsed.personnelList[1].fullName)
     assertEquals("Abderrahmane Belkacemi", parsed.personnelList[1].fullNameLatin)
     assertEquals("Abderrahmane Belkacemi", parsed.personnelList[1].getLocalizedName(ar))
+  }
+
+  @Test
+  fun `verify PersonnelViewModel savePersonnel on-duty records leave and updates Days Served from last return date`() = runBlocking {
+    val app = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val vm = com.example.ui.PersonnelViewModel(app)
+    val db = AppDatabase.getDatabase(app, this)
+
+    val start15DaysAgo = getOffsetDateMillis(-15)
+    val return6DaysAgo = getOffsetDateMillis(-6)
+    val return2DaysAgo = getOffsetDateMillis(-2)
+
+    vm.savePersonnel(
+      fullName = "سفيان بن عمار",
+      fullNameLatin = "Sofiane Benamar",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-909090",
+      startDateMillis = start15DaysAgo,
+      returnDateMillis = return6DaysAgo,
+      isReturnedToDuty = true,
+      leaveType = "عطلة سنوية",
+      wilaya = "16 - الجزائر - Alger",
+      notes = ""
+    )
+
+    // Pump main looper so viewModelScope coroutines dispatch and complete Room writes
+    var inserted: Personnel? = null
+    for (i in 0 until 60) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      inserted = db.personnelDao().getAllPersonnel().first().firstOrNull { it.registrationNumber == "DZ-909090" }
+      if (inserted != null) break
+      kotlinx.coroutines.delay(50)
+    }
+    assertTrue(inserted != null)
+    val person = inserted!!
+
+    var leaves = db.leaveRecordDao().getAllLeaves().first()
+    for (i in 0 until 60) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      leaves = db.leaveRecordDao().getAllLeaves().first()
+      if (leaves.any { it.registrationNumber == "DZ-909090" }) break
+      kotlinx.coroutines.delay(50)
+    }
+    assertEquals(1, leaves.count { it.registrationNumber == "DZ-909090" })
+    assertEquals(6L, person.computeDutyReferenceInfo(leaves, getOffsetDateMillis(0)).daysSinceReference)
+
+    // Edit returnDateMillis while still isReturnedToDuty = true -> Days Served must update to 2L
+    vm.savePersonnel(
+      id = person.id,
+      fullName = person.fullName,
+      fullNameLatin = person.fullNameLatin,
+      rank = person.rank,
+      registrationNumber = person.registrationNumber,
+      startDateMillis = start15DaysAgo,
+      returnDateMillis = return2DaysAgo,
+      isReturnedToDuty = true,
+      leaveType = person.leaveType,
+      wilaya = person.wilaya,
+      notes = ""
+    )
+    var updatedLeaves = db.leaveRecordDao().getAllLeaves().first()
+    for (i in 0 until 60) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      updatedLeaves = db.leaveRecordDao().getAllLeaves().first()
+      if (updatedLeaves.any { it.registrationNumber == "DZ-909090" && it.returnDateMillis == return2DaysAgo }) break
+      kotlinx.coroutines.delay(50)
+    }
+    assertEquals(2L, person.computeDutyReferenceInfo(updatedLeaves, getOffsetDateMillis(0)).daysSinceReference)
   }
 }
 

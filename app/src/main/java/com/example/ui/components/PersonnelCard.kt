@@ -693,54 +693,6 @@ fun PersonnelCard(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-            if (personnel.isPinned) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(50.dp),
-                        color = AmberWarning.copy(alpha = if (isDarkMode) 0.22f else 0.14f),
-                        border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.6f)),
-                        onClick = onTogglePin,
-                        modifier = Modifier.testTag("pinned_badge_${personnel.id}")
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PushPin,
-                                contentDescription = AppStrings.get("pinned_badge", currentLang),
-                                tint = AmberWarning,
-                                modifier = Modifier
-                                    .size(13.dp)
-                                    .rotate(30f)
-                            )
-                            Text(
-                                text = AppStrings.get("pinned_badge", currentLang),
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isDarkMode) Color(0xFFFBBF24) else Color(0xFFB45309)
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = AppStrings.get("pin_tap_to_unpin", currentLang),
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onTogglePin() }
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
-            }
-
             // Coordinated Card Header:
             // Leading side: Days count badge + Full Name + FlowRow(Rank + Reg Number)
             // Trailing side: Status Badge + Wilaya (without code) directly underneath
@@ -800,16 +752,42 @@ fun PersonnelCard(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        Text(
-                            text = personnel.getLocalizedName(currentLang),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = if (isDarkMode) Color.White else SlateTextPrimary,
-                            fontSize = 15.5.sp,
-                            lineHeight = 20.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = personnel.getLocalizedName(currentLang),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = if (isDarkMode) Color.White else SlateTextPrimary,
+                                fontSize = 15.5.sp,
+                                lineHeight = 20.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            if (personnel.isPinned) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .clickable(onClick = onTogglePin)
+                                        .padding(3.dp)
+                                        .testTag("pinned_badge_${personnel.id}")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PushPin,
+                                        contentDescription = AppStrings.get("unpin_action", currentLang),
+                                        tint = AmberWarning,
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .rotate(30f)
+                                    )
+                                }
+                            }
+                        }
 
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),

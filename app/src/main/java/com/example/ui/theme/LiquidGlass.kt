@@ -184,7 +184,8 @@ fun DynamicAuroraBackground(
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
-        val baseDim = sqrt(w * h)
+        if (w <= 0f || h <= 0f) return@Canvas
+        val baseDim = sqrt(w * h).coerceAtLeast(1f)
         val breathExpand = if (isLiving) 1f + 0.14f * breathWave else 1f
 
         drawRect(brush = staticBrush)
@@ -192,7 +193,7 @@ fun DynamicAuroraBackground(
         if (effectiveDark) {
             val orb1X = w * (0.65f + 0.22f * sin(t1 * Math.PI).toFloat())
             val orb1Y = h * (0.15f + 0.12f * cos(t1 * Math.PI).toFloat())
-            val orb1Radius = baseDim * (0.46f + 0.08f * sin(t2 * Math.PI).toFloat()) * breathExpand
+            val orb1Radius = (baseDim * (0.46f + 0.08f * sin(t2 * Math.PI).toFloat()) * breathExpand).coerceAtLeast(1f)
             drawCircle(
                 brush = Brush.radialGradient(orb1Colors, center = Offset(orb1X, orb1Y), radius = orb1Radius),
                 center = Offset(orb1X, orb1Y),
@@ -201,7 +202,7 @@ fun DynamicAuroraBackground(
 
             val orb2X = w * (0.18f + 0.16f * cos(t2 * Math.PI).toFloat())
             val orb2Y = h * (0.52f + 0.10f * sin(t2 * Math.PI).toFloat())
-            val orb2Radius = baseDim * (0.48f + 0.06f * cos(t3 * Math.PI).toFloat()) * breathExpand
+            val orb2Radius = (baseDim * (0.48f + 0.06f * cos(t3 * Math.PI).toFloat()) * breathExpand).coerceAtLeast(1f)
             drawCircle(
                 brush = Brush.radialGradient(orb2Colors, center = Offset(orb2X, orb2Y), radius = orb2Radius),
                 center = Offset(orb2X, orb2Y),
@@ -210,7 +211,7 @@ fun DynamicAuroraBackground(
 
             val orb3X = w * (0.80f - 0.20f * sin(t3 * Math.PI).toFloat())
             val orb3Y = h * (0.82f - 0.08f * cos(t3 * Math.PI).toFloat())
-            val orb3Radius = baseDim * (0.42f + 0.06f * sin(t1 * Math.PI).toFloat()) * breathExpand
+            val orb3Radius = (baseDim * (0.42f + 0.06f * sin(t1 * Math.PI).toFloat()) * breathExpand).coerceAtLeast(1f)
             drawCircle(
                 brush = Brush.radialGradient(orb3Colors, center = Offset(orb3X, orb3Y), radius = orb3Radius),
                 center = Offset(orb3X, orb3Y),
@@ -219,7 +220,7 @@ fun DynamicAuroraBackground(
         } else {
             val orb1X = w * (0.12f + 0.18f * sin(t1 * Math.PI).toFloat())
             val orb1Y = h * (0.14f + 0.10f * cos(t1 * Math.PI).toFloat())
-            val orb1Radius = baseDim * (0.50f + 0.06f * sin(t2 * Math.PI).toFloat()) * breathExpand
+            val orb1Radius = (baseDim * (0.50f + 0.06f * sin(t2 * Math.PI).toFloat()) * breathExpand).coerceAtLeast(1f)
             drawCircle(
                 brush = Brush.radialGradient(orb1Colors, center = Offset(orb1X, orb1Y), radius = orb1Radius),
                 center = Offset(orb1X, orb1Y),
@@ -228,7 +229,7 @@ fun DynamicAuroraBackground(
 
             val orb2X = w * (0.88f - 0.18f * cos(t2 * Math.PI).toFloat())
             val orb2Y = h * (0.40f + 0.12f * sin(t2 * Math.PI).toFloat())
-            val orb2Radius = baseDim * (0.46f + 0.06f * cos(t3 * Math.PI).toFloat()) * breathExpand
+            val orb2Radius = (baseDim * (0.46f + 0.06f * cos(t3 * Math.PI).toFloat()) * breathExpand).coerceAtLeast(1f)
             drawCircle(
                 brush = Brush.radialGradient(orb2Colors, center = Offset(orb2X, orb2Y), radius = orb2Radius),
                 center = Offset(orb2X, orb2Y),
@@ -237,7 +238,7 @@ fun DynamicAuroraBackground(
 
             val orb3X = w * (0.40f + 0.25f * sin(t3 * Math.PI).toFloat())
             val orb3Y = h * (0.82f - 0.08f * cos(t1 * Math.PI).toFloat())
-            val orb3Radius = baseDim * (0.46f + 0.06f * sin(t1 * Math.PI).toFloat()) * breathExpand
+            val orb3Radius = (baseDim * (0.46f + 0.06f * sin(t1 * Math.PI).toFloat()) * breathExpand).coerceAtLeast(1f)
             drawCircle(
                 brush = Brush.radialGradient(orb3Colors, center = Offset(orb3X, orb3Y), radius = orb3Radius),
                 center = Offset(orb3X, orb3Y),
@@ -253,7 +254,7 @@ fun DynamicAuroraBackground(
                 val fracX = ((seed * 1.73f) % 1f) + 0.06f * sin(phase + i * 0.9).toFloat()
                 val baseY = ((seed * 2.41f) % 1f)
                 val driftY = (baseY - (t3 * 0.14f) + 0.04f * cos(phase + i * 1.1).toFloat() + 1f) % 1f
-                val radius = (3.5f + (i % 4) * 2.4f) * (0.85f + 0.35f * breathWave)
+                val radius = ((3.5f + (i % 4) * 2.4f) * (0.85f + 0.35f * breathWave)).coerceAtLeast(1f)
                 val alpha = (if (effectiveDark) 0.24f else 0.18f) * (0.55f + 0.45f * sin(phase * 0.5 + i).toFloat().let { (it + 1f) * 0.5f })
                 val c = if (i % 2 == 0) particleAccent else particleSecondary
                 val center = Offset(w * fracX.coerceIn(0.03f, 0.97f), h * driftY)

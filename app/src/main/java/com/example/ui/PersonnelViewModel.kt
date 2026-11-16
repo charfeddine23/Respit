@@ -230,10 +230,20 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     }
 
+    private val dayRefreshTrigger = MutableStateFlow(Personnel.toStartOfDay(System.currentTimeMillis()))
+
+    fun refreshDateSensitiveState() {
+        val todayStart = Personnel.toStartOfDay(System.currentTimeMillis())
+        if (dayRefreshTrigger.value != todayStart) {
+            dayRefreshTrigger.value = todayStart
+        }
+    }
+
     val dutyReferenceMap: StateFlow<Map<Long, DutyReferenceInfo>> = combine(
         allPersonnel,
-        allLeaves
-    ) { personnelList, leavesList ->
+        allLeaves,
+        dayRefreshTrigger
+    ) { personnelList, leavesList, _ ->
         val now = System.currentTimeMillis()
         personnelList.associate { p ->
             p.id to p.computeDutyReferenceInfo(leavesList, now)
@@ -244,8 +254,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         allPersonnel,
         allLeaves,
         selectedAnalyticsYear,
-        dutyThresholdDays
-    ) { personnelList, leavesList, year, threshold ->
+        dutyThresholdDays,
+        dayRefreshTrigger
+    ) { personnelList, leavesList, year, threshold, _ ->
         LeaveAnalyticsCalculator.computeReport(
             personnelList = personnelList,
             allLeaves = leavesList,
@@ -286,8 +297,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val filteredPersonnel: StateFlow<List<Personnel>> = combine(
         allPersonnel,
         allLeaves,
-        filterParams
-    ) { personnelList, leavesList, params ->
+        filterParams,
+        dayRefreshTrigger
+    ) { personnelList, leavesList, params, _ ->
         var list = personnelList
 
         // Search query
@@ -330,8 +342,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val stats: StateFlow<DashboardStats> = combine(
         allPersonnel,
         allLeaves,
-        dutyThresholdDays
-    ) { list, leavesList, threshold ->
+        dutyThresholdDays,
+        dayRefreshTrigger
+    ) { list, leavesList, threshold, _ ->
         val total = list.size
         var atHome = 0
         var returningToday = 0
@@ -428,7 +441,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         allLeaves,
         pinnedNotificationIds,
         dismissedNotificationIds,
-        combine(dutyThresholdDays, currentLanguage) { t, l -> t to l }
+        combine(dutyThresholdDays, currentLanguage, dayRefreshTrigger) { t, l, _ -> t to l }
     ) { list, leavesList, pinned, dismissed, (threshold, lang) ->
         val result = mutableListOf<AppNotification>()
         val today = Personnel.toStartOfDay(System.currentTimeMillis())
@@ -794,6 +807,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 lastUndoAction.value = UndoAction.Added(newId)
                 if (!insertedEntity.isReturnedToDuty) {
                     autoRecordLeaveIfNeeded(insertedEntity)
+                } else {
+                    markLeaveRecordCompleted(insertedEntity)
                 }
                 LeaveNotificationHelper.notifyLeaveApproved(
                     getApplication(),
@@ -801,21 +816,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     currentLanguage.value.code
                 )
             } else {
-                val previous = repository.getPersonnelById(id)
                 repository.update(entity)
-                if (!entity.isReturnedToDuty) {
-                    val leaveChanged = previous == null ||
-                        previous.isReturnedToDuty ||
-                        previous.startDateMillis != entity.startDateMillis ||
-                        previous.returnDateMillis != entity.returnDateMillis ||
-                        previous.leaveType != entity.leaveType
-                    if (leaveChanged) {
-                        autoRecordLeaveIfNeeded(entity)
-                    }
-                } else if (previous != null && !previous.isReturnedToDuty) {
-                    // Preserve leave record and mark completed when transitioning to on-duty
-                    markLeaveRecordCompleted(entity)
-                }
+                syncLeaveRecordForEditedPersonnel(previous, entity)
                 LeaveNotificationHelper.notifyLeaveApproved(
                     getApplication(),
                     entity,
@@ -1175,8 +1177,12 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 } else {
                     repository.insertAll(importedList)
                 }
-                importedList.filter { !it.isReturnedToDuty }.forEach { p ->
-                    autoRecordLeaveIfNeeded(p)
+                importedList.forEach { p ->
+                    if (!p.isReturnedToDuty) {
+                        autoRecordLeaveIfNeeded(p)
+                    } else {
+                        markLeaveRecordCompleted(p)
+                    }
                 }
             }
 
@@ -1206,6 +1212,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             val record = LeaveRecord(
                 personnelId = person.id,
                 personnelName = person.fullName.ifBlank { person.fullNameLatin },
+                personnelNameLatin = person.fullNameLatin,
                 rank = person.rank,
                 registrationNumber = person.registrationNumber,
                 leaveType = person.leaveType,
@@ -1217,6 +1224,59 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 notes = person.notes
             )
             repository.insertLeave(record)
+        }
+    }
+
+    private suspend fun syncLeaveRecordForEditedPersonnel(previous: Personnel?, entity: Personnel) {
+        val lang = currentLanguage.value
+        val completedLabel = when (lang) {
+            AppLanguage.FRENCH -> "Terminé (Repris le service)"
+            AppLanguage.ENGLISH -> "Completed (Returned to duty)"
+            AppLanguage.ARABIC -> "مكتملة (مستأنف للعمل)"
+        }
+        val statusLabel = if (entity.isReturnedToDuty) {
+            completedLabel
+        } else {
+            entity.status.getCompactBadgeLabel(lang)
+        }
+
+        if (previous != null) {
+            val matching = repository.findMatchingLeave(
+                entity.id,
+                previous.registrationNumber,
+                previous.startDateMillis,
+                previous.returnDateMillis
+            ) ?: repository.findMatchingLeave(
+                entity.id,
+                entity.registrationNumber,
+                previous.startDateMillis,
+                previous.returnDateMillis
+            )
+            if (matching != null) {
+                repository.updateLeave(
+                    matching.copy(
+                        personnelId = entity.id,
+                        personnelName = entity.fullName.ifBlank { entity.fullNameLatin },
+                        personnelNameLatin = entity.fullNameLatin,
+                        rank = entity.rank,
+                        registrationNumber = entity.registrationNumber,
+                        leaveType = entity.leaveType,
+                        startDateMillis = entity.startDateMillis,
+                        returnDateMillis = entity.returnDateMillis,
+                        durationDays = entity.totalLeaveDays,
+                        statusText = statusLabel,
+                        destinationWilaya = entity.wilaya,
+                        notes = entity.notes
+                    )
+                )
+                return
+            }
+        }
+
+        if (!entity.isReturnedToDuty) {
+            autoRecordLeaveIfNeeded(entity)
+        } else {
+            markLeaveRecordCompleted(entity)
         }
     }
 
@@ -1245,6 +1305,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     LeaveRecord(
                         personnelId = person.id,
                         personnelName = person.fullName.ifBlank { person.fullNameLatin },
+                        personnelNameLatin = person.fullNameLatin,
                         rank = person.rank,
                         registrationNumber = person.registrationNumber,
                         leaveType = person.leaveType,
