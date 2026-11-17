@@ -68,8 +68,10 @@ class TopBannerAndDrawerUiTest {
                 openedDrawerBoundsAr.left < rootBounds.right - 50.dp
             )
 
-            // 4. Switch to English in the drawer -> Top Banner immediately flips to LTR (Menu on LEFT, Notifications on RIGHT)
-            composeRule.onNodeWithText("English").performClick()
+            // 4. Tap top header container to open Language Settings and switch to English -> Top Banner immediately flips to LTR
+            composeRule.onNodeWithTag("drawer_header_language_card").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag("lang_option_en").performClick()
             composeRule.waitForIdle()
 
             val menuBoundsEn = composeRule.onNodeWithTag("header_menu_button").getBoundsInRoot()

@@ -47,6 +47,7 @@ object LeaveNotificationHelper {
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
             val (urgentName, urgentDesc) = when (langCode) {
+                "tzm" -> "Ilɣa iḥaren (Tuɣalin & Uɛeṭṭel)" to "Ilɣa s tuzwirt i uɛeṭṭel d tuɣalin n wass-a"
                 "fr" -> "Alertes Urgentes (Reprises & Retards)" to "Notifications prioritaires pour les retards et reprises du jour"
                 "en" -> "Urgent Alerts (Returns & Overdue)" to "High-priority alerts for overdue returns and due today"
                 else -> "التنبيهات العاجلة (الدخول والتأخر)" to "تنبيهات عالية الأولوية لحالات التأخر ومواعيد الدخول اليوم"
@@ -64,6 +65,7 @@ object LeaveNotificationHelper {
             }
 
             val (channelName, channelDesc) = when (langCode) {
+                "tzm" -> "Aḍfar n yimuras d tdukkliwin" to "Ismektayen n tazwara n yimuras d tuɣalin ɣer umahil"
                 "fr" -> "Suivi des Congés & Approbations" to "Rappels des départs en congé et reprises de service"
                 "en" -> "Leave Reminders & Approvals" to "Reminders for leave approvals, departures, and upcoming returns"
                 else -> "متابعة الإجازات والموافقات" to "تذكيرات بمواعيد الإجازات القادمة والموافقات المسجلة"
@@ -178,6 +180,7 @@ object LeaveNotificationHelper {
         val openActionLabel = AppStrings.get("notif_action_open", appLang)
 
         val subText = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Amuras yettwaqbel • ${personnel.totalLeaveDays} w"
             AppLanguage.FRENCH -> "Congé validé • ${personnel.totalLeaveDays} j"
             AppLanguage.ENGLISH -> "Leave Approved • ${personnel.totalLeaveDays} d"
             AppLanguage.ARABIC -> "موافقة إجازة • ${personnel.totalLeaveDays} يوم"
@@ -185,18 +188,19 @@ object LeaveNotificationHelper {
 
         val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • $displayName"
-            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.TAMAZIGHT, AppLanguage.FRENCH, AppLanguage.ENGLISH -> "$rankStr • $displayName"
             AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summaryLine = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "$leaveTypeStr (${personnel.totalLeaveDays} w) — Tazwara ${personnel.formattedStartDate}"
             AppLanguage.FRENCH -> "$leaveTypeStr (${personnel.totalLeaveDays} j) — Départ le ${personnel.formattedStartDate}"
             AppLanguage.ENGLISH -> "$leaveTypeStr (${personnel.totalLeaveDays} d) — Starts ${personnel.formattedStartDate}"
             AppLanguage.ARABIC -> "اعتماد $leaveTypeStr مدتها (${personnel.totalLeaveDays}) يوم ابتداءً من ${personnel.formattedStartDate}"
         }
 
         val expandedBody = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "$leaveTypeStr • Tanzagt : ${personnel.totalLeaveDays} n wussan\nSeg ${personnel.formattedStartDate} ar ${personnel.formattedReturnDate}\nTawilayt : $wilayaStr"
             AppLanguage.FRENCH -> "$leaveTypeStr • Durée : ${personnel.totalLeaveDays} jours\nDu ${personnel.formattedStartDate} au ${personnel.formattedReturnDate}\nDestination : $wilayaStr"
             AppLanguage.ENGLISH -> "$leaveTypeStr • Duration: ${personnel.totalLeaveDays} days\nFrom ${personnel.formattedStartDate} to ${personnel.formattedReturnDate}\nDestination: $wilayaStr"
             AppLanguage.ARABIC -> "• النوع: $leaveTypeStr (${personnel.totalLeaveDays} يوم)\n• الفترة: ${personnel.formattedStartDate} ← ${personnel.formattedReturnDate}\n• الولاية: $wilayaStr"
@@ -285,6 +289,7 @@ object LeaveNotificationHelper {
         lines.take(5).forEach { inboxStyle.addLine(it) }
 
         val title = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "${lines.size} n yilɣa n yimuras urmiden"
             AppLanguage.FRENCH -> "${lines.size} alertes de congés actives"
             AppLanguage.ENGLISH -> "${lines.size} active leave alerts"
             AppLanguage.ARABIC -> "${lines.size} تنبيهات إجازات نشطة"
@@ -320,6 +325,7 @@ object LeaveNotificationHelper {
         val openActionLabel = AppStrings.get("notif_action_open", appLang)
 
         val subText = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Aɛeṭṭel • +${personnel.daysOverdue}w"
             AppLanguage.FRENCH -> "Retard critique • +${personnel.daysOverdue}j"
             AppLanguage.ENGLISH -> "Overdue Return • +${personnel.daysOverdue}d"
             AppLanguage.ARABIC -> "تأخر عن الدخول • +${personnel.daysOverdue} يوم"
@@ -327,18 +333,19 @@ object LeaveNotificationHelper {
 
         val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • $displayName"
-            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.TAMAZIGHT, AppLanguage.FRENCH, AppLanguage.ENGLISH -> "$rankStr • $displayName"
             AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Aɛeṭṭel n ${personnel.daysOverdue} n wass/wussan • Tuɣalin : ${personnel.formattedReturnDate}"
             AppLanguage.FRENCH -> "Retard de ${personnel.daysOverdue} jour(s) • Reprise prévue : ${personnel.formattedReturnDate}"
             AppLanguage.ENGLISH -> "Overdue by ${personnel.daysOverdue} day(s) • Scheduled: ${personnel.formattedReturnDate}"
             AppLanguage.ARABIC -> "تأخر عن موعد الدخول المقرر (${personnel.formattedReturnDate}) بـ (${personnel.daysOverdue}) يوم"
         }
 
         val body = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Aɛeṭṭel n tuɣalin : +${personnel.daysOverdue} n wussan\nAzemz yettwaɣlen : ${personnel.formattedReturnDate}\nTawilayt : $wilayaStr"
             AppLanguage.FRENCH -> "Retard de reprise : +${personnel.daysOverdue} jour(s)\nDate prévue : ${personnel.formattedReturnDate}\nWilaya : $wilayaStr"
             AppLanguage.ENGLISH -> "Overdue by +${personnel.daysOverdue} day(s)\nScheduled return: ${personnel.formattedReturnDate}\nProvince: $wilayaStr"
             AppLanguage.ARABIC -> "• الوضعية: متأخر عن استئناف العمل (+${personnel.daysOverdue} يوم)\n• الموعد المقرر: ${personnel.formattedReturnDate}\n• الولاية: $wilayaStr"
@@ -390,16 +397,19 @@ object LeaveNotificationHelper {
 
         val timeText = when (daysUntilStart) {
             0L -> when (appLang) {
+                AppLanguage.TAMAZIGHT -> "Ass-a"
                 AppLanguage.FRENCH -> "Aujourd'hui"
                 AppLanguage.ENGLISH -> "Today"
                 AppLanguage.ARABIC -> "اليوم"
             }
             1L -> when (appLang) {
+                AppLanguage.TAMAZIGHT -> "Azekka"
                 AppLanguage.FRENCH -> "Demain"
                 AppLanguage.ENGLISH -> "Tomorrow"
                 AppLanguage.ARABIC -> "غداً"
             }
             else -> when (appLang) {
+                AppLanguage.TAMAZIGHT -> "Deg $daysUntilStart n wussan"
                 AppLanguage.FRENCH -> "Dans $daysUntilStart jours"
                 AppLanguage.ENGLISH -> "In $daysUntilStart days"
                 AppLanguage.ARABIC -> if (daysUntilStart == 2L) "خلال يومين" else "خلال $daysUntilStart أيام"
@@ -407,6 +417,7 @@ object LeaveNotificationHelper {
         }
 
         val subText = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tazwara • $timeText"
             AppLanguage.FRENCH -> "Départ • $timeText"
             AppLanguage.ENGLISH -> "Departure • $timeText"
             AppLanguage.ARABIC -> "انطلاق إجازة • $timeText"
@@ -414,18 +425,19 @@ object LeaveNotificationHelper {
 
         val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • $displayName"
-            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.TAMAZIGHT, AppLanguage.FRENCH, AppLanguage.ENGLISH -> "$rankStr • $displayName"
             AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tazwara n $leaveTypeStr ($timeText - ${personnel.formattedStartDate})"
             AppLanguage.FRENCH -> "Départ en $leaveTypeStr ($timeText - ${personnel.formattedStartDate})"
             AppLanguage.ENGLISH -> "Starts $leaveTypeStr ($timeText - ${personnel.formattedStartDate})"
             AppLanguage.ARABIC -> "يبدأ $leaveTypeStr ($timeText - ${personnel.formattedStartDate})"
         }
 
         val body = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Anaw : $leaveTypeStr ($timeText)\nSeg ${personnel.formattedStartDate} ar ${personnel.formattedReturnDate}\nTawilayt : $wilayaStr"
             AppLanguage.FRENCH -> "Type : $leaveTypeStr ($timeText)\nDu ${personnel.formattedStartDate} au ${personnel.formattedReturnDate}\nWilaya : $wilayaStr"
             AppLanguage.ENGLISH -> "Type: $leaveTypeStr ($timeText)\nFrom ${personnel.formattedStartDate} to ${personnel.formattedReturnDate}\nProvince: $wilayaStr"
             AppLanguage.ARABIC -> "• النوع: $leaveTypeStr ($timeText)\n• الفترة: ${personnel.formattedStartDate} ← ${personnel.formattedReturnDate}\n• الولاية: $wilayaStr"
@@ -470,6 +482,7 @@ object LeaveNotificationHelper {
         val openActionLabel = AppStrings.get("notif_action_open", appLang)
 
         val subText = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tuɣalin ass-a"
             AppLanguage.FRENCH -> "Reprise aujourd'hui"
             AppLanguage.ENGLISH -> "Return Today"
             AppLanguage.ARABIC -> "الدخول اليوم"
@@ -477,18 +490,19 @@ object LeaveNotificationHelper {
 
         val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • $displayName"
-            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.TAMAZIGHT, AppLanguage.FRENCH, AppLanguage.ENGLISH -> "$rankStr • $displayName"
             AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tuɣalin ɣer umahil ass-a ($wilayaStr)"
             AppLanguage.FRENCH -> "Reprise du service prévue aujourd'hui ($wilayaStr)"
             AppLanguage.ENGLISH -> "Scheduled to resume duty today ($wilayaStr)"
             AppLanguage.ARABIC -> "موعد الالتحاق واستئناف الخدمة اليوم ($wilayaStr)"
         }
 
         val body = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tuɣalin tettwasɣel ass-a (${personnel.formattedReturnDate})\nTanzagt : ${personnel.totalLeaveDays} w\nTawilayt : $wilayaStr"
             AppLanguage.FRENCH -> "Reprise prévue aujourd'hui (${personnel.formattedReturnDate})\nDurée effectuée : ${personnel.totalLeaveDays} j\nWilaya : $wilayaStr"
             AppLanguage.ENGLISH -> "Scheduled return today (${personnel.formattedReturnDate})\nLeave duration: ${personnel.totalLeaveDays} d\nProvince: $wilayaStr"
             AppLanguage.ARABIC -> "• التنبيه: موعد الدخول واستئناف العمل اليوم (${personnel.formattedReturnDate})\n• مدة الإجازة: ${personnel.totalLeaveDays} يوم\n• الولاية: $wilayaStr"
@@ -534,6 +548,7 @@ object LeaveNotificationHelper {
         val openActionLabel = AppStrings.get("notif_action_open", appLang)
 
         val subText = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tuɣalin deg ${daysUntilReturn}w"
             AppLanguage.FRENCH -> "Reprise dans ${daysUntilReturn}j"
             AppLanguage.ENGLISH -> "Returns in ${daysUntilReturn}d"
             AppLanguage.ARABIC -> if (daysUntilReturn == 1L) "الدخول غداً" else "الدخول خلال يومين"
@@ -541,18 +556,19 @@ object LeaveNotificationHelper {
 
         val displayName = personnel.getLocalizedName(appLang)
         val title = when (appLang) {
-            AppLanguage.FRENCH -> "$rankStr • $displayName"
-            AppLanguage.ENGLISH -> "$rankStr • $displayName"
+            AppLanguage.TAMAZIGHT, AppLanguage.FRENCH, AppLanguage.ENGLISH -> "$rankStr • $displayName"
             AppLanguage.ARABIC -> "$rankStr: $displayName"
         }
 
         val summary = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tuɣalin deg $daysUntilReturn n wass/wussan • ${personnel.formattedReturnDate}"
             AppLanguage.FRENCH -> "Reprise dans $daysUntilReturn jour(s) • ${personnel.formattedReturnDate}"
             AppLanguage.ENGLISH -> "Returns in $daysUntilReturn day(s) • ${personnel.formattedReturnDate}"
             AppLanguage.ARABIC -> "بقي ($daysUntilReturn) يوم على استئناف الخدمة (${personnel.formattedReturnDate})"
         }
 
         val body = when (appLang) {
+            AppLanguage.TAMAZIGHT -> "Tagara n yimuras teqreb : deg $daysUntilReturn n wussan\nAzemz n tuɣalin : ${personnel.formattedReturnDate}\nTawilayt : $wilayaStr"
             AppLanguage.FRENCH -> "Fin de congé imminente : dans $daysUntilReturn jour(s)\nDate de reprise : ${personnel.formattedReturnDate}\nWilaya : $wilayaStr"
             AppLanguage.ENGLISH -> "Return approaching: in $daysUntilReturn day(s)\nReturn date: ${personnel.formattedReturnDate}\nProvince: $wilayaStr"
             AppLanguage.ARABIC -> "• المتبقي: $daysUntilReturn يوم على موعد الدخول\n• تاريخ الدخول: ${personnel.formattedReturnDate}\n• الولاية: $wilayaStr"

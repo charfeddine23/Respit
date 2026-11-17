@@ -21,6 +21,7 @@ import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
 import com.example.util.AppLanguage
+import com.example.util.AppStrings
 import com.example.util.AppUpdateManager
 import com.example.util.AppUpdateState
 import kotlinx.coroutines.flow.first
@@ -1437,6 +1438,38 @@ class ExampleRobolectricTest {
       kotlinx.coroutines.delay(50)
     }
     assertEquals(2L, person.computeDutyReferenceInfo(updatedLeaves, getOffsetDateMillis(0)).daysSinceReference)
+  }
+
+  @Test
+  fun `verify Algerian Tamazight language formatting and name fallback`() {
+    val tzm = AppLanguage.TAMAZIGHT
+    assertEquals("tzm", tzm.code)
+    assertEquals(false, tzm.isRtl)
+    assertTrue(AppStrings.get("lang_tzm_sub", AppLanguage.ARABIC).contains("الأمازيغية"))
+    assertEquals("ⵜⴰⵎⴰⵣⵉⵖⵜ • Tamazight", AppStrings.get("lang_tzm_title", tzm))
+    assertEquals("Turagt", formatLeaveType("إجازة", tzm))
+    assertEquals("Imuras n useggas", formatLeaveType("عطلة سنوية", tzm))
+    assertEquals("Capitaine", formatRank("نقيب - Capitaine", tzm))
+
+    val personBoth = Personnel(
+      fullName = "كريم أوقاسي",
+      fullNameLatin = "Karim Oukaci",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-151515",
+      startDateMillis = getOffsetDateMillis(-5),
+      returnDateMillis = getOffsetDateMillis(5)
+    )
+    assertEquals("Karim Oukaci", personBoth.getLocalizedName(tzm))
+
+    val personArabicOnly = Personnel(
+      fullName = "كريم أوقاسي",
+      fullNameLatin = "",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-151516",
+      startDateMillis = getOffsetDateMillis(-5),
+      returnDateMillis = getOffsetDateMillis(5)
+    )
+    assertEquals("كريم أوقاسي", personArabicOnly.getLocalizedName(tzm))
   }
 }
 

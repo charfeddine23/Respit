@@ -251,6 +251,7 @@ fun SettingsDialog(
                         ) {
                             val langItems = listOf(
                                 AppLanguage.ARABIC to "العربية",
+                                AppLanguage.TAMAZIGHT to "Tamazight",
                                 AppLanguage.FRENCH to "Français",
                                 AppLanguage.ENGLISH to "English"
                             )

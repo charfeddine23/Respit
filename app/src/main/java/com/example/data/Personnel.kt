@@ -102,7 +102,7 @@ data class Personnel(
             val latin = latinName.trim()
             return when (lang) {
                 AppLanguage.ARABIC -> ar.ifBlank { latin }
-                AppLanguage.FRENCH, AppLanguage.ENGLISH -> latin.ifBlank { ar }
+                AppLanguage.TAMAZIGHT, AppLanguage.FRENCH, AppLanguage.ENGLISH -> latin.ifBlank { ar }
             }
         }
     }
@@ -299,27 +299,63 @@ data class Personnel(
             LeaveStatus.AT_HOME -> {
                 val rem = daysRemainingToReturn
                 when {
-                    rem <= 0 -> if (lang == AppLanguage.FRENCH) "Reprise aujourd'hui" else "Return today"
-                    rem == 1L -> if (lang == AppLanguage.FRENCH) "1 jour restant avant reprise" else "1 day remaining until return"
-                    else -> if (lang == AppLanguage.FRENCH) "$rem jours restants avant reprise" else "$rem days remaining until return"
+                    rem <= 0 -> when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Tuɣalin ass-a"
+                        AppLanguage.FRENCH -> "Reprise aujourd'hui"
+                        else -> "Return today"
+                    }
+                    rem == 1L -> when (lang) {
+                        AppLanguage.TAMAZIGHT -> "1 wass i d-yeqqimen uqbel tuɣalin"
+                        AppLanguage.FRENCH -> "1 jour restant avant reprise"
+                        else -> "1 day remaining until return"
+                    }
+                    else -> when (lang) {
+                        AppLanguage.TAMAZIGHT -> "$rem n wussan i d-yeqqimen uqbel tuɣalin"
+                        AppLanguage.FRENCH -> "$rem jours restants avant reprise"
+                        else -> "$rem days remaining until return"
+                    }
                 }
             }
-            LeaveStatus.RETURNING_TODAY -> if (lang == AppLanguage.FRENCH) "La date de reprise est aujourd'hui !" else "Return to duty is today!"
+            LeaveStatus.RETURNING_TODAY -> when (lang) {
+                AppLanguage.TAMAZIGHT -> "Ass n tuɣalin ɣer umahil d ass-a!"
+                AppLanguage.FRENCH -> "La date de reprise est aujourd'hui !"
+                else -> "Return to duty is today!"
+            }
             LeaveStatus.OVERDUE -> {
                 val ov = daysOverdue
                 when {
-                    ov <= 0 -> if (lang == AppLanguage.FRENCH) "Délai de reprise dépassé" else "Return deadline passed"
-                    ov == 1L -> if (lang == AppLanguage.FRENCH) "En retard de 1 jour !" else "Overdue by 1 day!"
-                    else -> if (lang == AppLanguage.FRENCH) "En retard de $ov jours !" else "Overdue by $ov days!"
+                    ov <= 0 -> when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Yezri wakud n tuɣalin"
+                        AppLanguage.FRENCH -> "Délai de reprise dépassé"
+                        else -> "Return deadline passed"
+                    }
+                    ov == 1L -> when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Yeɛeṭṭel s 1 wass!"
+                        AppLanguage.FRENCH -> "En retard de 1 jour !"
+                        else -> "Overdue by 1 day!"
+                    }
+                    else -> when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Yeɛeṭṭel s $ov n wussan!"
+                        AppLanguage.FRENCH -> "En retard de $ov jours !"
+                        else -> "Overdue by $ov days!"
+                    }
                 }
             }
             LeaveStatus.UPCOMING -> {
                 val today = toStartOfDay(System.currentTimeMillis())
                 val start = toStartOfDay(startDateMillis)
                 val daysUntil = TimeUnit.MILLISECONDS.toDays(start - today)
-                if (lang == AppLanguage.FRENCH) "Début du congé dans $daysUntil jour(s)" else "Leave starts in $daysUntil day(s)"
+                when (lang) {
+                    AppLanguage.TAMAZIGHT -> "Tazwara n yimuras deg $daysUntil n wussan"
+                    AppLanguage.FRENCH -> "Début du congé dans $daysUntil jour(s)"
+                    else -> "Leave starts in $daysUntil day(s)"
+                }
             }
-            LeaveStatus.ON_DUTY -> if (lang == AppLanguage.FRENCH) "Présent au service ($daysSinceDutyReturn j écoulés)" else "On active duty ($daysSinceDutyReturn days elapsed)"
+            LeaveStatus.ON_DUTY -> when (lang) {
+                AppLanguage.TAMAZIGHT -> "Yella deg umahil ($daysSinceDutyReturn n wussan)"
+                AppLanguage.FRENCH -> "Présent au service ($daysSinceDutyReturn j écoulés)"
+                else -> "On active duty ($daysSinceDutyReturn days elapsed)"
+            }
         }
     }
 

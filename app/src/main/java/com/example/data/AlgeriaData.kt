@@ -190,7 +190,7 @@ fun formatRank(rawRank: String?, lang: AppLanguage): String {
     val canonical = normalizeRank(rawRank)
     return when (lang) {
         AppLanguage.ARABIC -> canonical.substringBefore(" - ").trim()
-        AppLanguage.FRENCH -> canonical.substringAfter(" - ", canonical).trim()
+        AppLanguage.FRENCH, AppLanguage.TAMAZIGHT -> canonical.substringAfter(" - ", canonical).trim()
         AppLanguage.ENGLISH -> rankEnglishMap[canonical] ?: canonical.substringAfter(" - ", canonical).trim()
     }
 }
@@ -232,6 +232,13 @@ fun formatLeaveType(rawType: String?, lang: AppLanguage): String {
             "إجازة قصيرة", "Short Leave" -> "Permission courte"
             "عطلة سنوية", "Annual Leave", "" -> "Congé annuel"
             "نقاهة", "Convalescence Leave" -> "Convalescence"
+            else -> t
+        }
+        AppLanguage.TAMAZIGHT -> when (t) {
+            "إجازة", "Permission", "Leave" -> "Turagt"
+            "إجازة قصيرة", "Permission courte", "Short Leave" -> "Turagt tawezzlant"
+            "عطلة سنوية", "Congé annuel", "Annual Leave", "" -> "Imuras n useggas"
+            "نقاهة", "Convalescence", "Convalescence Leave" -> "Tujjya"
             else -> t
         }
         AppLanguage.ENGLISH -> when (t) {

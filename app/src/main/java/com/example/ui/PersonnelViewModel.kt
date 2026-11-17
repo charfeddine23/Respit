@@ -461,11 +461,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 val notifId = "ret_today_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Tuɣalin ɣer umahil ass-a"
                         AppLanguage.FRENCH -> "Retour de congé aujourd'hui"
                         AppLanguage.ENGLISH -> "Returning to Duty Today"
                         else -> "موعد الدخول واستئناف العمل اليوم"
                     }
                     val msg = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "$localizedRank $displayName ad yuɣal ɣer umahil ass-a (${sdf.format(Date(p.returnDateMillis))})."
                         AppLanguage.FRENCH -> "$localizedRank $displayName doit reprendre le service aujourd'hui (${sdf.format(Date(p.returnDateMillis))})."
                         AppLanguage.ENGLISH -> "$localizedRank $displayName is scheduled to resume duty today (${sdf.format(Date(p.returnDateMillis))})."
                         else -> "على $localizedRank: $displayName، الالتحاق واستئناف الخدمة اليوم (${sdf.format(Date(p.returnDateMillis))}) بعد إجازة مدتها (${p.totalLeaveDays}) يوم"
@@ -490,11 +492,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 val notifId = "overdue_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Aɛeṭṭel deg tuɣalin ɣer umahil"
                         AppLanguage.FRENCH -> "Retard de reprise de service"
                         AppLanguage.ENGLISH -> "Overdue Return to Duty"
                         else -> "تنبيه: تأخر عن موعد الدخول"
                     }
                     val msg = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "$localizedRank $displayName yezri azemz n tuɣalin (${p.getCountdownText(lang)})."
                         AppLanguage.FRENCH -> "$localizedRank $displayName a dépassé la date de retour (${p.getCountdownText(lang)})."
                         AppLanguage.ENGLISH -> "$localizedRank $displayName is overdue for duty return (${p.getCountdownText(lang)})."
                         else -> "تأخر $localizedRank: $displayName، عن موعد الدخول المقرر (${sdf.format(Date(p.returnDateMillis))}) بـ (${p.daysOverdue}) يوم"
@@ -519,11 +523,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 val notifId = "appr_ret_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Tuɣalin ɣer umahil teqreb-d"
                         AppLanguage.FRENCH -> "Retour de congé imminent"
                         AppLanguage.ENGLISH -> "Duty Return Approaching"
                         else -> "اقتراب موعد استئناف الخدمة"
                     }
                     val msg = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Yeqqim-d $daysUntilReturn n wass/wussan i $localizedRank $displayName (${sdf.format(Date(p.returnDateMillis))})."
                         AppLanguage.FRENCH -> "Il reste $daysUntilReturn jour(s) pour $localizedRank $displayName (${sdf.format(Date(p.returnDateMillis))})."
                         AppLanguage.ENGLISH -> "$daysUntilReturn day(s) remaining for $localizedRank $displayName (${sdf.format(Date(p.returnDateMillis))})."
                         else -> {
@@ -551,11 +557,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 val notifId = "appr_start_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Tazwara n yimuras teqreb-d"
                         AppLanguage.FRENCH -> "Départ en congé imminent"
                         AppLanguage.ENGLISH -> "Upcoming Leave"
                         else -> "موعد انطلاق الإجازة"
                     }
                     val msg = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "$localizedRank $displayName ad yebdu amuras ass n ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
                         AppLanguage.FRENCH -> "$localizedRank $displayName commence son congé le ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
                         AppLanguage.ENGLISH -> "$localizedRank $displayName starts leave on ${sdf.format(Date(p.startDateMillis))} ($localizedLeaveType)."
                         else -> "يستفيد $localizedRank: $displayName، من $localizedLeaveType مدتها (${p.totalLeaveDays}) يوم ابتداءً من (${sdf.format(Date(p.startDateMillis))})"
@@ -581,11 +589,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 val notifId = "eligible_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "Yuklal amuras amaynut"
                         AppLanguage.FRENCH -> "Éligible au congé"
                         AppLanguage.ENGLISH -> "Eligible for Leave"
                         else -> "استحقاق إجازة جديدة"
                     }
                     val msg = when (lang) {
+                        AppLanguage.TAMAZIGHT -> "$localizedRank $displayName yesɛedda $daysServedRef n wussan deg umahil (talast : $threshold n wussan)."
                         AppLanguage.FRENCH -> "$localizedRank $displayName a accompli $daysServedRef jours de service (seuil : $threshold jours)."
                         AppLanguage.ENGLISH -> "$localizedRank $displayName has completed $daysServedRef duty days (threshold: $threshold days)."
                         else -> "قضى $localizedRank: $displayName، مدة $daysServedRef يوم في الخدمة وتجاوز عتبة الاستحقاق ($threshold) يوم"
@@ -1230,6 +1240,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun syncLeaveRecordForEditedPersonnel(previous: Personnel?, entity: Personnel) {
         val lang = currentLanguage.value
         val completedLabel = when (lang) {
+            AppLanguage.TAMAZIGHT -> "Yemmed (Yuɣal ɣer umahil)"
             AppLanguage.FRENCH -> "Terminé (Repris le service)"
             AppLanguage.ENGLISH -> "Completed (Returned to duty)"
             AppLanguage.ARABIC -> "مكتملة (مستأنف للعمل)"
@@ -1282,6 +1293,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     private suspend fun markLeaveRecordCompleted(person: Personnel) {
         val completedLabel = when (currentLanguage.value) {
+            AppLanguage.TAMAZIGHT -> "Yemmed (Yuɣal ɣer umahil)"
             AppLanguage.FRENCH -> "Terminé (Repris le service)"
             AppLanguage.ENGLISH -> "Completed (Returned to duty)"
             AppLanguage.ARABIC -> "مكتملة (مستأنف للعمل)"

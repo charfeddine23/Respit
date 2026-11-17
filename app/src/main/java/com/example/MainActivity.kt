@@ -182,8 +182,11 @@ import com.example.ui.theme.liquidGlassInteractive
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.AppUpdateState
+import com.example.util.ExcelXlsxExporter
 import com.example.util.WindowSecurityHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : FragmentActivity() {
     private val viewModel: PersonnelViewModel by viewModels()
@@ -298,6 +301,7 @@ fun LeaveTrackerMainApp(
 
     val personnelList by viewModel.filteredPersonnel.collectAsState()
     val allPersonnelList by viewModel.allPersonnel.collectAsState()
+    val allLeavesList by viewModel.allLeaves.collectAsState()
     val dutyReferenceMap by viewModel.dutyReferenceMap.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val uniqueRanks by viewModel.uniqueRanks.collectAsState()
@@ -354,6 +358,43 @@ fun LeaveTrackerMainApp(
         }
     }
 
+    val scope = rememberCoroutineScope()
+
+    val excelExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        ExcelXlsxExporter.writeWorkbookToUri(
+                            context = context,
+                            uri = uri,
+                            personnelList = allPersonnelList,
+                            leaveRecords = allLeavesList,
+                            lang = currentLang
+                        )
+                    }
+                }
+                if (result.isSuccess) {
+                    Toast.makeText(
+                        context,
+                        AppStrings.get("excel_export_success", currentLang),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "${AppStrings.get("excel_export_failed", currentLang)}: ${result.exceptionOrNull()?.localizedMessage.orEmpty()}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
     var showAddEditDialog by remember { mutableStateOf(false) }
     var personnelToEdit by remember { mutableStateOf<Personnel?>(null) }
     var personnelToDelete by remember { mutableStateOf<Personnel?>(null) }
@@ -388,7 +429,6 @@ fun LeaveTrackerMainApp(
     }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
 
     // Notification permission launcher for Android 13+
     val notificationLauncher = rememberLauncherForActivityResult(
@@ -507,6 +547,10 @@ fun LeaveTrackerMainApp(
                             onExportPdf = {
                                 viewModel.exportPdf(context)
                                 scope.launch { drawerState.close() }
+                            },
+                            onExportExcel = {
+                                scope.launch { drawerState.close() }
+                                excelExportLauncher.launch(ExcelXlsxExporter.defaultFileName())
                             },
                             onOpenBackup = {
                                 showExportDialog = true
@@ -959,7 +1003,6 @@ fun LeaveTrackerMainApp(
                                             )
                                         }
                                         AppNavPage.DASHBOARD -> {
-                                            val previewList = remember(personnelList) { personnelList.take(4) }
                                             LazyColumn(
                                                 state = dashboardListState,
                                                 modifier = Modifier
@@ -1317,8 +1360,8 @@ fun LeaveTrackerMainApp(
                                             }
                                         }
 
-                                        // Recent / Filtered Records Preview (up to 4 cards)
-                                        if (previewList.isEmpty()) {
+                                        // Filtered / Pinned Records List
+                                        if (personnelList.isEmpty()) {
                                             item {
                                                 Box(
                                                     modifier = Modifier
@@ -1356,7 +1399,7 @@ fun LeaveTrackerMainApp(
                                             }
                                         } else {
                                             items(
-                                                items = previewList,
+                                                items = personnelList,
                                                 key = { it.id },
                                                 contentType = { "personnel_card" }
                                             ) { person ->
@@ -1658,44 +1701,46 @@ fun LeaveTrackerMainApp(
                                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                                                 ) {
                                                     for (person in rowItems) {
-                                                        Box(modifier = Modifier.weight(1f)) {
-                                                            PersonnelCard(
-                                                                personnel = person,
-                                                                dutyThresholdDays = dutyThreshold,
-                                                                isFocusMode = isFocusMode,
-                                                                isDarkMode = isDarkMode,
-                                                                isNeumorphic = isNeumorphic,
-                                                                animationsEnabled = isDynamicAnimationsEnabled,
-                                                                currentLang = currentLang,
-                                                                effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
-                                                                onTogglePin = {
-                                                                    val willPin = !person.isPinned
-                                                                    viewModel.togglePinPersonnel(person)
-                                                                    if (willPin && recordsListState.firstVisibleItemIndex > 2) {
-                                                                        scope.launch { recordsListState.animateScrollToItem(2) }
+                                                        androidx.compose.runtime.key(person.id) {
+                                                            Box(modifier = Modifier.weight(1f)) {
+                                                                PersonnelCard(
+                                                                    personnel = person,
+                                                                    dutyThresholdDays = dutyThreshold,
+                                                                    isFocusMode = isFocusMode,
+                                                                    isDarkMode = isDarkMode,
+                                                                    isNeumorphic = isNeumorphic,
+                                                                    animationsEnabled = isDynamicAnimationsEnabled,
+                                                                    currentLang = currentLang,
+                                                                    effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
+                                                                    onTogglePin = {
+                                                                        val willPin = !person.isPinned
+                                                                        viewModel.togglePinPersonnel(person)
+                                                                        if (willPin && recordsListState.firstVisibleItemIndex > 2) {
+                                                                            scope.launch { recordsListState.animateScrollToItem(2) }
+                                                                        }
+                                                                    },
+                                                                    onSwipeDelete = {
+                                                                        viewModel.deletePersonnel(person)
+                                                                        lastSwipeDeletedPerson = person
+                                                                        swipeUndoTicket++
+                                                                    },
+                                                                    onConfirmDuty = {
+                                                                        viewModel.confirmReturnToDuty(person.id)
+                                                                        Toast.makeText(
+                                                                            context,
+                                                                            "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.getLocalizedName(currentLang)}",
+                                                                            Toast.LENGTH_SHORT
+                                                                        ).show()
+                                                                    },
+                                                                    onEdit = {
+                                                                        personnelToEdit = person
+                                                                        showAddEditDialog = true
+                                                                    },
+                                                                    onDelete = {
+                                                                        personnelToDelete = person
                                                                     }
-                                                                },
-                                                                onSwipeDelete = {
-                                                                    viewModel.deletePersonnel(person)
-                                                                    lastSwipeDeletedPerson = person
-                                                                    swipeUndoTicket++
-                                                                },
-                                                                onConfirmDuty = {
-                                                                    viewModel.confirmReturnToDuty(person.id)
-                                                                    Toast.makeText(
-                                                                        context,
-                                                                        "${AppStrings.get("confirm_duty_btn", currentLang)}: ${formatRank(person.rank, currentLang)} / ${person.getLocalizedName(currentLang)}",
-                                                                        Toast.LENGTH_SHORT
-                                                                    ).show()
-                                                                },
-                                                                onEdit = {
-                                                                    personnelToEdit = person
-                                                                    showAddEditDialog = true
-                                                                },
-                                                                onDelete = {
-                                                                    personnelToDelete = person
-                                                                }
-                                                            )
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                     if (rowItems.size == 1) {

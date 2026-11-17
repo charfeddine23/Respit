@@ -1779,6 +1779,7 @@ private fun PersonnelAnnualStatCard(
 
 private fun getLocalizedMonthShortNames(lang: AppLanguage): List<String> = when (lang) {
     AppLanguage.ARABIC -> listOf("جان", "فيف", "مار", "أفر", "ماي", "جوا", "جوي", "أوت", "سبت", "أكت", "نوف", "ديس")
+    AppLanguage.TAMAZIGHT -> listOf("Yen", "Fur", "Meɣ", "Yeb", "Mag", "Yun", "Yul", "Ɣuc", "Cte", "Tub", "Wam", "Duj")
     AppLanguage.FRENCH -> listOf("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")
     AppLanguage.ENGLISH -> listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 }
@@ -1787,6 +1788,10 @@ private fun getLocalizedMonthFullNames(lang: AppLanguage): List<String> = when (
     AppLanguage.ARABIC -> listOf(
         "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
         "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    )
+    AppLanguage.TAMAZIGHT -> listOf(
+        "Yennayer", "Fuṛaṛ", "Meɣres", "Yebrir", "Maggu", "Yunyu",
+        "Yulyu", "Ɣuct", "Ctember", "Tuber", "Wamber", "Dujembeṛ"
     )
     AppLanguage.FRENCH -> listOf(
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",

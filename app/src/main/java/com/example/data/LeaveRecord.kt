@@ -27,7 +27,7 @@ data class LeaveRecord(
 ) {
     fun getDisplayName(lang: AppLanguage): String = when (lang) {
         AppLanguage.ARABIC -> personnelName.trim().ifBlank { personnelNameLatin.trim() }
-        AppLanguage.FRENCH, AppLanguage.ENGLISH -> personnelNameLatin.trim().ifBlank { personnelName.trim() }
+        AppLanguage.TAMAZIGHT, AppLanguage.FRENCH, AppLanguage.ENGLISH -> personnelNameLatin.trim().ifBlank { personnelName.trim() }
     }
 
     fun matchesNameQuery(normalizedQuery: String): Boolean {
