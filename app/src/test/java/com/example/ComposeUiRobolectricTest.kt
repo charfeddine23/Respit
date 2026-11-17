@@ -1,11 +1,16 @@
 package com.example
 
 import android.content.Context
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.Personnel
 import com.example.ui.components.PersonnelCard
@@ -101,5 +106,97 @@ class ComposeUiRobolectricTest {
     assertEquals(0, personnelCount)
     assertEquals(0, leavesCount)
     controller.pause().stop().destroy()
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `AddEditPersonnelDialog displays 5 quick duration chips and applies 48h 72h 4d 8d 10d offsets`() {
+    var savedStart = 0L
+    var savedReturn = 0L
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.AddEditPersonnelDialog(
+          personnelToEdit = null,
+          onDismiss = {},
+          onSave = { _, _, _, _, _, startMillis, returnMillis, _, _, _, _ ->
+            savedStart = startMillis
+            savedReturn = returnMillis
+          },
+          currentLang = AppLanguage.ARABIC,
+          animationsEnabled = false
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+
+    // Enter required name and registration number
+    composeTestRule.onNodeWithTag("full_name_input").performTextInput("محمد أمين")
+    composeTestRule.onNodeWithTag("reg_number_input").performTextInput("DZ-100200")
+
+    composeTestRule.waitForIdle()
+
+    // Scroll the form down to expose the schedule & quick duration section inside the Dialog
+    composeTestRule.onNodeWithTag("dialog_form_scroll", useUnmergedTree = true).performTouchInput {
+      swipeUp(startY = 550f, endY = 50f)
+    }
+    composeTestRule.waitForIdle()
+
+    // Verify all 5 quick duration labels render cleanly and are displayed
+    listOf(
+      2 to "48 ساعة",
+      3 to "72 ساعة",
+      4 to "4 أيام",
+      8 to "8 أيام",
+      10 to "10 أيام"
+    ).forEach { (days, label) ->
+      composeTestRule.onNodeWithTag("quick_duration_chip_$days")
+        .assertIsDisplayed()
+        .assert(hasText(label))
+    }
+
+    // Select 48 ساعة -> +2 days
+    composeTestRule.onNodeWithTag("quick_duration_chip_2").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithText("2 يوم").assertIsDisplayed()
+
+    // Select 72 ساعة -> +3 days
+    composeTestRule.onNodeWithTag("quick_duration_chip_3").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithText("3 يوم").assertIsDisplayed()
+
+    // Select 8 أيام -> +8 days and save
+    composeTestRule.onNodeWithTag("quick_duration_chip_8").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithText("8 يوم").assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag("save_personnel_button").performClick()
+    composeTestRule.waitForIdle()
+
+    val savedDays = (savedReturn - savedStart + java.util.concurrent.TimeUnit.HOURS.toMillis(12)) /
+      java.util.concurrent.TimeUnit.DAYS.toMillis(1)
+    assertEquals(8L, savedDays)
+  }
+
+  @Test
+  fun `adaptive launcher icon with monochrome layer and internal app logo resolve cleanly`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+
+    val launcherDrawable = androidx.core.content.ContextCompat.getDrawable(context, R.mipmap.ic_launcher)
+    val roundDrawable = androidx.core.content.ContextCompat.getDrawable(context, R.mipmap.ic_launcher_round)
+    val appLogo = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.app_logo)
+
+    assertTrue("Launcher icon must resolve", launcherDrawable != null)
+    assertTrue("Round launcher icon must resolve", roundDrawable != null)
+    assertTrue("Internal app logo must resolve", appLogo != null)
+
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+      assertTrue(launcherDrawable is android.graphics.drawable.AdaptiveIconDrawable)
+      val adaptive = launcherDrawable as android.graphics.drawable.AdaptiveIconDrawable
+      assertTrue("Adaptive foreground must exist", adaptive.foreground != null)
+      assertTrue("Adaptive background must exist", adaptive.background != null)
+      assertTrue("Adaptive monochrome layer must exist for themed icons", adaptive.monochrome != null)
+    }
   }
 }

@@ -294,6 +294,10 @@ fun SideNavigationDrawerContent(
                                         .liquidGlassInteractive(
                                             shape = RoundedCornerShape(14.dp),
                                             glowColor = MaterialTheme.colorScheme.primary
+                                        )
+                                        .background(
+                                            color = if (isDarkMode) Color(0xFFF6F1E7) else Color(0xFFFFFCF7),
+                                            shape = RoundedCornerShape(14.dp)
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -302,7 +306,7 @@ fun SideNavigationDrawerContent(
                                         contentDescription = AppStrings.get("app_icon_desc", currentLang),
                                         contentScale = ContentScale.Fit,
                                         modifier = Modifier
-                                            .size(42.dp)
+                                            .size(43.dp)
                                             .clip(RoundedCornerShape(10.dp))
                                     )
                                 }

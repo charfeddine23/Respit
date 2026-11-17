@@ -21,7 +21,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -100,6 +100,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -243,9 +244,9 @@ fun AddEditPersonnelDialog(
     }
 
     val totalDays = remember(startDateMillis, returnDateMillis) {
-        TimeUnit.MILLISECONDS.toDays(
-            Personnel.toStartOfDay(returnDateMillis) - Personnel.toStartOfDay(startDateMillis)
-        ).coerceAtLeast(0)
+        val diffMillis = (Personnel.toStartOfDay(returnDateMillis) - Personnel.toStartOfDay(startDateMillis))
+            .coerceAtLeast(0L)
+        (diffMillis + TimeUnit.HOURS.toMillis(12)) / TimeUnit.DAYS.toMillis(1)
     }
 
     // Theme-synchronized color palette
@@ -344,11 +345,7 @@ fun AddEditPersonnelDialog(
                             .fillMaxWidth()
                             .widthIn(max = 560.dp)
                             .heightIn(max = maxDialogHeight)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {}
-                            )
+                            .pointerInput(Unit) { detectTapGestures {} }
                             .testTag("add_edit_personnel_dialog")
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -461,6 +458,7 @@ fun AddEditPersonnelDialog(
                                     .weight(1f, fill = false)
                                     .fillMaxWidth()
                                     .verticalScroll(rememberScrollState())
+                                    .testTag("dialog_form_scroll")
                                     .padding(horizontal = 16.dp, vertical = 14.dp),
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
@@ -973,7 +971,7 @@ fun AddEditPersonnelDialog(
                                         )
                                     }
 
-                                    // Quick Duration Selector Chips (+10, +15, +20, +30)
+                                    // Quick Duration Selector Chips (48h, 72h, 4d, 8d, 10d)
                                     Text(
                                         text = AppStrings.get("quick_duration_add", currentLang),
                                         style = MaterialTheme.typography.labelMedium,
@@ -981,31 +979,41 @@ fun AddEditPersonnelDialog(
                                         color = textSecondary
                                     )
 
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .horizontalScroll(rememberScrollState()),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    val durationPills = listOf(
+                                        2 to AppStrings.get("dur_48h", currentLang),
+                                        3 to AppStrings.get("dur_72h", currentLang),
+                                        4 to AppStrings.get("dur_4d", currentLang),
+                                        8 to AppStrings.get("dur_8d", currentLang),
+                                        10 to AppStrings.get("dur_10d", currentLang)
+                                    )
+                                    val durationRows = remember(durationPills) { durationPills.chunked(3) }
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        val durationPills = listOf(
-                                            10 to AppStrings.get("ten_days", currentLang),
-                                            15 to AppStrings.get("fifteen_days", currentLang),
-                                            20 to AppStrings.get("twenty_days", currentLang),
-                                            30 to AppStrings.get("thirty_days", currentLang)
-                                        )
-                                        durationPills.forEach { (days, label) ->
-                                            val isSelected = totalDays == days.toLong()
-                                            TactileDurationChip(
-                                                label = label,
-                                                selected = isSelected,
-                                                accentColor = primaryColor,
-                                                isDarkMode = isDarkMode,
-                                                animationsEnabled = animationsEnabled,
-                                                onClick = {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                    returnDateMillis = getOffsetMillis(startDateMillis, days)
+                                        durationRows.forEach { rowItems ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                rowItems.forEach { (days, label) ->
+                                                    val isSelected = totalDays == days.toLong()
+                                                    TactileDurationChip(
+                                                        label = label,
+                                                        selected = isSelected,
+                                                        accentColor = primaryColor,
+                                                        isDarkMode = isDarkMode,
+                                                        animationsEnabled = animationsEnabled,
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .testTag("quick_duration_chip_$days"),
+                                                        onClick = {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                            returnDateMillis = getOffsetMillis(startDateMillis, days)
+                                                        }
+                                                    )
                                                 }
-                                            )
+                                            }
                                         }
                                     }
 
@@ -1220,6 +1228,7 @@ fun AddEditPersonnelDialog(
                                         .weight(1.4f)
                                         .defaultMinSize(minHeight = 48.dp)
                                         .height(48.dp)
+                                        .testTag("save_personnel_button")
                                         .graphicsLayer {
                                             scaleX = saveScale
                                             scaleY = saveScale
@@ -1484,7 +1493,8 @@ private fun TactileDurationChip(
     accentColor: Color,
     isDarkMode: Boolean,
     animationsEnabled: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -1512,8 +1522,8 @@ private fun TactileDurationChip(
             width = if (selected) 1.5.dp else 1.dp,
             color = if (selected) accentColor else (if (isDarkMode) Color(0x38475569) else Color(0x38CBD5E1))
         ),
-        modifier = Modifier
-            .height(38.dp)
+        modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -1521,14 +1531,17 @@ private fun TactileDurationChip(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(horizontal = 14.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp)
         ) {
             Text(
                 text = label,
                 fontSize = 12.sp,
                 fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold,
                 color = if (selected) Color.White else (if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF1E293B)),
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

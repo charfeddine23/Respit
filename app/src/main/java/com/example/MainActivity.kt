@@ -696,15 +696,19 @@ fun LeaveTrackerMainApp(
                                                             glowColor = MaterialTheme.colorScheme.primary,
                                                             isDark = isDarkMode,
                                                             isNeumorphic = isNeumorphic
+                                                        )
+                                                        .background(
+                                                            color = if (isDarkMode) Color(0xFFF6F1E7) else Color(0xFFFFFCF7),
+                                                            shape = if (isNeumorphic) RoundedCornerShape(12.dp) else RoundedCornerShape(10.dp)
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Image(
-                                                        painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
+                                                        painter = painterResource(id = R.drawable.app_logo),
                                                         contentDescription = AppStrings.get("app_icon_desc", currentLang),
                                                         contentScale = ContentScale.Fit,
                                                         modifier = Modifier
-                                                            .size(32.dp)
+                                                            .size(33.dp)
                                                             .clip(RoundedCornerShape(8.dp))
                                                     )
                                                 }

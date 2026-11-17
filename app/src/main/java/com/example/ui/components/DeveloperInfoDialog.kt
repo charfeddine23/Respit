@@ -148,15 +148,19 @@ fun DeveloperInfoDialog(
                         .liquidGlassInteractive(
                             shape = RoundedCornerShape(20.dp),
                             glowColor = MaterialTheme.colorScheme.primary
+                        )
+                        .background(
+                            color = Color(0xFFFAF6EE),
+                            shape = RoundedCornerShape(20.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
+                        painter = painterResource(id = R.drawable.app_logo),
                         contentDescription = AppStrings.get("app_icon_desc", currentLang),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
-                            .size(68.dp)
+                            .size(65.dp)
                     )
                 }
 

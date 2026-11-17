@@ -150,18 +150,18 @@ fun BiometricLockScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(if (isDarkMode) Color(0xFF1E293B) else Color.White)
+                            .background(if (isDarkMode) Color(0xFFF6F1E7) else Color.White)
                             .border(
                                 BorderStroke(2.dp, primaryCyan.copy(alpha = 0.7f)),
                                 CircleShape
                             )
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_respite_pulse_logo),
+                            painter = painterResource(id = R.drawable.app_logo),
                             contentDescription = AppStrings.get("app_icon_desc", currentLang),
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
-                                .size(50.dp)
+                                .size(68.dp)
                                 .clip(RoundedCornerShape(12.dp))
                         )
                     }
