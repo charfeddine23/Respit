@@ -296,7 +296,9 @@ fun SideNavigationDrawerContent(
                                             glowColor = MaterialTheme.colorScheme.primary
                                         )
                                         .background(
-                                            color = if (isDarkMode) Color(0xFFF6F1E7) else Color(0xFFFFFCF7),
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(Color(0xFF0A192F), Color(0xFF144266))
+                                            ),
                                             shape = RoundedCornerShape(14.dp)
                                         ),
                                     contentAlignment = Alignment.Center
@@ -306,8 +308,8 @@ fun SideNavigationDrawerContent(
                                         contentDescription = AppStrings.get("app_icon_desc", currentLang),
                                         contentScale = ContentScale.Fit,
                                         modifier = Modifier
-                                            .size(43.dp)
-                                            .clip(RoundedCornerShape(10.dp))
+                                            .size(46.dp)
+                                            .clip(RoundedCornerShape(11.dp))
                                     )
                                 }
 
@@ -556,6 +558,63 @@ fun SideNavigationDrawerContent(
                             )
                         },
                         testTag = "settings_nav_backup_restore"
+                    )
+
+                    // App Update (directly below Backup & Restore on Settings root)
+                    DrawerNavigationItem(
+                        icon = Icons.Default.RocketLaunch,
+                        iconTint = accentCyan,
+                        title = AppStrings.get("update_menu_title", currentLang),
+                        subtitle = if (availableUpdateVersion != null) {
+                            "${AppStrings.get("update_available_sub", currentLang)} • v$availableUpdateVersion"
+                        } else {
+                            "${AppStrings.get("update_menu_sub", currentLang)} (v${BuildConfig.VERSION_NAME})"
+                        },
+                        isDarkMode = isDarkMode,
+                        haptic = haptic,
+                        onClick = onCheckUpdate,
+                        trailingContent = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (availableUpdateVersion != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF10B981))
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        testTag = "drawer_update_item"
+                    )
+
+                    // Developer Info (below App Update on Settings root)
+                    DrawerNavigationItem(
+                        icon = Icons.Default.Info,
+                        iconTint = Color(0xFF0284C7),
+                        title = AppStrings.get("developer_info", currentLang),
+                        subtitle = "Developed by Charfeddine Ka",
+                        isDarkMode = isDarkMode,
+                        haptic = haptic,
+                        onClick = onOpenDeveloper,
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        testTag = "drawer_developer_item"
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -1441,115 +1500,6 @@ fun SideNavigationDrawerContent(
                         onClick = onResetSampleData,
                         testTag = "drawer_reset_item"
                     )
-
-                    // 6.7 Secondary Tools & App Diagnostics (Updates + Developer Info)
-                    CleanSettingsCard(isDarkMode = isDarkMode) {
-                        Surface(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onCheckUpdate()
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.Transparent,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .defaultMinSize(minHeight = 48.dp)
-                                .testTag("drawer_update_item")
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(accentCyan.copy(alpha = 0.14f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.RocketLaunch,
-                                        contentDescription = null,
-                                        tint = accentCyan,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = AppStrings.get("update_menu_title", currentLang),
-                                        fontSize = 12.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                                    )
-                                    Text(
-                                        text = if (availableUpdateVersion != null) {
-                                            "${AppStrings.get("update_available_sub", currentLang)} • v$availableUpdateVersion"
-                                        } else {
-                                            "${AppStrings.get("update_menu_sub", currentLang)} (v${BuildConfig.VERSION_NAME})"
-                                        },
-                                        fontSize = 11.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                    )
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(color = dividerColor)
-
-                        Surface(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onOpenDeveloper()
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.Transparent,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .defaultMinSize(minHeight = 48.dp)
-                                .testTag("drawer_developer_item")
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF0284C7).copy(alpha = 0.14f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = null,
-                                        tint = Color(0xFF0284C7),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = AppStrings.get("developer_info", currentLang),
-                                        fontSize = 12.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                                    )
-                                    Text(
-                                        text = "Developed by Charfeddine Ka",
-                                        fontSize = 11.sp,
-                                        fontStyle = FontStyle.Italic,
-                                        color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F)
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }

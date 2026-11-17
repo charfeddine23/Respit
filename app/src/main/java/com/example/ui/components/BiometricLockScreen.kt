@@ -150,7 +150,11 @@ fun BiometricLockScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(if (isDarkMode) Color(0xFFF6F1E7) else Color.White)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFF0A192F), Color(0xFF144266))
+                                )
+                            )
                             .border(
                                 BorderStroke(2.dp, primaryCyan.copy(alpha = 0.7f)),
                                 CircleShape
@@ -161,8 +165,8 @@ fun BiometricLockScreen(
                             contentDescription = AppStrings.get("app_icon_desc", currentLang),
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
-                                .size(68.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                .size(72.dp)
+                                .clip(CircleShape)
                         )
                     }
                 }

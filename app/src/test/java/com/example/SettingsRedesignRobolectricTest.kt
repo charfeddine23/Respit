@@ -5,11 +5,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
@@ -50,6 +52,8 @@ class SettingsRedesignRobolectricTest {
         var roomDbClicked = false
         var resetClicked = false
         var notificationsChecked = false
+        var updateClicked = false
+        var developerClicked = false
 
         composeRule.setContent {
             MyApplicationTheme(darkTheme = isDarkMode) {
@@ -69,7 +73,8 @@ class SettingsRedesignRobolectricTest {
                         isDarkMode = !isDarkMode
                         themeMode = if (isDarkMode) AppThemeMode.DARK else AppThemeMode.LIGHT
                     },
-                    onOpenDeveloper = {},
+                    onOpenDeveloper = { developerClicked = true },
+                    onCheckUpdate = { updateClicked = true },
                     onResetSampleData = { resetClicked = true },
                     currentThemeMode = themeMode,
                     onSelectThemeMode = {
@@ -105,12 +110,25 @@ class SettingsRedesignRobolectricTest {
         composeRule.onNodeWithText("Version:", substring = true).assertDoesNotExist()
         composeRule.onNodeWithText("(${BuildConfig.VERSION_CODE})", substring = true).assertDoesNotExist()
 
-        // Verify all 5 category buttons exist on the root screen
+        // Verify all 5 category buttons + App Update & Developer Info exist in order on the root screen
         composeRule.onNodeWithTag("settings_nav_appearance").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("settings_nav_security").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("settings_nav_notifications").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("settings_nav_trash_bin").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("settings_nav_backup_restore").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("drawer_update_item").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("drawer_developer_item").performScrollTo().assertIsDisplayed()
+
+        val backupBounds = composeRule.onNodeWithTag("settings_nav_backup_restore").getBoundsInRoot()
+        val updateBounds = composeRule.onNodeWithTag("drawer_update_item").getBoundsInRoot()
+        val devBounds = composeRule.onNodeWithTag("drawer_developer_item").getBoundsInRoot()
+        assertTrue(backupBounds.bottom <= updateBounds.top + 1.dp)
+        assertTrue(updateBounds.bottom <= devBounds.top + 1.dp)
+
+        composeRule.onNodeWithTag("drawer_update_item").performScrollTo().performClick()
+        composeRule.onNodeWithTag("drawer_developer_item").performScrollTo().performClick()
+        assertTrue(updateClicked)
+        assertTrue(developerClicked)
 
         // Tap Section 1 Top Header -> opens Language settings with 4 languages including Algerian Tamazight
         composeRule.onNodeWithTag("drawer_header_language_card").performScrollTo().performClick()
@@ -193,6 +211,8 @@ class SettingsRedesignRobolectricTest {
         composeRule.onNodeWithTag("settings_nav_backup_restore").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("settings_backup_restore_page").assertIsDisplayed()
+        composeRule.onNodeWithTag("drawer_update_item").assertDoesNotExist()
+        composeRule.onNodeWithTag("drawer_developer_item").assertDoesNotExist()
         composeRule.onNodeWithTag("drawer_backup_item").performScrollTo().performClick()
         composeRule.onNodeWithTag("drawer_pdf_item").performScrollTo().performClick()
         composeRule.onNodeWithTag("drawer_excel_item").performScrollTo().performClick()

@@ -150,7 +150,9 @@ fun DeveloperInfoDialog(
                             glowColor = MaterialTheme.colorScheme.primary
                         )
                         .background(
-                            color = Color(0xFFFAF6EE),
+                            brush = Brush.linearGradient(
+                                colors = listOf(Color(0xFF0A192F), Color(0xFF144266))
+                            ),
                             shape = RoundedCornerShape(20.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -160,7 +162,8 @@ fun DeveloperInfoDialog(
                         contentDescription = AppStrings.get("app_icon_desc", currentLang),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
-                            .size(65.dp)
+                            .size(71.dp)
+                            .clip(RoundedCornerShape(16.dp))
                     )
                 }
 
