@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -129,47 +130,18 @@ fun BiometricLockScreen(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.widthIn(max = 420.dp)
             ) {
-                // Pulsing lock / fingerprint icon badge
-                Box(
-                    contentAlignment = Alignment.Center,
+                // Enlarged frameless pulsing app logo
+                Image(
+                    painter = painterResource(id = R.drawable.app_logo),
+                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(
+                        if (isDarkMode) Color.White else Color(0xFF0A192F)
+                    ),
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(width = 112.dp, height = 88.dp)
                         .scale(pulseScale)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    primaryCyan.copy(alpha = 0.25f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(Color(0xFF0A192F), Color(0xFF144266))
-                                )
-                            )
-                            .border(
-                                BorderStroke(2.dp, primaryCyan.copy(alpha = 0.7f)),
-                                CircleShape
-                            )
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.app_logo),
-                            contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                        )
-                    }
-                }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 

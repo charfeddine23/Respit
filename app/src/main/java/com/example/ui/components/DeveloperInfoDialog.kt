@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -141,31 +142,19 @@ fun DeveloperInfoDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // App Icon in Liquid Glass Card
-                Box(
-                    modifier = Modifier
-                        .size(76.dp)
-                        .liquidGlassInteractive(
-                            shape = RoundedCornerShape(20.dp),
-                            glowColor = MaterialTheme.colorScheme.primary
-                        )
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(Color(0xFF0A192F), Color(0xFF144266))
-                            ),
-                            shape = RoundedCornerShape(20.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.app_logo),
-                        contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .size(71.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                    )
+                // Enlarged frameless App Logo
+                val logoTint = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) {
+                    Color.White
+                } else {
+                    MaterialTheme.colorScheme.primary
                 }
+                Image(
+                    painter = painterResource(id = R.drawable.app_logo),
+                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(logoTint),
+                    modifier = Modifier.size(width = 104.dp, height = 82.dp)
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 

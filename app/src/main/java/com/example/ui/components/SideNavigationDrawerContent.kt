@@ -96,6 +96,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -288,30 +289,15 @@ fun SideNavigationDrawerContent(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .liquidGlassInteractive(
-                                            shape = RoundedCornerShape(14.dp),
-                                            glowColor = MaterialTheme.colorScheme.primary
-                                        )
-                                        .background(
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(Color(0xFF0A192F), Color(0xFF144266))
-                                            ),
-                                            shape = RoundedCornerShape(14.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.app_logo),
-                                        contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier
-                                            .size(46.dp)
-                                            .clip(RoundedCornerShape(11.dp))
-                                    )
-                                }
+                                Image(
+                                    painter = painterResource(id = R.drawable.app_logo),
+                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                    contentScale = ContentScale.Fit,
+                                    colorFilter = ColorFilter.tint(
+                                        if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.size(width = 66.dp, height = 52.dp)
+                                )
 
                                 Spacer(modifier = Modifier.width(12.dp))
 

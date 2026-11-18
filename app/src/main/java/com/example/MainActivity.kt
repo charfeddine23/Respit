@@ -135,6 +135,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.cos
@@ -688,32 +689,15 @@ fun LeaveTrackerMainApp(
                                                     .padding(vertical = 4.dp, horizontal = 2.dp)
                                                     .testTag("app_title_row")
                                             ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(38.dp)
-                                                        .liquidGlassInteractive(
-                                                            shape = if (isNeumorphic) RoundedCornerShape(12.dp) else RoundedCornerShape(10.dp),
-                                                            glowColor = MaterialTheme.colorScheme.primary,
-                                                            isDark = isDarkMode,
-                                                            isNeumorphic = isNeumorphic
-                                                        )
-                                                        .background(
-                                                            brush = Brush.linearGradient(
-                                                                colors = listOf(Color(0xFF0A192F), Color(0xFF144266))
-                                                            ),
-                                                            shape = if (isNeumorphic) RoundedCornerShape(12.dp) else RoundedCornerShape(10.dp)
-                                                        ),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Image(
-                                                        painter = painterResource(id = R.drawable.app_logo),
-                                                        contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                                                        contentScale = ContentScale.Fit,
-                                                        modifier = Modifier
-                                                            .size(35.dp)
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                    )
-                                                }
+                                                Image(
+                                                    painter = painterResource(id = R.drawable.app_logo),
+                                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                                    contentScale = ContentScale.Fit,
+                                                    colorFilter = ColorFilter.tint(
+                                                        if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
+                                                    ),
+                                                    modifier = Modifier.size(width = 52.dp, height = 40.dp)
+                                                )
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
                                                     text = AppStrings.get("app_title", currentLang),
