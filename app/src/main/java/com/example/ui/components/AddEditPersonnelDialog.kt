@@ -7,6 +7,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -112,6 +113,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -190,7 +192,7 @@ fun AddEditPersonnelDialog(
     }
     var returnDateMillis by remember {
         mutableLongStateOf(
-            personnelToEdit?.returnDateMillis ?: getOffsetMillis(startDateMillis, 10)
+            personnelToEdit?.returnDateMillis ?: getOffsetMillis(startDateMillis, 9)
         )
     }
     var isReturnedToDuty by remember {
@@ -218,7 +220,7 @@ fun AddEditPersonnelDialog(
                 c.set(Calendar.MILLISECOND, 0)
                 startDateMillis = c.timeInMillis
                 if (returnDateMillis < startDateMillis) {
-                    returnDateMillis = getOffsetMillis(startDateMillis, 10)
+                    returnDateMillis = getOffsetMillis(startDateMillis, 9)
                 }
             },
             startCal.get(Calendar.YEAR),
@@ -244,9 +246,7 @@ fun AddEditPersonnelDialog(
     }
 
     val totalDays = remember(startDateMillis, returnDateMillis) {
-        val diffMillis = (Personnel.toStartOfDay(returnDateMillis) - Personnel.toStartOfDay(startDateMillis))
-            .coerceAtLeast(0L)
-        (diffMillis + TimeUnit.HOURS.toMillis(12)) / TimeUnit.DAYS.toMillis(1)
+        Personnel.inclusiveLeaveDays(startDateMillis, returnDateMillis)
     }
 
     // Theme-synchronized color palette
@@ -465,8 +465,20 @@ fun AddEditPersonnelDialog(
                                 // Animated Validation Error Banner
                                 AnimatedVisibility(
                                     visible = errorMessage != null,
-                                    enter = expandVertically(spring(stiffness = Spring.StiffnessMedium)) + fadeIn(),
-                                    exit = shrinkVertically() + fadeOut()
+                                    enter = expandVertically(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = 380f,
+                                            visibilityThreshold = IntSize.VisibilityThreshold
+                                        )
+                                    ) + fadeIn(tween(200)),
+                                    exit = shrinkVertically(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = 440f,
+                                            visibilityThreshold = IntSize.VisibilityThreshold
+                                        )
+                                    ) + fadeOut(tween(140))
                                 ) {
                                     Surface(
                                         color = MaterialTheme.colorScheme.errorContainer,
@@ -1009,7 +1021,7 @@ fun AddEditPersonnelDialog(
                                                             .testTag("quick_duration_chip_$days"),
                                                         onClick = {
                                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                            returnDateMillis = getOffsetMillis(startDateMillis, days)
+                                                            returnDateMillis = getOffsetMillis(startDateMillis, (days - 1).coerceAtLeast(0))
                                                         }
                                                     )
                                                 }

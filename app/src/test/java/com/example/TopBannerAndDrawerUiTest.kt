@@ -68,8 +68,8 @@ class TopBannerAndDrawerUiTest {
                 openedDrawerBoundsAr.left < rootBounds.right - 50.dp
             )
 
-            // 4. Tap top header container to open Language Settings and switch to English -> Top Banner immediately flips to LTR
-            composeRule.onNodeWithTag("drawer_header_language_card").performClick()
+            // 4. Tap the dedicated Language button below the app container to open Language Settings and switch to English -> Top Banner immediately flips to LTR
+            composeRule.onNodeWithTag("settings_nav_language").performClick()
             composeRule.waitForIdle()
             composeRule.onNodeWithTag("lang_option_en").performClick()
             composeRule.waitForIdle()

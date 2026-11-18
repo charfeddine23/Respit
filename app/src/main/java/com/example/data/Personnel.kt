@@ -89,6 +89,13 @@ data class Personnel(
             return kotlin.math.round((toStart - fromStart).toDouble() / 86_400_000.0).toLong()
         }
 
+        fun inclusiveLeaveDays(startMillis: Long, endMillis: Long): Long {
+            val start = toStartOfDay(startMillis)
+            val end = toStartOfDay(endMillis)
+            val span = signedDaysBetween(start, end).coerceAtLeast(0L)
+            return span + 1L
+        }
+
         fun findLeavesForPersonnel(person: Personnel, allLeaves: List<LeaveRecord>): List<LeaveRecord> {
             val regNormalized = person.registrationNumber.trim()
             return allLeaves.filter { leave ->
@@ -181,14 +188,9 @@ data class Personnel(
         return computeDutyReferenceInfo(allLeaves, todayMillis).daysSinceReference >= thresholdDays
     }
 
-    // إجمالي مدة الإجازة بالأيام
+    // إجمالي مدة الإجازة بالأيام (عدّ شامل لتاريخ البداية وتاريخ النهاية)
     val totalLeaveDays: Long
-        get() {
-            val start = toStartOfDay(startDateMillis)
-            val end = toStartOfDay(returnDateMillis)
-            val days = TimeUnit.MILLISECONDS.toDays(end - start)
-            return if (days <= 0) 1 else days
-        }
+        get() = inclusiveLeaveDays(startDateMillis, returnDateMillis)
 
     // الأيام المتبقية على الدخول (شحال بقالو فدار ويدخل)
     val daysRemainingToReturn: Long

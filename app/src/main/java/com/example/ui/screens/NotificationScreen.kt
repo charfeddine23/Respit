@@ -536,7 +536,7 @@ fun NotificationScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .testTag("notifications_list"),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 116.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(filteredList, key = { it.id }) { notification ->

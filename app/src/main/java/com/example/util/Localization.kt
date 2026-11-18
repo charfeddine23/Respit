@@ -573,6 +573,7 @@ object AppStrings {
         "trash_deleted_at" to "تاريخ الحذف:",
         "undo_short" to "تراجع",
         "settings_tap_for_language" to "اضغط هنا لتغيير لغة التطبيق",
+        "settings_cat_language" to "اللغة",
         "lang_ar_title" to "العربية",
         "lang_ar_sub" to "اللغة العربية (من اليمين إلى اليسار)",
         "lang_tzm_title" to "ⵜⴰⵎⴰⵣⵉⵖⵜ • Tamazight",
@@ -1142,6 +1143,7 @@ object AppStrings {
         "trash_deleted_at" to "Supprimé le :",
         "undo_short" to "Annuler",
         "settings_tap_for_language" to "Appuyer pour changer la langue",
+        "settings_cat_language" to "Langue",
         "lang_ar_title" to "العربية",
         "lang_ar_sub" to "Arabe (Droite à gauche)",
         "lang_tzm_title" to "ⵜⴰⵎⴰⵣⵉⵖⵜ • Tamazight",
@@ -1711,6 +1713,7 @@ object AppStrings {
         "trash_deleted_at" to "Deleted:",
         "undo_short" to "Undo",
         "settings_tap_for_language" to "Tap to open Language Settings",
+        "settings_cat_language" to "Language",
         "lang_ar_title" to "العربية",
         "lang_ar_sub" to "Arabic (Right-to-Left)",
         "lang_tzm_title" to "ⵜⴰⵎⴰⵣⵉⵖⵜ • Tamazight",
@@ -2069,6 +2072,7 @@ object AppStrings {
 
         // Redesigned Settings Categories & Language Options
         "settings_tap_for_language" to "Senned da i ubeddel n tutlayt",
+        "settings_cat_language" to "Tutlayt",
         "lang_ar_title" to "العربية",
         "lang_ar_sub" to "Taɛrabt (Seg uyeffus ɣer uzelmaḍ)",
         "lang_tzm_title" to "ⵜⴰⵎⴰⵣⵉⵖⵜ • Tamazight",

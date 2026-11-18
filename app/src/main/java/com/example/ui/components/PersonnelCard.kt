@@ -1,13 +1,16 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -20,6 +23,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -99,6 +105,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -275,7 +282,12 @@ fun PersonnelCard(
 
     val arrowRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        animationSpec = if (animationsEnabled) {
+            spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = 420f
+            )
+        } else tween(0),
         label = "arrowRotation"
     )
 
@@ -911,69 +923,118 @@ fun PersonnelCard(
                 }
             }
 
-            // Expand / Collapse Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isDarkMode) Color(0x1F38BDF8) else Color(0x1200BCD4)
-                    )
-                    .clickable { isExpanded = !isExpanded }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Expand / Collapse Bar + Expandable Details grouped to eliminate inter-item spacing jump
+            val expandBarBg by animateColorAsState(
+                targetValue = when {
+                    isExpanded && isDarkMode -> Color(0x3038BDF8)
+                    isExpanded -> Color(0x2000BCD4)
+                    isDarkMode -> Color(0x1F38BDF8)
+                    else -> Color(0x1200BCD4)
+                },
+                animationSpec = if (animationsEnabled) {
+                    spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 400f)
+                } else tween(0),
+                label = "expandBarBg"
+            )
+
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(expandBarBg)
+                        .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            isExpanded = !isExpanded
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = if (isDarkMode) CyanGlow else VibrantCyan,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .rotate(if (animationsEnabled) arrowRotation else (if (isExpanded) 180f else 0f))
-                    )
-                    Text(
-                        text = AppStrings.get(
-                            if (isExpanded) "click_to_collapse" else "click_to_expand",
-                            currentLang
-                        ),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDarkMode) CyanGlow else VibrantCyan
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = if (isDarkMode) CyanGlow else VibrantCyan,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .graphicsLayer { rotationZ = arrowRotation }
+                        )
+                        AnimatedContent(
+                            targetState = isExpanded,
+                            transitionSpec = {
+                                if (animationsEnabled) {
+                                    (fadeIn(tween(180)) + slideInVertically { if (targetState) -it / 3 else it / 3 }) togetherWith
+                                        (fadeOut(tween(120)) + slideOutVertically { if (targetState) it / 3 else -it / 3 })
+                                } else {
+                                    EnterTransition.None togetherWith ExitTransition.None
+                                }
+                            },
+                            label = "expandLabel"
+                        ) { expanded ->
+                            Text(
+                                text = AppStrings.get(
+                                    if (expanded) "click_to_collapse" else "click_to_expand",
+                                    currentLang
+                                ),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkMode) CyanGlow else VibrantCyan
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = !isExpanded,
+                        enter = if (animationsEnabled) {
+                            fadeIn(tween(200)) + scaleIn(initialScale = 0.94f)
+                        } else EnterTransition.None,
+                        exit = if (animationsEnabled) {
+                            fadeOut(tween(130)) + scaleOut(targetScale = 0.94f)
+                        } else ExitTransition.None
+                    ) {
+                        Text(
+                            text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
-                if (!isExpanded) {
-                    Text(
-                        text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // Expandable Details Section
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = if (animationsEnabled) {
-                    expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-                        fadeIn(animationSpec = tween(250))
-                } else EnterTransition.None,
-                exit = if (animationsEnabled) {
-                    shrinkVertically(animationSpec = tween(250, easing = FastOutSlowInEasing)) +
-                        fadeOut(animationSpec = tween(200))
-                } else ExitTransition.None
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                // Expandable Details Section (interruptible critically-damped spring + lead fadeOut)
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = if (animationsEnabled) {
+                        expandVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = 380f,
+                                visibilityThreshold = IntSize.VisibilityThreshold
+                            ),
+                            expandFrom = Alignment.Top
+                        ) + fadeIn(animationSpec = tween(220, delayMillis = 35, easing = FastOutSlowInEasing))
+                    } else EnterTransition.None,
+                    exit = if (animationsEnabled) {
+                        shrinkVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = 440f,
+                                visibilityThreshold = IntSize.VisibilityThreshold
+                            ),
+                            shrinkTowards = Alignment.Top
+                        ) + fadeOut(animationSpec = tween(140, easing = FastOutSlowInEasing))
+                    } else ExitTransition.None
                 ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Spacer(modifier = Modifier.height(2.dp))
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1182,6 +1243,7 @@ fun PersonnelCard(
                 }
             }
             }
+        }
         }
 
             // Floating zero-layout-shift armed hint & pin progress pill (anchored to stationary outer Box)

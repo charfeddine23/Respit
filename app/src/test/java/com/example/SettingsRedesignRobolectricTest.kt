@@ -104,13 +104,21 @@ class SettingsRedesignRobolectricTest {
 
         composeRule.waitForIdle()
 
-        // 1. Top Header shows App Title & NO Version number text under name
+        // 1. Top Header shows App Title & NO Version number or Tap-to-open-Language text inside header card
         composeRule.onNodeWithTag("drawer_header_language_card").assertIsDisplayed()
         composeRule.onNodeWithText("Respite Pulse").assertIsDisplayed()
         composeRule.onNodeWithText("Version:", substring = true).assertDoesNotExist()
         composeRule.onNodeWithText("(${BuildConfig.VERSION_CODE})", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Tap to open Language Settings", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("اضغط هنا لتغيير لغة التطبيق", substring = true).assertDoesNotExist()
 
-        // Verify all 5 category buttons + App Update & Developer Info exist in order on the root screen
+        // Verify Language button is directly below the app header card, followed by the remaining categories
+        composeRule.onNodeWithTag("settings_nav_language").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("اللغة").assertIsDisplayed()
+        val headerBounds = composeRule.onNodeWithTag("drawer_header_language_card").getBoundsInRoot()
+        val langNavBounds = composeRule.onNodeWithTag("settings_nav_language").getBoundsInRoot()
+        assertTrue(headerBounds.bottom <= langNavBounds.top + 1.dp)
+
         composeRule.onNodeWithTag("settings_nav_appearance").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("settings_nav_security").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("settings_nav_notifications").performScrollTo().assertIsDisplayed()
@@ -130,8 +138,8 @@ class SettingsRedesignRobolectricTest {
         assertTrue(updateClicked)
         assertTrue(developerClicked)
 
-        // Tap Section 1 Top Header -> opens Language settings with 4 languages including Algerian Tamazight
-        composeRule.onNodeWithTag("drawer_header_language_card").performScrollTo().performClick()
+        // Tap dedicated Language button below header -> opens Language settings with 4 languages including Tamazight
+        composeRule.onNodeWithTag("settings_nav_language").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("settings_language_page").assertIsDisplayed()
         composeRule.onNodeWithTag("lang_option_ar").performScrollTo().assertIsDisplayed()

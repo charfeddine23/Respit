@@ -331,7 +331,7 @@ fun RoomDatabaseScreen(
                     LazyColumn(
                         modifier = contentModifier.padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(top = 12.dp, bottom = 40.dp)
+                        contentPadding = PaddingValues(top = 12.dp, bottom = 116.dp)
                     ) {
                         // 1. Room Header Info Card
                         item {

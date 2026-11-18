@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -174,9 +175,130 @@ class ComposeUiRobolectricTest {
     composeTestRule.onNodeWithTag("save_personnel_button").performClick()
     composeTestRule.waitForIdle()
 
-    val savedDays = (savedReturn - savedStart + java.util.concurrent.TimeUnit.HOURS.toMillis(12)) /
+    val calendarSpanDays = (savedReturn - savedStart + java.util.concurrent.TimeUnit.HOURS.toMillis(12)) /
       java.util.concurrent.TimeUnit.DAYS.toMillis(1)
-    assertEquals(8L, savedDays)
+    assertEquals(7L, calendarSpanDays)
+    assertEquals(8L, Personnel.inclusiveLeaveDays(savedStart, savedReturn))
+  }
+
+  @Test
+  fun `inclusive leave days counts both start and end date e_g 2026-01-01 to 2026-01-08 equals 8 days`() {
+    val startCal = Calendar.getInstance().apply {
+      set(2026, Calendar.JANUARY, 1, 0, 0, 0)
+      set(Calendar.MILLISECOND, 0)
+    }
+    val endCal = Calendar.getInstance().apply {
+      set(2026, Calendar.JANUARY, 8, 0, 0, 0)
+      set(Calendar.MILLISECOND, 0)
+    }
+    val sameDayCal = Calendar.getInstance().apply {
+      set(2026, Calendar.JANUARY, 1, 23, 30, 0)
+      set(Calendar.MILLISECOND, 0)
+    }
+
+    assertEquals(8L, Personnel.inclusiveLeaveDays(startCal.timeInMillis, endCal.timeInMillis))
+    assertEquals(1L, Personnel.inclusiveLeaveDays(startCal.timeInMillis, sameDayCal.timeInMillis))
+
+    val sample = Personnel(
+      fullName = "أحمد",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-99",
+      startDateMillis = startCal.timeInMillis,
+      returnDateMillis = endCal.timeInMillis
+    )
+    assertEquals(8L, sample.totalLeaveDays)
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `redesigned FilterSortDialog renders structured controls and selects status sort and rank`() {
+    var selectedSort = com.example.ui.SortOption.RETURN_SOON
+    var selectedStatus = "ALL"
+    var selectedRank = "ALL"
+    var dismissed = false
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.FilterSortDialog(
+          selectedSort = selectedSort,
+          onSelectSort = { selectedSort = it },
+          selectedStatus = selectedStatus,
+          onSelectStatus = { selectedStatus = it },
+          selectedRank = selectedRank,
+          onSelectRank = { selectedRank = it },
+          uniqueRanks = listOf("نقيب - Capitaine", "ملازم - Lieutenant"),
+          stats = com.example.ui.DashboardStats(total = 10, atHome = 4, returningToday = 1, overdue = 2, onDuty = 3, eligible = 1),
+          onResetFilters = {
+            selectedSort = com.example.ui.SortOption.RETURN_SOON
+            selectedStatus = "ALL"
+            selectedRank = "ALL"
+          },
+          onDismiss = { dismissed = true },
+          animationsEnabled = false,
+          currentLang = AppLanguage.ARABIC
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("filter_sort_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("filter_status_OVERDUE").performClick()
+    composeTestRule.waitForIdle()
+    assertEquals("OVERDUE", selectedStatus)
+
+    composeTestRule.onNodeWithTag("filter_sort_scroll").performTouchInput {
+      swipeUp(startY = (bottom - 16f).coerceAtLeast(centerY), endY = top + 16f)
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("filter_sort_NAME_ASC").performClick()
+    composeTestRule.waitForIdle()
+    assertEquals(com.example.ui.SortOption.NAME_ASC, selectedSort)
+
+    composeTestRule.onNodeWithTag("filter_sort_scroll").performTouchInput {
+      swipeUp(startY = (bottom - 16f).coerceAtLeast(centerY), endY = top + 16f)
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("filter_rank_نقيب - Capitaine").performScrollTo()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("filter_rank_نقيب - Capitaine").performClick()
+    composeTestRule.waitForIdle()
+    assertEquals("نقيب - Capitaine", selectedRank)
+
+    composeTestRule.onNodeWithTag("filter_sort_apply_button").performClick()
+    composeTestRule.waitForIdle()
+    assertTrue(dismissed)
+  }
+
+  @Test
+  fun `AppBottomNavigationPanel renders Liquid Glass dock and switches pages cleanly`() {
+    var selectedPage = com.example.ui.components.AppNavPage.DASHBOARD
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.AppBottomNavigationPanel(
+          selectedPage = selectedPage,
+          onSelectPage = { selectedPage = it },
+          notificationsCount = 2,
+          isDarkMode = false,
+          isNeumorphic = false,
+          animationsEnabled = false,
+          currentLang = AppLanguage.ENGLISH
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("bottom_nav_panel").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("bottom_nav_dashboard").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("bottom_nav_records").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+    assertEquals(com.example.ui.components.AppNavPage.RECORDS, selectedPage)
+
+    composeTestRule.onNodeWithTag("bottom_nav_analytics").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+    assertEquals(com.example.ui.components.AppNavPage.ANALYTICS, selectedPage)
   }
 
   @Test

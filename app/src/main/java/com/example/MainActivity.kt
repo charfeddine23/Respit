@@ -19,6 +19,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -48,6 +49,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
@@ -138,16 +140,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -622,19 +629,14 @@ fun LeaveTrackerMainApp(
             CompositionLocalProvider(
                 LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    // Ambient Liquid Dynamic Aurora Mesh Background (Smooth 60fps drifting orbs)
-                    DynamicAuroraBackground(
-                        isDark = isDarkMode,
-                        isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM,
-                        animationsEnabled = isDynamicAnimationsEnabled
-                    )
+                val backdropLayer = rememberGraphicsLayer()
+                var backdropOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
 
-                    Scaffold(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .testTag("main_scaffold"),
-                        containerColor = Color.Transparent,
+                Scaffold(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("main_scaffold"),
+                    containerColor = Color.Transparent,
                         topBar = {
                             CompositionLocalProvider(
                                 LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
@@ -931,16 +933,37 @@ fun LeaveTrackerMainApp(
                                 isDarkMode = isDarkMode,
                                 isNeumorphic = isNeumorphic,
                                 animationsEnabled = isDynamicAnimationsEnabled,
-                                currentLang = currentLang
+                                currentLang = currentLang,
+                                backdropLayer = backdropLayer,
+                                backdropOffsetInRoot = backdropOffsetInRoot
                             )
                         }
                     ) { innerPadding ->
-                        BoxWithConstraints(
+                        val bottomDockClearance = innerPadding.calculateBottomPadding()
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(innerPadding),
-                            contentAlignment = Alignment.TopCenter
+                                .onGloballyPositioned { backdropOffsetInRoot = it.positionInRoot() }
+                                .drawWithContent {
+                                    backdropLayer.record {
+                                        this@drawWithContent.drawContent()
+                                    }
+                                    drawLayer(backdropLayer)
+                                }
                         ) {
+                            // Ambient Liquid Dynamic Aurora Mesh Background captured inside backdropLayer
+                            DynamicAuroraBackground(
+                                isDark = isDarkMode,
+                                isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM,
+                                animationsEnabled = isDynamicAnimationsEnabled
+                            )
+
+                            BoxWithConstraints(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(top = innerPadding.calculateTopPadding()),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
                             val isTablet = maxWidth >= 600.dp
                             val contentMaxWidth = if (isTablet) 980.dp else 680.dp
                             val horizontalPadding = if (isTablet) 24.dp else 16.dp
@@ -1396,7 +1419,13 @@ fun LeaveTrackerMainApp(
                                                 PersonnelCard(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
-                                                    modifier = Modifier.animateItem(),
+                                                    modifier = Modifier.animateItem(
+                                                        placementSpec = spring(
+                                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                                            stiffness = 380f,
+                                                            visibilityThreshold = IntOffset.VisibilityThreshold
+                                                        )
+                                                    ),
                                                     isFocusMode = isFocusMode,
                                                     isDarkMode = isDarkMode,
                                                     isNeumorphic = isNeumorphic,
@@ -1435,7 +1464,7 @@ fun LeaveTrackerMainApp(
                                         }
 
                                         item {
-                                            Spacer(modifier = Modifier.height(80.dp))
+                                            Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
                                         }
                                     }
                                 }
@@ -1687,7 +1716,13 @@ fun LeaveTrackerMainApp(
                                                 Row(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .animateItem(),
+                                                        .animateItem(
+                                                            placementSpec = spring(
+                                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                                stiffness = 380f,
+                                                                visibilityThreshold = IntOffset.VisibilityThreshold
+                                                            )
+                                                        ),
                                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                                                 ) {
                                                     for (person in rowItems) {
@@ -1747,7 +1782,13 @@ fun LeaveTrackerMainApp(
                                                 PersonnelCard(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
-                                                    modifier = Modifier.animateItem(),
+                                                    modifier = Modifier.animateItem(
+                                                        placementSpec = spring(
+                                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                                            stiffness = 380f,
+                                                            visibilityThreshold = IntOffset.VisibilityThreshold
+                                                        )
+                                                    ),
                                                     isFocusMode = isFocusMode,
                                                     isDarkMode = isDarkMode,
                                                     isNeumorphic = isNeumorphic,
@@ -1786,7 +1827,7 @@ fun LeaveTrackerMainApp(
                                         }
 
                                             item {
-                                                Spacer(modifier = Modifier.height(90.dp))
+                                                Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 112.dp)))
                                             }
                                         }
                                     }
@@ -1800,7 +1841,12 @@ fun LeaveTrackerMainApp(
                                 exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.92f),
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
-                                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                                    .padding(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        top = 14.dp,
+                                        bottom = bottomDockClearance + 14.dp
+                                    )
                             ) {
                                 lastSwipeDeletedPerson?.let { deletedPerson ->
                                     Surface(
@@ -1978,6 +2024,9 @@ fun LeaveTrackerMainApp(
             },
             onDismiss = { showFilterSortDialog = false },
             isDarkMode = isDarkMode,
+            isNeumorphic = isNeumorphic,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled,
             currentLang = currentLang
         )
     }

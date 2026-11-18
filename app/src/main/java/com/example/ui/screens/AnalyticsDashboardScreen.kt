@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -31,10 +32,12 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -698,7 +701,7 @@ fun AnalyticsDashboardScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(84.dp))
+                    Spacer(modifier = Modifier.navigationBarsPadding().height(112.dp))
                 }
             }
         }
@@ -1049,8 +1052,20 @@ private fun MonthlyLeavesChartCard(
                 val selectedStat = monthlyStats.getOrNull(selectedMonthIndex)
                 AnimatedVisibility(
                     visible = selectedStat != null,
-                    enter = fadeIn(tween(200)) + expandVertically(),
-                    exit = fadeOut(tween(150)) + shrinkVertically()
+                    enter = fadeIn(tween(200)) + expandVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = 380f,
+                            visibilityThreshold = IntSize.VisibilityThreshold
+                        )
+                    ),
+                    exit = fadeOut(tween(140)) + shrinkVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = 440f,
+                            visibilityThreshold = IntSize.VisibilityThreshold
+                        )
+                    )
                 ) {
                     if (selectedStat != null) {
                         val sharePct = if (metric == MonthlyChartMetric.COUNT) {

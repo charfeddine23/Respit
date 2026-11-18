@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -110,6 +111,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.BuildConfig
@@ -247,20 +249,8 @@ fun SideNavigationDrawerContent(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // SECTION 1: Clickable Top Header Container (Logo + App Name ONLY, NO Version -> Opens Language Settings)
-                    val headerInteraction = remember { MutableInteractionSource() }
-                    val headerPressed by headerInteraction.collectIsPressedAsState()
-                    val headerScale by animateFloatAsState(
-                        targetValue = if (headerPressed) 0.975f else 1f,
-                        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
-                        label = "headerCardScale"
-                    )
+                    // SECTION 1: App Identity Header Card (Logo + App Title + Subtitle cleanly without nested language prompt)
                     Surface(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            currentRoute = SettingsRoute.LANGUAGE
-                        },
-                        interactionSource = headerInteraction,
                         shape = RoundedCornerShape(22.dp),
                         color = activeThemePreset?.surfacePrimary
                             ?: if (isDarkMode) Color(0xFF1E293B) else Color.White,
@@ -274,116 +264,100 @@ fun SideNavigationDrawerContent(
                         shadowElevation = 4.dp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .defaultMinSize(minHeight = 84.dp)
-                            .graphicsLayer {
-                                scaleX = headerScale
-                                scaleY = headerScale
-                            }
+                            .defaultMinSize(minHeight = 78.dp)
                             .testTag("drawer_header_language_card")
                     ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.app_logo),
-                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                                    contentScale = ContentScale.Fit,
-                                    colorFilter = ColorFilter.tint(
-                                        if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
-                                    ),
-                                    modifier = Modifier.size(width = 66.dp, height = 52.dp)
+                            Image(
+                                painter = painterResource(id = R.drawable.app_logo),
+                                contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                contentScale = ContentScale.Fit,
+                                colorFilter = ColorFilter.tint(
+                                    if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.size(width = 66.dp, height = 52.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = AppStrings.get("app_title", currentLang),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
                                 )
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = AppStrings.get("app_title", currentLang),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-                                    )
-                                    Text(
-                                        text = AppStrings.get("app_subtitle", currentLang),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontSize = 11.sp,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = AppStrings.get("language", currentLang),
-                                    tint = accentCyan,
-                                    modifier = Modifier.size(22.dp)
+                                Text(
+                                    text = AppStrings.get("app_subtitle", currentLang),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 11.sp,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = accentCyan.copy(alpha = if (isDarkMode) 0.14f else 0.08f),
-                                border = BorderStroke(1.dp, accentCyan.copy(alpha = 0.25f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Language,
-                                            contentDescription = null,
-                                            tint = accentCyan,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = AppStrings.get("settings_tap_for_language", currentLang),
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF334155),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(50.dp),
-                                        color = accentCyan.copy(alpha = if (isDarkMode) 0.24f else 0.16f)
-                                    ) {
-                                        Text(
-                                            text = currentLang.displayName,
-                                            fontSize = 10.5.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = accentCyan,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    // Dedicated Language Button directly beneath the App Container
+                    DrawerNavigationItem(
+                        icon = Icons.Default.Language,
+                        iconTint = accentCyan,
+                        title = AppStrings.get("settings_cat_language", currentLang),
+                        subtitle = currentLang.displayName,
+                        isDarkMode = isDarkMode,
+                        haptic = haptic,
+                        onClick = { currentRoute = SettingsRoute.LANGUAGE },
+                        trailingContent = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(50.dp),
+                                    color = accentCyan.copy(alpha = if (isDarkMode) 0.20f else 0.12f)
+                                ) {
+                                    Text(
+                                        text = currentLang.name.take(2),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = accentCyan,
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        testTag = "settings_nav_language"
+                    )
 
                     // Conditional Undo pill only when an undo action exists
                     AnimatedVisibility(
                         visible = lastUndo != null,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
+                        enter = fadeIn(tween(200)) + expandVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = 380f,
+                                visibilityThreshold = IntSize.VisibilityThreshold
+                            )
+                        ),
+                        exit = fadeOut(tween(140)) + shrinkVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = 440f,
+                                visibilityThreshold = IntSize.VisibilityThreshold
+                            )
+                        )
                     ) {
                         DrawerNavigationItem(
                             icon = Icons.AutoMirrored.Filled.Undo,
@@ -1147,8 +1121,20 @@ fun SideNavigationDrawerContent(
 
                         AnimatedVisibility(
                             visible = isBiometricEnabled,
-                            enter = expandVertically(spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            enter = expandVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = 380f,
+                                    visibilityThreshold = IntSize.VisibilityThreshold
+                                )
+                            ) + fadeIn(tween(200)),
+                            exit = shrinkVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = 440f,
+                                    visibilityThreshold = IntSize.VisibilityThreshold
+                                )
+                            ) + fadeOut(tween(140))
                         ) {
                             Column {
                                 Spacer(modifier = Modifier.height(6.dp))
