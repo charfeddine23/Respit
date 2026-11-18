@@ -296,9 +296,36 @@ class ComposeUiRobolectricTest {
     composeTestRule.waitForIdle()
     assertEquals(com.example.ui.components.AppNavPage.RECORDS, selectedPage)
 
-    composeTestRule.onNodeWithTag("bottom_nav_analytics").assertIsDisplayed().performClick()
+    composeTestRule.onNodeWithTag("bottom_nav_settings").assertIsDisplayed().performClick()
     composeTestRule.waitForIdle()
-    assertEquals(com.example.ui.components.AppNavPage.ANALYTICS, selectedPage)
+    assertEquals(com.example.ui.components.AppNavPage.SETTINGS, selectedPage)
+  }
+
+  @Test
+  fun `StatisticsSection replaces registered system badge with clickable Analytics button`() {
+    var analyticsOpened = false
+    val stats = com.example.ui.DashboardStats(total = 5, atHome = 2, returningToday = 1, overdue = 0)
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.StatisticsSection(
+          stats = stats,
+          currentLang = AppLanguage.ENGLISH,
+          selectedStatus = "ALL",
+          onSelectStatus = {},
+          onOpenAnalytics = { analyticsOpened = true },
+          isDarkMode = false,
+          isNeumorphic = false,
+          animationsEnabled = false
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithText("Registered in system", substring = true).assertDoesNotExist()
+    composeTestRule.onNodeWithTag("dashboard_analytics_button").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+    assertTrue(analyticsOpened)
   }
 
   @Test

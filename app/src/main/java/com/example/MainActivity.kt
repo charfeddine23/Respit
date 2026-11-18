@@ -76,7 +76,6 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -90,7 +89,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -101,8 +99,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -111,7 +107,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -436,8 +431,6 @@ fun LeaveTrackerMainApp(
         }
     }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
     // Notification permission launcher for Android 13+
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -510,211 +503,45 @@ fun LeaveTrackerMainApp(
         return
     }
 
-    // Back navigation: Close open Settings/Drawer first, otherwise pop sub-screens back to previous or Dashboard
-    BackHandler(enabled = drawerState.isOpen) {
-        scope.launch { drawerState.close() }
-    }
-    BackHandler(enabled = !drawerState.isOpen && selectedNavPage != AppNavPage.DASHBOARD) {
+    // Back navigation: Pop secondary pages (including Settings/Analytics/Notifications) back to previous or Dashboard
+    BackHandler(enabled = selectedNavPage != AppNavPage.DASHBOARD) {
         selectedNavPage = if (selectedNavPage == AppNavPage.NOTIFICATIONS) previousNavPage else AppNavPage.DASHBOARD
     }
 
-    // Match drawer anchor side to layout direction (Right in Arabic/RTL, Left in EN/FR) and disable swipe-to-open
-    val drawerAnchorDirection = if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
-    CompositionLocalProvider(LocalLayoutDirection provides drawerAnchorDirection) {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            gesturesEnabled = drawerState.isOpen, // Swiping left/right cannot open settings; scrim/drag close works when already open
-            drawerContent = {
-                ModalDrawerSheet(
-                    modifier = Modifier.widthIn(max = 340.dp),
-                    drawerContainerColor = activeThemePreset?.backgroundMid
-                        ?: if (isDarkMode) Color(0xFF0F172A) else Color(0xFFFFFFFF),
-                    drawerTonalElevation = 6.dp
+    CompositionLocalProvider(
+        LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+    ) {
+        val backdropLayer = rememberGraphicsLayer()
+        var backdropOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
+
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("main_scaffold"),
+            containerColor = Color.Transparent,
+            topBar = {
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
                 ) {
-                    CompositionLocalProvider(
-                        LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+                    Surface(
+                        color = Color.Transparent,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
                     ) {
-                        SideNavigationDrawerContent(
-                            currentLang = currentLang,
-                            isDarkMode = isDarkMode,
-                            lastUndo = lastUndo,
-                            stats = stats,
-                            onSelectLanguage = { lang -> viewModel.setLanguage(lang) },
-                            onUndo = {
-                                viewModel.undo()
-                                Toast.makeText(context, AppStrings.get("undo_success", currentLang), Toast.LENGTH_SHORT).show()
-                                scope.launch { drawerState.close() }
-                            },
-                            onCheckNotifications = {
-                                if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
-                                    previousNavPage = selectedNavPage
-                                }
-                                selectedNavPage = AppNavPage.NOTIFICATIONS
-                                scope.launch { drawerState.close() }
-                            },
-                            onExportPdf = {
-                                viewModel.exportPdf(context)
-                                scope.launch { drawerState.close() }
-                            },
-                            onExportExcel = {
-                                scope.launch { drawerState.close() }
-                                excelExportLauncher.launch(ExcelXlsxExporter.defaultFileName())
-                            },
-                            onOpenBackup = {
-                                showExportDialog = true
-                                scope.launch { drawerState.close() }
-                            },
-                            onOpenRoomDatabase = {
-                                selectedNavPage = AppNavPage.DATABASE
-                                scope.launch { drawerState.close() }
-                            },
-                            onToggleTheme = {
-                                viewModel.toggleTheme()
-                            },
-                            onOpenDeveloper = {
-                                showDeveloperDialog = true
-                                scope.launch { drawerState.close() }
-                            },
-                            onResetSampleData = {
-                                showResetConfirmDialog = true
-                                scope.launch { drawerState.close() }
-                            },
-                            currentThemeMode = currentThemeMode,
-                            onSelectThemeMode = { viewModel.setThemeMode(it) },
-                            currentThemeStyle = currentThemeStyle,
-                            onSelectThemeStyle = { viewModel.setThemeStyle(it) },
-                            selectedThemeEngineId = selectedThemeEngineId,
-                            onSelectThemeEngine = { viewModel.setThemeEngine(it) },
-                            isFocusMode = isFocusMode,
-                            onToggleFocusMode = { viewModel.toggleFocusMode() },
-                            dutyThreshold = dutyThreshold,
-                            onSaveThreshold = { viewModel.setDutyThreshold(it) },
-                            isBiometricEnabled = isBiometricEnabled,
-                            onToggleBiometric = { enabled -> viewModel.setBiometricLock(enabled) },
-                            isNoScreenshotEnabled = isNoScreenshotEnabled,
-                            onToggleNoScreenshot = { enabled -> viewModel.setNoScreenshotEnabled(enabled) },
-                            onLockNow = {
-                                scope.launch { drawerState.close() }
-                                viewModel.lockApp()
-                            },
-                            isDynamicAnimationsEnabled = isDynamicAnimationsEnabled,
-                            onToggleDynamicAnimations = { viewModel.setDynamicAnimationsEnabled(it) },
-                            isLivingLuxuryMode = isLivingLuxuryMode,
-                            onToggleLivingLuxuryMode = { viewModel.setLivingLuxuryMode(it) },
-                            trashedCount = trashedCount,
-                            onOpenTrashBin = {
-                                showTrashBinDialog = true
-                                scope.launch { drawerState.close() }
-                            },
-                            isDriveSyncEnabled = isDriveSyncEnabled,
-                            onToggleDriveSync = { viewModel.setDriveSyncEnabled(it) },
-                            lastDriveBackupTime = lastDriveBackupTime,
-                            onBackupToDrive = {
-                                driveBackupLauncher.launch("respite_pulse_backup_${System.currentTimeMillis()}.json")
-                            },
-                            onRestoreFromDrive = {
-                                driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
-                            },
-                            drawerIsOpen = drawerState.isOpen,
-                            onCheckUpdate = {
-                                scope.launch { drawerState.close() }
-                                viewModel.checkForAppUpdate(manual = true)
-                            },
-                            availableUpdateVersion = null
-                        )
-                    }
-                }
-            }
-        ) {
-            CompositionLocalProvider(
-                LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
-            ) {
-                val backdropLayer = rememberGraphicsLayer()
-                var backdropOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
-
-                Scaffold(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("main_scaffold"),
-                    containerColor = Color.Transparent,
-                        topBar = {
-                            CompositionLocalProvider(
-                                LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+                        val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Start Side (Right in Arabic/RTL, Left in English/LTR): Quick Actions (Update Arrow + Theme Toggle + Notifications)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Surface(
-                                    color = Color.Transparent,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .statusBarsPadding()
-                                ) {
-                                    val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        // Left Side: Drawer Menu/Settings Button + App Title Row with Logo
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier.liquidGlassInteractive(
-                                                    shape = iconShape,
-                                                    glowColor = MaterialTheme.colorScheme.primary,
-                                                    isDark = isDarkMode,
-                                                    isNeumorphic = isNeumorphic
-                                                )
-                                            ) {
-                                                IconButton(
-                                                    onClick = { scope.launch { drawerState.open() } },
-                                                    modifier = Modifier
-                                                        .size(48.dp)
-                                                        .clip(iconShape)
-                                                        .testTag("header_menu_button")
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Menu,
-                                                        contentDescription = AppStrings.get("toolbar_menu_desc", currentLang),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(21.dp)
-                                                    )
-                                                }
-                                            }
-
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .padding(vertical = 4.dp, horizontal = 2.dp)
-                                                    .testTag("app_title_row")
-                                            ) {
-                                                Image(
-                                                    painter = painterResource(id = R.drawable.app_logo),
-                                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                                                    contentScale = ContentScale.Fit,
-                                                    colorFilter = ColorFilter.tint(
-                                                        if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
-                                                    ),
-                                                    modifier = Modifier.size(width = 52.dp, height = 40.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = AppStrings.get("app_title", currentLang),
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
-
-                                        // Right Side: Quick Actions (Dynamic Update Arrow when available + Light/Dark Toggle + Notifications in place of Settings button)
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
                                             val hasAvailableUpdate = appUpdateState is AppUpdateState.UpdateAvailable ||
                                                 appUpdateState is AppUpdateState.Downloading ||
                                                 appUpdateState is AppUpdateState.ReadyToInstall
@@ -809,10 +636,36 @@ fun LeaveTrackerMainApp(
                                                 }
                                             }
                                         }
-                                    }
-                                }
+
+                            // End Side (Far Left in Arabic/RTL, Far Right in English/LTR): App Name + Logo
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .padding(vertical = 4.dp, horizontal = 2.dp)
+                                    .testTag("app_title_row")
+                            ) {
+                                Text(
+                                    text = AppStrings.get("app_title", currentLang),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Image(
+                                    painter = painterResource(id = R.drawable.app_logo),
+                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                    contentScale = ContentScale.Fit,
+                                    colorFilter = ColorFilter.tint(
+                                        if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.size(width = 52.dp, height = 40.dp)
+                                )
                             }
-                        },
+                        }
+                    }
+                }
+            },
                         floatingActionButton = {
                             if (selectedNavPage == AppNavPage.DASHBOARD || selectedNavPage == AppNavPage.RECORDS) {
                                 val fabBreathScale = if (isLivingLuxuryMode && isDynamicAnimationsEnabled) {
@@ -1015,6 +868,70 @@ fun LeaveTrackerMainApp(
                                                 }
                                             )
                                         }
+                                        AppNavPage.SETTINGS -> {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .widthIn(max = contentMaxWidth)
+                                            ) {
+                                                SideNavigationDrawerContent(
+                                                    currentLang = currentLang,
+                                                    isDarkMode = isDarkMode,
+                                                    lastUndo = lastUndo,
+                                                    stats = stats,
+                                                    onSelectLanguage = { lang -> viewModel.setLanguage(lang) },
+                                                    onUndo = {
+                                                        viewModel.undo()
+                                                        Toast.makeText(context, AppStrings.get("undo_success", currentLang), Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    onCheckNotifications = { openNotificationsPage() },
+                                                    onExportPdf = { viewModel.exportPdf(context) },
+                                                    onExportExcel = {
+                                                        excelExportLauncher.launch(ExcelXlsxExporter.defaultFileName())
+                                                    },
+                                                    onOpenBackup = { showExportDialog = true },
+                                                    onOpenRoomDatabase = { selectedNavPage = AppNavPage.DATABASE },
+                                                    onToggleTheme = { viewModel.toggleTheme() },
+                                                    onOpenDeveloper = { showDeveloperDialog = true },
+                                                    onResetSampleData = { showResetConfirmDialog = true },
+                                                    currentThemeMode = currentThemeMode,
+                                                    onSelectThemeMode = { viewModel.setThemeMode(it) },
+                                                    currentThemeStyle = currentThemeStyle,
+                                                    onSelectThemeStyle = { viewModel.setThemeStyle(it) },
+                                                    selectedThemeEngineId = selectedThemeEngineId,
+                                                    onSelectThemeEngine = { viewModel.setThemeEngine(it) },
+                                                    isFocusMode = isFocusMode,
+                                                    onToggleFocusMode = { viewModel.toggleFocusMode() },
+                                                    dutyThreshold = dutyThreshold,
+                                                    onSaveThreshold = { viewModel.setDutyThreshold(it) },
+                                                    isBiometricEnabled = isBiometricEnabled,
+                                                    onToggleBiometric = { enabled -> viewModel.setBiometricLock(enabled) },
+                                                    isNoScreenshotEnabled = isNoScreenshotEnabled,
+                                                    onToggleNoScreenshot = { enabled -> viewModel.setNoScreenshotEnabled(enabled) },
+                                                    onLockNow = { viewModel.lockApp() },
+                                                    isDynamicAnimationsEnabled = isDynamicAnimationsEnabled,
+                                                    onToggleDynamicAnimations = { viewModel.setDynamicAnimationsEnabled(it) },
+                                                    isLivingLuxuryMode = isLivingLuxuryMode,
+                                                    onToggleLivingLuxuryMode = { viewModel.setLivingLuxuryMode(it) },
+                                                    trashedCount = trashedCount,
+                                                    onOpenTrashBin = { showTrashBinDialog = true },
+                                                    isDriveSyncEnabled = isDriveSyncEnabled,
+                                                    onToggleDriveSync = { viewModel.setDriveSyncEnabled(it) },
+                                                    lastDriveBackupTime = lastDriveBackupTime,
+                                                    onBackupToDrive = {
+                                                        driveBackupLauncher.launch("respite_pulse_backup_${System.currentTimeMillis()}.json")
+                                                    },
+                                                    onRestoreFromDrive = {
+                                                        driveRestoreLauncher.launch(arrayOf("application/json", "text/*"))
+                                                    },
+                                                    drawerIsOpen = (selectedNavPage == AppNavPage.SETTINGS),
+                                                    onCheckUpdate = { viewModel.checkForAppUpdate(manual = true) },
+                                                    availableUpdateVersion = null,
+                                                    isFullScreenPage = true,
+                                                    bottomDockClearance = bottomDockClearance
+                                                )
+                                            }
+                                        }
                                         AppNavPage.DASHBOARD -> {
                                             LazyColumn(
                                                 state = dashboardListState,
@@ -1034,6 +951,9 @@ fun LeaveTrackerMainApp(
                                                 onSelectStatus = {
                                                     viewModel.selectedStatus.value = it
                                                     selectedNavPage = AppNavPage.RECORDS
+                                                },
+                                                onOpenAnalytics = {
+                                                    selectedNavPage = AppNavPage.ANALYTICS
                                                 },
                                                 isDarkMode = isDarkMode,
                                                 isNeumorphic = isNeumorphic,
@@ -1933,8 +1853,6 @@ fun LeaveTrackerMainApp(
                 }
             }
         }
-    }
-}
 
     // Add / Edit Personnel Dialog
     if (showAddEditDialog) {
@@ -2188,7 +2106,7 @@ private fun HeaderUpdateDownloadButton(
         remember { mutableStateOf(0.8f) }
     }
 
-    // Match adjacent header_theme_toggle & header_menu_button exact shape and 48.dp size
+    // Match adjacent header_theme_toggle & header_notifications_button exact shape and 48.dp size
     val shape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
     val isReady = updateState is AppUpdateState.ReadyToInstall
     val isDownloading = updateState is AppUpdateState.Downloading

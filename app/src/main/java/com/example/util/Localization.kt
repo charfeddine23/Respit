@@ -339,6 +339,8 @@ object AppStrings {
         "nav_dashboard" to "الرئيسية",
         "nav_records" to "الأفراد",
         "nav_database" to "قاعدة البيانات",
+        "nav_settings" to "الإعدادات",
+        "dashboard_analytics_label" to "التحليلات",
         "nav_notifications" to "الإشعارات",
 
         // Dynamic UI Animations & Performance
@@ -905,6 +907,8 @@ object AppStrings {
         "nav_dashboard" to "Accueil",
         "nav_records" to "Personnel",
         "nav_database" to "Base Room",
+        "nav_settings" to "Paramètres",
+        "dashboard_analytics_label" to "Analytique",
         "nav_notifications" to "Alertes",
 
         // Dynamic UI Animations & Performance
@@ -1475,6 +1479,8 @@ object AppStrings {
         "nav_dashboard" to "Dashboard",
         "nav_records" to "Personnel",
         "nav_database" to "Room DB",
+        "nav_settings" to "Settings",
+        "dashboard_analytics_label" to "Analytics",
         "nav_notifications" to "Notifications",
 
         // Dynamic UI Animations & Performance
@@ -1998,6 +2004,8 @@ object AppStrings {
         "nav_dashboard" to "Agzul",
         "nav_records" to "Imdanen",
         "nav_database" to "Room DB",
+        "nav_settings" to "Iɣewwaṛen",
+        "dashboard_analytics_label" to "Tasleḍt",
         "nav_notifications" to "Ilɣa",
 
         // Dynamic Animations

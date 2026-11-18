@@ -28,6 +28,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -72,6 +74,7 @@ fun StatisticsSection(
     currentLang: AppLanguage = AppLanguage.ARABIC,
     selectedStatus: String = "ALL",
     onSelectStatus: (String) -> Unit = {},
+    onOpenAnalytics: () -> Unit = {},
     isDarkMode: Boolean = false,
     isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
@@ -190,28 +193,39 @@ fun StatisticsSection(
                         )
                     }
 
-                    // Total Count Pill Badge
+                    // Interactive Analytics Entry Pill (replaces Registered-in-system badge)
                     Surface(
+                        onClick = onOpenAnalytics,
                         shape = RoundedCornerShape(50.dp),
                         color = if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA),
-                        border = BorderStroke(1.dp, Color(0xFF00BCD4).copy(alpha = 0.6f)),
-                        modifier = Modifier.clickable { onSelectStatus("ALL") }
+                        border = BorderStroke(
+                            1.1.dp,
+                            if (isDarkMode) Color(0xFF00E5FF).copy(alpha = 0.65f) else Color(0xFF00BCD4).copy(alpha = 0.72f)
+                        ),
+                        modifier = Modifier.testTag("dashboard_analytics_button")
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text(
-                                text = "${stats.total} ",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                color = Color(0xFF00838F)
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = AppStrings.get("dashboard_analytics_label", currentLang),
+                                tint = if (isDarkMode) CyanGlow else Color(0xFF00838F),
+                                modifier = Modifier.size(15.dp)
                             )
                             Text(
-                                text = AppStrings.get("registered_system", currentLang),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF006064)
+                                text = AppStrings.get("dashboard_analytics_label", currentLang),
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp,
+                                color = if (isDarkMode) Color.White else Color(0xFF006064)
+                            )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF00838F),
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }

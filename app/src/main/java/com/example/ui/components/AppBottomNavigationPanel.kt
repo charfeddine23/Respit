@@ -36,9 +36,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -74,11 +74,13 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CyanGlow
@@ -96,6 +98,7 @@ enum class AppNavPage {
     RECORDS,
     DATABASE,
     ANALYTICS,
+    SETTINGS,
     NOTIFICATIONS
 }
 
@@ -110,7 +113,7 @@ private val dockTabs = listOf(
     DockTabSpec(AppNavPage.DASHBOARD, Icons.Default.GridView, "nav_dashboard", "bottom_nav_dashboard"),
     DockTabSpec(AppNavPage.RECORDS, Icons.Default.People, "nav_records", "bottom_nav_records"),
     DockTabSpec(AppNavPage.DATABASE, Icons.Default.Storage, "nav_database", "bottom_nav_database"),
-    DockTabSpec(AppNavPage.ANALYTICS, Icons.Default.BarChart, "nav_analytics", "bottom_nav_analytics")
+    DockTabSpec(AppNavPage.SETTINGS, Icons.Default.Settings, "nav_settings", "bottom_nav_settings")
 )
 
 @Composable
@@ -131,6 +134,7 @@ fun AppBottomNavigationPanel(
     val effectiveDark = preset?.isDark ?: isDarkMode
     val density = LocalDensity.current
     val haptic = LocalHapticFeedback.current
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     val activeAccent = preset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
     val secondaryAccent = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else VibrantCyan
@@ -139,7 +143,7 @@ fun AppBottomNavigationPanel(
     var capsulePositionInRoot by remember { mutableStateOf(Offset.Zero) }
     val tabBounds = remember { mutableStateMapOf<AppNavPage, Pair<Float, Float>>() }
 
-    val selectedTabKey = if (selectedPage == AppNavPage.NOTIFICATIONS) null else selectedPage
+    val selectedTabKey = if (selectedPage == AppNavPage.NOTIFICATIONS || selectedPage == AppNavPage.ANALYTICS) null else selectedPage
     val targetBounds = selectedTabKey?.let { tabBounds[it] }
     val hasMeasuredBounds = targetBounds != null && targetBounds.second > 0f
 
@@ -415,11 +419,17 @@ fun AppBottomNavigationPanel(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .onGloballyPositioned { coords ->
-                                    val x = coords.positionInParent().x
+                                    val rawX = coords.positionInParent().x
                                     val w = coords.size.width.toFloat()
+                                    val parentW = coords.parentLayoutCoordinates?.size?.width?.toFloat() ?: 0f
+                                    val startRelativeX = if (isRtl && parentW > 0f) {
+                                        (parentW - (rawX + w)).coerceAtLeast(0f)
+                                    } else {
+                                        rawX
+                                    }
                                     val existing = tabBounds[tab.page]
-                                    if (existing == null || abs(existing.first - x) > 0.5f || abs(existing.second - w) > 0.5f) {
-                                        tabBounds[tab.page] = x to w
+                                    if (existing == null || abs(existing.first - startRelativeX) > 0.5f || abs(existing.second - w) > 0.5f) {
+                                        tabBounds[tab.page] = startRelativeX to w
                                     }
                                 },
                             testTag = tab.testTag

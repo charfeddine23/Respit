@@ -111,6 +111,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -184,7 +185,9 @@ fun SideNavigationDrawerContent(
     onRestoreFromDrive: () -> Unit = {},
     drawerIsOpen: Boolean = true,
     onCheckUpdate: () -> Unit = {},
-    availableUpdateVersion: String? = null
+    availableUpdateVersion: String? = null,
+    isFullScreenPage: Boolean = false,
+    bottomDockClearance: Dp = 0.dp
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -232,10 +235,11 @@ fun SideNavigationDrawerContent(
             .fillMaxHeight()
             .fillMaxWidth()
             .background(
-                activeThemePreset?.backgroundMid
+                if (isFullScreenPage) Color.Transparent
+                else activeThemePreset?.backgroundMid
                     ?: if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC)
             )
-            .statusBarsPadding()
+            .then(if (isFullScreenPage) Modifier else Modifier.statusBarsPadding())
             .testTag("side_navigation_drawer")
     ) { route ->
         when (route) {
@@ -599,6 +603,10 @@ fun SideNavigationDrawerContent(
                             SidebarStatBadge(AppStrings.get("stat_overdue", currentLang), "${stats.overdue}", Color(0xFFDC2626), isDarkMode, Modifier.weight(1f))
                         }
                     }
+
+                    if (isFullScreenPage) {
+                        Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
+                    }
                 }
             }
 
@@ -730,6 +738,10 @@ fun SideNavigationDrawerContent(
                                 }
                             }
                         }
+                    }
+
+                    if (isFullScreenPage) {
+                        Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
                     }
                 }
             }
@@ -1066,6 +1078,10 @@ fun SideNavigationDrawerContent(
                             onToggle = { onToggleFocusMode() }
                         )
                     }
+
+                    if (isFullScreenPage) {
+                        Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
+                    }
                 }
             }
 
@@ -1183,6 +1199,10 @@ fun SideNavigationDrawerContent(
                                 ).show()
                             }
                         )
+                    }
+
+                    if (isFullScreenPage) {
+                        Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
                     }
                 }
             }
@@ -1340,6 +1360,10 @@ fun SideNavigationDrawerContent(
                             }
                         }
                     }
+
+                    if (isFullScreenPage) {
+                        Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
+                    }
                 }
             }
 
@@ -1472,6 +1496,10 @@ fun SideNavigationDrawerContent(
                         onClick = onResetSampleData,
                         testTag = "drawer_reset_item"
                     )
+
+                    if (isFullScreenPage) {
+                        Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
+                    }
                 }
             }
         }
