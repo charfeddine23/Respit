@@ -194,7 +194,7 @@ fun SettingsDialog(
                                 color = if (isDarkMode) Color.White else SlateTextPrimary
                             )
                             Text(
-                                text = "Respite Pulse",
+                                text = AppStrings.get("app_title", currentLanguage),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF00BCD4)

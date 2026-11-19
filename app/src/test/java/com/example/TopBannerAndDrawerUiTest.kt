@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -32,13 +34,19 @@ class TopBannerAndDrawerUiTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.waitForIdle()
 
-            // 1. Arabic (RTL): Menu button removed from Top Bar; Logo + Title sit on FAR LEFT, Quick Actions on RIGHT
+            // 1. Arabic (RTL): Menu button removed; Left->Right order is [Logo + الراحة] ... [Theme] [Notifications (Far Right)]
             composeRule.onNodeWithTag("header_menu_button").assertDoesNotExist()
+            composeRule.onNodeWithText("الراحة").assertExists()
             val titleBoundsAr = composeRule.onNodeWithTag("app_title_row").getBoundsInRoot()
+            val themeBoundsAr = composeRule.onNodeWithTag("header_theme_toggle").getBoundsInRoot()
             val notifBoundsAr = composeRule.onNodeWithTag("header_notifications_button").getBoundsInRoot()
             assertTrue(
-                "Expected app_title_row (${titleBoundsAr.right}) to be on the far left of notifications (${notifBoundsAr.left}) in Arabic",
-                titleBoundsAr.right <= notifBoundsAr.left + 1.dp
+                "Expected app_title_row (${titleBoundsAr.right}) left of theme (${themeBoundsAr.left}) in Arabic",
+                titleBoundsAr.right <= themeBoundsAr.left + 1.dp
+            )
+            assertTrue(
+                "Expected theme (${themeBoundsAr.right}) left of notifications (${notifBoundsAr.left}) in Arabic",
+                themeBoundsAr.right <= notifBoundsAr.left + 1.dp
             )
 
             // 2. Dashboard StatisticsSection shows Analytics button in place of "Registered in system"
@@ -53,17 +61,23 @@ class TopBannerAndDrawerUiTest {
             composeRule.waitForIdle()
             composeRule.onNodeWithTag("side_navigation_drawer").assertExists()
 
-            // 4. Tap the dedicated Language button below the app container to open Language Settings and switch to English -> Top Banner immediately flips to LTR (Logo + Title move to FAR RIGHT)
+            // 4. Open Language Settings, scroll to English, and switch -> Top Banner mirrors to LTR: [Notifications (Far Left)] [Theme] ... [Respite + Logo]
             composeRule.onNodeWithTag("settings_nav_language").performClick()
             composeRule.waitForIdle()
-            composeRule.onNodeWithTag("lang_option_en").performClick()
+            composeRule.onNodeWithTag("lang_option_en").performScrollTo().performClick()
             composeRule.waitForIdle()
 
+            composeRule.onNodeWithText("Respite").assertExists()
             val titleBoundsEn = composeRule.onNodeWithTag("app_title_row").getBoundsInRoot()
+            val themeBoundsEn = composeRule.onNodeWithTag("header_theme_toggle").getBoundsInRoot()
             val notifBoundsEn = composeRule.onNodeWithTag("header_notifications_button").getBoundsInRoot()
             assertTrue(
-                "Expected app_title_row (${titleBoundsEn.left}) to be on the far right of notifications (${notifBoundsEn.right}) in English",
-                titleBoundsEn.left >= notifBoundsEn.right - 1.dp
+                "Expected notifications (${notifBoundsEn.right}) left of theme (${themeBoundsEn.left}) in English",
+                notifBoundsEn.right <= themeBoundsEn.left + 1.dp
+            )
+            assertTrue(
+                "Expected theme (${themeBoundsEn.right}) left of app_title_row (${titleBoundsEn.left}) in English",
+                themeBoundsEn.right <= titleBoundsEn.left + 1.dp
             )
         }
 

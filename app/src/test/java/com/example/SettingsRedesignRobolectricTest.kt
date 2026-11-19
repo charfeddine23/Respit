@@ -106,7 +106,7 @@ class SettingsRedesignRobolectricTest {
 
         // 1. Top Header shows App Title & NO Version number or Tap-to-open-Language text inside header card
         composeRule.onNodeWithTag("drawer_header_language_card").assertIsDisplayed()
-        composeRule.onNodeWithText("Respite Pulse").assertIsDisplayed()
+        composeRule.onNodeWithText("الراحة").assertIsDisplayed()
         composeRule.onNodeWithText("Version:", substring = true).assertDoesNotExist()
         composeRule.onNodeWithText("(${BuildConfig.VERSION_CODE})", substring = true).assertDoesNotExist()
         composeRule.onNodeWithText("Tap to open Language Settings", substring = true).assertDoesNotExist()

@@ -121,6 +121,7 @@ import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
+import com.example.ui.theme.AmiriArabicBrandFontFamily
 import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
@@ -290,10 +291,15 @@ fun SideNavigationDrawerContent(
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Column(modifier = Modifier.weight(1f)) {
+                                val isArabicTitle = currentLang == AppLanguage.ARABIC
                                 Text(
                                     text = AppStrings.get("app_title", currentLang),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontFamily = if (isArabicTitle) AmiriArabicBrandFontFamily else FontFamily.Default,
+                                        fontSize = if (isArabicTitle) 22.sp else 17.sp,
+                                        lineHeight = if (isArabicTitle) 28.sp else 22.sp
+                                    ),
+                                    fontWeight = FontWeight.Bold,
                                     color = if (isDarkMode) Color.White else Color(0xFF0F172A)
                                 )
                                 Text(
@@ -619,7 +625,7 @@ fun SideNavigationDrawerContent(
                         .verticalScroll(langScroll)
                         .padding(16.dp)
                         .testTag("settings_language_page"),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     SettingsSubPageHeader(
                         title = AppStrings.get("language", currentLang),
@@ -683,13 +689,13 @@ fun SideNavigationDrawerContent(
                             shadowElevation = if (isSelected) 3.dp else 1.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .defaultMinSize(minHeight = 64.dp)
+                                .defaultMinSize(minHeight = 56.dp)
                                 .testTag("lang_option_${lang.code}")
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(

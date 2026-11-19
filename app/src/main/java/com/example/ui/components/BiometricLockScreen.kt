@@ -48,12 +48,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import com.example.R
+import com.example.ui.theme.AmiriArabicBrandFontFamily
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.BiometricAuthHelper
@@ -145,10 +147,12 @@ fun BiometricLockScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                val isArabicTitle = currentLang == AppLanguage.ARABIC
                 Text(
                     text = AppStrings.get("app_title", currentLang),
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = if (isArabicTitle) AmiriArabicBrandFontFamily else FontFamily.Default,
+                    fontSize = if (isArabicTitle) 30.sp else 26.sp,
+                    fontWeight = FontWeight.Bold,
                     color = primaryCyan
                 )
 

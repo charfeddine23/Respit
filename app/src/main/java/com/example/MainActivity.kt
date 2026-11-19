@@ -174,6 +174,7 @@ import com.example.ui.components.TrashBinDialog
 import com.example.ui.screens.AnalyticsDashboardScreen
 import com.example.ui.screens.NotificationScreen
 import com.example.ui.screens.RoomDatabaseScreen
+import com.example.ui.theme.AmiriArabicBrandFontFamily
 import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.DynamicAuroraBackground
 import com.example.ui.theme.EmeraldSuccess
@@ -537,107 +538,109 @@ fun LeaveTrackerMainApp(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Start Side (Right in Arabic/RTL, Left in English/LTR): Quick Actions (Update Arrow + Theme Toggle + Notifications)
+                            // Start Side (Right in Arabic/RTL, Left in English/LTR):
+                            // Arabic (RTL, Left->Right): [Update?] [Theme] [Notifications (Far Right)]
+                            // English (LTR, Left->Right): [Notifications (Far Left)] [Theme] [Update?]
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                            val hasAvailableUpdate = appUpdateState is AppUpdateState.UpdateAvailable ||
-                                                appUpdateState is AppUpdateState.Downloading ||
-                                                appUpdateState is AppUpdateState.ReadyToInstall
-
-                                            // Sleek Dynamic Download Arrow shown ONLY in the Top Banner when an update exists
-                                            AnimatedVisibility(
-                                                visible = hasAvailableUpdate,
-                                                enter = fadeIn(tween(260)) + scaleIn(
-                                                    initialScale = 0.72f,
-                                                    animationSpec = spring(
-                                                        dampingRatio = 0.65f,
-                                                        stiffness = Spring.StiffnessMediumLow
-                                                    )
-                                                ),
-                                                exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.75f)
-                                            ) {
-                                                HeaderUpdateDownloadButton(
-                                                    updateState = appUpdateState,
-                                                    isDarkMode = isDarkMode,
-                                                    isNeumorphic = isNeumorphic,
-                                                    animationsEnabled = isDynamicAnimationsEnabled,
-                                                    contentDescription = AppStrings.get("update_top_banner_desc", currentLang),
-                                                    onClick = { viewModel.openUpdateDialog() }
-                                                )
-                                            }
-
-                                            // Light / Dark Mode Toggle Button
-                                            Box(
-                                                modifier = Modifier.liquidGlassInteractive(
-                                                    shape = iconShape,
-                                                    glowColor = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
-                                                    isDark = isDarkMode,
-                                                    isNeumorphic = isNeumorphic
-                                                )
-                                            ) {
-                                                IconButton(
-                                                    onClick = { viewModel.toggleTheme() },
-                                                    modifier = Modifier
-                                                        .size(48.dp)
-                                                        .clip(iconShape)
-                                                        .testTag("header_theme_toggle")
-                                                ) {
-                                                    Icon(
-                                                        imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                                        contentDescription = AppStrings.get(if (isDarkMode) "theme_light" else "theme_dark", currentLang),
-                                                        tint = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(21.dp)
-                                                    )
-                                                }
-                                            }
-
-                                            // Notifications Button (Moved to Top Banner in place of Settings/Menu button)
-                                            val isNotifOpen = selectedNavPage == AppNavPage.NOTIFICATIONS
-                                            Box(
-                                                modifier = Modifier.liquidGlassInteractive(
-                                                    shape = iconShape,
-                                                    glowColor = if (isNotifOpen || notificationsCount > 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
-                                                    isDark = isDarkMode,
-                                                    isNeumorphic = isNeumorphic
-                                                )
-                                            ) {
-                                                IconButton(
-                                                    onClick = openNotificationsPage,
-                                                    modifier = Modifier
-                                                        .size(48.dp)
-                                                        .clip(iconShape)
-                                                        .testTag("header_notifications_button")
-                                                ) {
-                                                    BadgedBox(
-                                                        badge = {
-                                                            if (notificationsCount > 0) {
-                                                                Badge(
-                                                                    containerColor = Color(0xFFEF4444),
-                                                                    contentColor = Color.White
-                                                                ) {
-                                                                    Text(
-                                                                        text = if (notificationsCount > 99) "99+" else "$notificationsCount",
-                                                                        fontSize = 9.sp,
-                                                                        fontWeight = FontWeight.Bold
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
+                                // Notifications Button (Far Right in Arabic, Far Left in English)
+                                val isNotifOpen = selectedNavPage == AppNavPage.NOTIFICATIONS
+                                Box(
+                                    modifier = Modifier.liquidGlassInteractive(
+                                        shape = iconShape,
+                                        glowColor = if (isNotifOpen || notificationsCount > 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                        isDark = isDarkMode,
+                                        isNeumorphic = isNeumorphic
+                                    )
+                                ) {
+                                    IconButton(
+                                        onClick = openNotificationsPage,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(iconShape)
+                                            .testTag("header_notifications_button")
+                                    ) {
+                                        BadgedBox(
+                                            badge = {
+                                                if (notificationsCount > 0) {
+                                                    Badge(
+                                                        containerColor = Color(0xFFEF4444),
+                                                        contentColor = Color.White
                                                     ) {
-                                                        Icon(
-                                                            imageVector = if (isNotifOpen) Icons.Default.NotificationsActive else Icons.Default.Notifications,
-                                                            contentDescription = AppStrings.get("header_notifications_desc", currentLang),
-                                                            tint = if (isNotifOpen) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.size(21.dp)
+                                                        Text(
+                                                            text = if (notificationsCount > 99) "99+" else "$notificationsCount",
+                                                            fontSize = 9.sp,
+                                                            fontWeight = FontWeight.Bold
                                                         )
                                                     }
                                                 }
                                             }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isNotifOpen) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                                contentDescription = AppStrings.get("header_notifications_desc", currentLang),
+                                                tint = if (isNotifOpen) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(21.dp)
+                                            )
                                         }
+                                    }
+                                }
 
-                            // End Side (Far Left in Arabic/RTL, Far Right in English/LTR): App Name + Logo
+                                // Light / Dark Mode Toggle Button
+                                Box(
+                                    modifier = Modifier.liquidGlassInteractive(
+                                        shape = iconShape,
+                                        glowColor = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
+                                        isDark = isDarkMode,
+                                        isNeumorphic = isNeumorphic
+                                    )
+                                ) {
+                                    IconButton(
+                                        onClick = { viewModel.toggleTheme() },
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(iconShape)
+                                            .testTag("header_theme_toggle")
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                            contentDescription = AppStrings.get(if (isDarkMode) "theme_light" else "theme_dark", currentLang),
+                                            tint = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(21.dp)
+                                        )
+                                    }
+                                }
+
+                                val hasAvailableUpdate = appUpdateState is AppUpdateState.UpdateAvailable ||
+                                    appUpdateState is AppUpdateState.Downloading ||
+                                    appUpdateState is AppUpdateState.ReadyToInstall
+
+                                // Sleek Dynamic Download Arrow shown ONLY in the Top Banner when an update exists
+                                AnimatedVisibility(
+                                    visible = hasAvailableUpdate,
+                                    enter = fadeIn(tween(260)) + scaleIn(
+                                        initialScale = 0.72f,
+                                        animationSpec = spring(
+                                            dampingRatio = 0.65f,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    ),
+                                    exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.75f)
+                                ) {
+                                    HeaderUpdateDownloadButton(
+                                        updateState = appUpdateState,
+                                        isDarkMode = isDarkMode,
+                                        isNeumorphic = isNeumorphic,
+                                        animationsEnabled = isDynamicAnimationsEnabled,
+                                        contentDescription = AppStrings.get("update_top_banner_desc", currentLang),
+                                        onClick = { viewModel.openUpdateDialog() }
+                                    )
+                                }
+                            }
+
+                            // End Side (Far Left in Arabic/RTL -> [Logo] [الراحة], Far Right in English/LTR -> [Respite] [Logo])
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
@@ -645,10 +648,15 @@ fun LeaveTrackerMainApp(
                                     .padding(vertical = 4.dp, horizontal = 2.dp)
                                     .testTag("app_title_row")
                             ) {
+                                val isArabicTitle = currentLang == AppLanguage.ARABIC
                                 Text(
                                     text = AppStrings.get("app_title", currentLang),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontFamily = if (isArabicTitle) AmiriArabicBrandFontFamily else androidx.compose.ui.text.font.FontFamily.Default,
+                                        fontSize = if (isArabicTitle) 23.sp else 18.sp,
+                                        lineHeight = if (isArabicTitle) 28.sp else 24.sp
+                                    ),
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))

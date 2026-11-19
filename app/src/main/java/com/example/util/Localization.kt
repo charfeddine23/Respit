@@ -25,7 +25,7 @@ object AppStrings {
 
     private val stringsAr = mapOf(
         // Invariant App Title & Developer Info
-        "app_title" to "Respite Pulse",
+        "app_title" to "الراحة",
         "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "نظام تسيير إجازات وعطل الأفراد",
         "developer_role" to "المطور المعتمد",
@@ -390,7 +390,7 @@ object AppStrings {
         "biometric_lock_inactive_sub" to "الحماية معطّلة حالياً",
         "biometric_lock_enabled_toast" to "تم تفعيل قفل الأمان بنجاح",
         "biometric_lock_disabled_toast" to "تم إلغاء تفعيل قفل التطبيق",
-        "biometric_screen_protected" to "تطبيق Respite Pulse محمي بنظام المصادقة",
+        "biometric_screen_protected" to "تطبيق الراحة محمي بنظام المصادقة",
         "biometric_screen_instruction" to "يرجى المصادقة عبر بصمة الإصبع أو رمز حماية الجهاز للمتابعة",
         "biometric_unlock_device_btn" to "فتح القفل بالبصمة / رمز الجهاز",
         "biometric_auth_failed" to "تعذّر التحقق من الهوية، يرجى المحاولة مجدداً",
@@ -458,7 +458,7 @@ object AppStrings {
         "pdf_total_records" to "إجمالي السجلات:",
         "pdf_page" to "صفحة",
         "pdf_of" to "من",
-        "pdf_footer" to "تم إنشاء هذا التقرير تلقائياً بواسطة تطبيق Respite Pulse",
+        "pdf_footer" to "تم إنشاء هذا التقرير تلقائياً بواسطة تطبيق الراحة",
         "pdf_share_chooser" to "حفظ أو مشاركة ملف PDF",
 
         // Undo & Import ViewModel
@@ -597,7 +597,7 @@ object AppStrings {
 
     private val stringsFr = mapOf(
         // Invariant App Title & Developer Info (EXACTLY preserved)
-        "app_title" to "Respite Pulse",
+        "app_title" to "Respite",
         "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "Système de Gestion des Congés & Permissions",
         "developer_role" to "Développeur Officiel",
@@ -958,7 +958,7 @@ object AppStrings {
         "biometric_lock_inactive_sub" to "Verrouillage de l'application désactivé",
         "biometric_lock_enabled_toast" to "Verrouillage biométrique activé avec succès",
         "biometric_lock_disabled_toast" to "Verrouillage de l'application désactivé",
-        "biometric_screen_protected" to "Respite Pulse est protégé par biométrie",
+        "biometric_screen_protected" to "Respite est protégé par biométrie",
         "biometric_screen_instruction" to "Veuillez vous authentifier par empreinte ou code de l'appareil pour continuer",
         "biometric_unlock_device_btn" to "Déverrouiller par biométrie / code",
         "biometric_auth_failed" to "Empreinte non reconnue, veuillez réessayer",
@@ -1026,7 +1026,7 @@ object AppStrings {
         "pdf_total_records" to "Total dossiers :",
         "pdf_page" to "Page",
         "pdf_of" to "sur",
-        "pdf_footer" to "Rapport généré automatiquement par Respite Pulse",
+        "pdf_footer" to "Rapport généré automatiquement par Respite",
         "pdf_share_chooser" to "Enregistrer ou partager le PDF",
 
         // Undo & Import ViewModel
@@ -1055,7 +1055,7 @@ object AppStrings {
         "update_downloading_sub" to "Téléchargement direct dans l'application...",
         "update_ready_title" to "Mise à jour prête à installer",
         "update_ready_desc" to "Téléchargement terminé. Appuyez pour installer via le système.",
-        "update_permission_desc" to "Veuillez autoriser l'installation pour Respite Pulse dans les paramètres système.",
+        "update_permission_desc" to "Veuillez autoriser l'installation pour Respite dans les paramètres système.",
         "update_uptodate_title" to "Application à jour",
         "update_uptodate_desc" to "Vous utilisez déjà la dernière version disponible",
         "update_error_title" to "Échec de la mise à jour",
@@ -1169,7 +1169,7 @@ object AppStrings {
 
     private val stringsEn = mapOf(
         // Invariant App Title & Developer Info (EXACTLY preserved)
-        "app_title" to "Respite Pulse",
+        "app_title" to "Respite",
         "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "Personnel Leave & Duty Management System",
         "developer_role" to "Official Developer",
@@ -1530,7 +1530,7 @@ object AppStrings {
         "biometric_lock_inactive_sub" to "App lock is currently disabled",
         "biometric_lock_enabled_toast" to "Biometric app lock enabled successfully",
         "biometric_lock_disabled_toast" to "App lock disabled",
-        "biometric_screen_protected" to "Respite Pulse is protected by biometrics",
+        "biometric_screen_protected" to "Respite is protected by biometrics",
         "biometric_screen_instruction" to "Please authenticate via fingerprint or device credential to continue",
         "biometric_unlock_device_btn" to "Unlock with Biometrics / Device PIN",
         "biometric_auth_failed" to "Biometric not recognized, please try again",
@@ -1598,7 +1598,7 @@ object AppStrings {
         "pdf_total_records" to "Total records:",
         "pdf_page" to "Page",
         "pdf_of" to "of",
-        "pdf_footer" to "Automatically generated by Respite Pulse",
+        "pdf_footer" to "Automatically generated by Respite",
         "pdf_share_chooser" to "Save or Share PDF File",
 
         // Undo & Import ViewModel
@@ -1627,7 +1627,7 @@ object AppStrings {
         "update_downloading_sub" to "Downloading package directly in-app...",
         "update_ready_title" to "Update Ready to Install",
         "update_ready_desc" to "Download complete inside app. Tap to install via system installer.",
-        "update_permission_desc" to "Please allow package installation for Respite Pulse in system settings to continue.",
+        "update_permission_desc" to "Please allow package installation for Respite in system settings to continue.",
         "update_uptodate_title" to "App is Up to Date",
         "update_uptodate_desc" to "You are running the latest available version",
         "update_error_title" to "Update Failed",
@@ -1741,7 +1741,7 @@ object AppStrings {
 
     private val stringsTzm = mapOf(
         // Invariant App Title & Developer Info
-        "app_title" to "Respite Pulse",
+        "app_title" to "Respite",
         "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "Anagraw n usefrek n yimuras d umahil",
         "developer_role" to "Ameskar unṣib",
@@ -1989,7 +1989,7 @@ object AppStrings {
         "biometric_lock_inactive_sub" to "Asekkeṛ n usnas yensa tura",
         "biometric_lock_enabled_toast" to "Asekkeṛ s tbiyumiṭrit yermed akken iwata",
         "biometric_lock_disabled_toast" to "Asekkeṛ n usnas yensa",
-        "biometric_screen_protected" to "Respite Pulse yettwammesten s tbiyumiṭrit",
+        "biometric_screen_protected" to "Respite yettwammesten s tbiyumiṭrit",
         "biometric_screen_instruction" to "Sers aḍad-ik neɣ tangalt n yibenk iwakken ad tkemmleḍ",
         "biometric_unlock_device_btn" to "Ldi s tbiyumiṭrit / PIN",
         "biometric_auth_failed" to "Asesteb yecceḍ, ɛreḍ tikkelt-nniḍen",
@@ -2122,7 +2122,7 @@ object AppStrings {
         "pdf_total_records" to "Aɣrud:",
         "pdf_page" to "Asebter",
         "pdf_of" to "seg",
-        "pdf_footer" to "Yettwafares s Respite Pulse",
+        "pdf_footer" to "Yettwafares s Respite",
         "pdf_share_chooser" to "Sekles neɣ bḍu afaylu PDF"
     )
 }
