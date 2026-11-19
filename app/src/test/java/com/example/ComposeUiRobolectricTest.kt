@@ -348,4 +348,226 @@ class ComposeUiRobolectricTest {
       assertTrue("Adaptive monochrome layer must exist for themed icons", adaptive.monochrome != null)
     }
   }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `AddNewLeaveDialog selects personnel leave type syncs days with return date and confirms`() {
+    val p1 = Personnel(
+      id = 10L,
+      fullName = "سمير بن عيسى",
+      fullNameLatin = "Samir Benaissa",
+      rank = "رقيب - Sergent",
+      registrationNumber = "DZ-1010",
+      startDateMillis = getOffsetDateMillis(-20),
+      returnDateMillis = getOffsetDateMillis(-10),
+      isReturnedToDuty = true
+    )
+    val p2 = Personnel(
+      id = 20L,
+      fullName = "ياسين بوعلام",
+      fullNameLatin = "Yacine Boualam",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-2020",
+      startDateMillis = getOffsetDateMillis(-30),
+      returnDateMillis = getOffsetDateMillis(-20),
+      isReturnedToDuty = true
+    )
+
+    var confirmedId = -1L
+    var confirmedType = ""
+    var confirmedStart = 0L
+    var confirmedReturn = 0L
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.AddNewLeaveDialog(
+          personnelList = listOf(p1, p2),
+          onDismiss = {},
+          onOpenAddPersonnel = {},
+          onConfirm = { id, type, start, ret ->
+            confirmedId = id
+            confirmedType = type
+            confirmedStart = start
+            confirmedReturn = ret
+          },
+          currentLang = AppLanguage.ARABIC,
+          animationsEnabled = false
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("add_leave_dialog").assertIsDisplayed()
+
+    // Select second person
+    composeTestRule.onNodeWithTag("add_leave_personnel_selector").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("add_leave_personnel_item_20").performClick()
+    composeTestRule.waitForIdle()
+
+    // Select second leave type
+    composeTestRule.onNodeWithTag("add_leave_type_option_1").performClick()
+    composeTestRule.waitForIdle()
+
+    // Select 10 days quick chip and verify inclusive days == 10
+    composeTestRule.onNodeWithTag("add_leave_form_scroll", useUnmergedTree = true).performTouchInput {
+      swipeUp(startY = 550f, endY = 50f)
+    }
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("add_leave_quick_days_10").performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("confirm_add_leave_button").performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(20L, confirmedId)
+    assertEquals(com.example.data.algerianLeaveTypes[1], confirmedType)
+    assertEquals(10L, Personnel.inclusiveLeaveDays(confirmedStart, confirmedReturn))
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `PersonnelCard History button opens PersonnelLeaveHistoryDialog with all leaves for that person`() {
+    val person = Personnel(
+      id = 77L,
+      fullName = "كريم منصوري",
+      fullNameLatin = "Karim Mansouri",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-7700",
+      startDateMillis = getOffsetDateMillis(-15),
+      returnDateMillis = getOffsetDateMillis(-8),
+      isReturnedToDuty = true
+    )
+    val leaves = listOf(
+      com.example.data.LeaveRecord(
+        id = 1L,
+        personnelId = 77L,
+        personnelName = "كريم منصوري",
+        personnelNameLatin = "Karim Mansouri",
+        rank = "نقيب - Capitaine",
+        registrationNumber = "DZ-7700",
+        leaveType = com.example.data.algerianLeaveTypes[0],
+        startDateMillis = getOffsetDateMillis(-15),
+        returnDateMillis = getOffsetDateMillis(-8),
+        durationDays = 8L,
+        statusText = "مكتملة"
+      ),
+      com.example.data.LeaveRecord(
+        id = 2L,
+        personnelId = 77L,
+        personnelName = "كريم منصوري",
+        personnelNameLatin = "Karim Mansouri",
+        rank = "نقيب - Capitaine",
+        registrationNumber = "DZ-7700",
+        leaveType = com.example.data.algerianLeaveTypes[1],
+        startDateMillis = getOffsetDateMillis(-60),
+        returnDateMillis = getOffsetDateMillis(-57),
+        durationDays = 4L,
+        statusText = "مكتملة"
+      ),
+      com.example.data.LeaveRecord(
+        id = 3L,
+        personnelId = 999L,
+        personnelName = "شخص آخر",
+        rank = "رقيب - Sergent",
+        registrationNumber = "DZ-9999",
+        leaveType = com.example.data.algerianLeaveTypes[0],
+        startDateMillis = getOffsetDateMillis(-5),
+        returnDateMillis = getOffsetDateMillis(-1),
+        durationDays = 5L
+      )
+    )
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        val historyPersonState = androidx.compose.runtime.remember {
+          androidx.compose.runtime.mutableStateOf<Personnel?>(null)
+        }
+        PersonnelCard(
+          personnel = person,
+          dutyThresholdDays = 45,
+          onConfirmDuty = {},
+          onEdit = {},
+          onDelete = {},
+          onViewHistory = { historyPersonState.value = person },
+          animationsEnabled = false,
+          currentLang = AppLanguage.ARABIC
+        )
+        historyPersonState.value?.let { target ->
+          com.example.ui.components.PersonnelLeaveHistoryDialog(
+            personnel = target,
+            allLeaves = leaves,
+            onDismiss = { historyPersonState.value = null },
+            animationsEnabled = false,
+            currentLang = AppLanguage.ARABIC
+          )
+        }
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    // Expand card and click "السجل"
+    composeTestRule.onNodeWithText("كريم منصوري").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("personnel_history_btn_77").assertIsDisplayed().assert(hasText("السجل")).performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("personnel_leave_history_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("leave_history_item_1").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("leave_history_item_2").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("leave_history_item_3").assertDoesNotExist()
+  }
+
+  @Test
+  fun `PersonnelViewModel grantNewLeaveWithType updates personnel profile and records leave history`() {
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val dbFile = context.getDatabasePath("personnel_leaves_db")
+    if (dbFile.exists()) dbFile.delete()
+
+    val db = com.example.data.AppDatabase.getDatabase(
+      context,
+      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+    )
+    val initialPerson = Personnel(
+      fullName = "فريد بن سالم",
+      fullNameLatin = "Farid Bensalem",
+      rank = "ملازم - Lieutenant",
+      registrationNumber = "DZ-5555",
+      startDateMillis = getOffsetDateMillis(-40),
+      returnDateMillis = getOffsetDateMillis(-35),
+      isReturnedToDuty = true,
+      leaveType = com.example.data.algerianLeaveTypes[0]
+    )
+    val insertedId = runBlocking { db.personnelDao().insert(initialPerson) }
+
+    val viewModel = com.example.ui.PersonnelViewModel(context)
+    val newStart = getOffsetDateMillis(0)
+    val newReturn = getOffsetDateMillis(7)
+    val newType = com.example.data.algerianLeaveTypes[1]
+
+    viewModel.grantNewLeaveWithType(
+      personnelId = insertedId,
+      leaveType = newType,
+      startDateMillis = newStart,
+      returnDateMillis = newReturn
+    )
+
+    var updated: Personnel? = null
+    var leaves: List<com.example.data.LeaveRecord> = emptyList()
+    repeat(30) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      runBlocking {
+        updated = db.personnelDao().getPersonnelById(insertedId)
+        leaves = db.leaveRecordDao().getLeavesForPersonnel(insertedId).first()
+      }
+      if (updated?.isReturnedToDuty == false && leaves.isNotEmpty()) return@repeat
+      Thread.sleep(50)
+    }
+    assertEquals(false, updated?.isReturnedToDuty)
+    assertEquals(newType, updated?.leaveType)
+    assertEquals(8L, updated?.totalLeaveDays)
+    assertEquals(1, leaves.size)
+    assertEquals(newType, leaves.first().leaveType)
+    assertEquals(8L, leaves.first().durationDays)
+  }
 }

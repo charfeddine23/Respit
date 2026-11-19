@@ -879,6 +879,51 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun grantNewLeaveWithType(
+        personnelId: Long,
+        leaveType: String,
+        startDateMillis: Long,
+        returnDateMillis: Long
+    ) {
+        viewModelScope.launch {
+            val previous = repository.getPersonnelById(personnelId) ?: return@launch
+            lastUndoAction.value = UndoAction.Updated(previous)
+
+            val normalizedStart = Personnel.toStartOfDay(startDateMillis)
+            val normalizedReturn = maxOf(normalizedStart, Personnel.toStartOfDay(returnDateMillis))
+            val updated = previous.copy(
+                leaveType = leaveType,
+                startDateMillis = normalizedStart,
+                returnDateMillis = normalizedReturn,
+                isReturnedToDuty = false
+            )
+            repository.update(updated)
+
+            val lang = currentLanguage.value
+            val record = LeaveRecord(
+                personnelId = updated.id,
+                personnelName = updated.fullName.ifBlank { updated.fullNameLatin },
+                personnelNameLatin = updated.fullNameLatin,
+                rank = updated.rank,
+                registrationNumber = updated.registrationNumber,
+                leaveType = leaveType,
+                startDateMillis = normalizedStart,
+                returnDateMillis = normalizedReturn,
+                durationDays = updated.totalLeaveDays,
+                statusText = updated.status.getCompactBadgeLabel(lang),
+                destinationWilaya = updated.wilaya,
+                notes = updated.notes
+            )
+            repository.insertLeave(record)
+
+            LeaveNotificationHelper.notifyLeaveApproved(
+                getApplication(),
+                updated,
+                lang.code
+            )
+        }
+    }
+
     fun deletePersonnel(personnel: Personnel) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()

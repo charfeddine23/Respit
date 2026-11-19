@@ -597,7 +597,21 @@ object AppStrings {
         "settings_cat_notifications_sub" to "فحص الإشعارات وعدد أيام الاستحقاق",
         "settings_cat_backup" to "النسخ الاحتياطي والأدوات",
         "settings_cat_backup_sub" to "البيانات، PDF، Excel، قاعدة Room و Drive",
-        "excel_export_sub" to "قوائم منظمة للأفراد وسجلات الإجازات (.xlsx)"
+        "excel_export_sub" to "قوائم منظمة للأفراد وسجلات الإجازات (.xlsx)",
+        "add_leave_dialog_title" to "إضافة إجازة جديدة",
+        "add_leave_dialog_sub" to "اختر الفرد ونوع الإجازة وتواريخ الذهاب والعودة",
+        "select_personnel_label" to "اختيار الفرد",
+        "search_personnel_hint" to "ابحث عن الفرد بالاسم أو رقم التسجيل...",
+        "no_personnel_for_leave" to "لا يوجد أفراد مسجلون بعد. يرجى إضافة فرد أولاً.",
+        "departure_date_label" to "تاريخ الذهاب",
+        "leave_return_date_short" to "تاريخ العودة",
+        "leave_days_count_label" to "عدد الأيام",
+        "leave_added_success" to "تمت إضافة الإجازة وتحديث ملف الفرد بنجاح",
+        "history_btn" to "السجل",
+        "leave_history_title" to "سجل الإجازات",
+        "leave_history_count" to "عدد الإجازات",
+        "leave_history_total_days" to "إجمالي الأيام",
+        "no_leave_history_desc" to "لا توجد إجازات مسجلة لهذا الفرد حتى الآن."
     )
 
     private val stringsFr = mapOf(
@@ -1174,7 +1188,21 @@ object AppStrings {
         "settings_cat_notifications_sub" to "Scanner les alertes & seuil d'éligibilité (jours)",
         "settings_cat_backup" to "Sauvegarde & Outils",
         "settings_cat_backup_sub" to "Données, PDF, Excel .xlsx, Room DB & Drive",
-        "excel_export_sub" to "Listes structurées du personnel et des congés (.xlsx)"
+        "excel_export_sub" to "Listes structurées du personnel et des congés (.xlsx)",
+        "add_leave_dialog_title" to "Ajouter un congé",
+        "add_leave_dialog_sub" to "Choisissez le personnel, le type et les dates du congé",
+        "select_personnel_label" to "Sélectionner le personnel",
+        "search_personnel_hint" to "Rechercher par nom ou matricule...",
+        "no_personnel_for_leave" to "Aucun personnel enregistré. Veuillez d'abord ajouter un personnel.",
+        "departure_date_label" to "Date de départ",
+        "leave_return_date_short" to "Date de retour",
+        "leave_days_count_label" to "Nombre de jours",
+        "leave_added_success" to "Congé ajouté et dossier du personnel mis à jour",
+        "history_btn" to "Historique",
+        "leave_history_title" to "Historique des congés",
+        "leave_history_count" to "Total congés",
+        "leave_history_total_days" to "Total jours",
+        "no_leave_history_desc" to "Aucun congé enregistré pour ce personnel pour le moment."
     )
 
     private val stringsEn = mapOf(
@@ -1751,7 +1779,21 @@ object AppStrings {
         "settings_cat_notifications_sub" to "Scan alerts & Leave Eligibility Threshold (Days)",
         "settings_cat_backup" to "Backup & Restore",
         "settings_cat_backup_sub" to "Backup & Data, PDF, Excel, Room DB & Google Drive",
-        "excel_export_sub" to "Structured sheets for personnel & leave records (.xlsx)"
+        "excel_export_sub" to "Structured sheets for personnel & leave records (.xlsx)",
+        "add_leave_dialog_title" to "Add New Leave",
+        "add_leave_dialog_sub" to "Choose personnel, leave type, and departure/return dates",
+        "select_personnel_label" to "Select Personnel",
+        "search_personnel_hint" to "Search by name or reg. number...",
+        "no_personnel_for_leave" to "No personnel registered yet. Please add a personnel first.",
+        "departure_date_label" to "Departure Date",
+        "leave_return_date_short" to "Return Date",
+        "leave_days_count_label" to "Number of Days",
+        "leave_added_success" to "Leave added and personnel record updated",
+        "history_btn" to "History",
+        "leave_history_title" to "Leave History",
+        "leave_history_count" to "Total Leaves",
+        "leave_history_total_days" to "Total Days",
+        "no_leave_history_desc" to "No leaves recorded for this person yet."
     )
 
     private val stringsTzm = mapOf(
@@ -2143,6 +2185,20 @@ object AppStrings {
         "pdf_page" to "Asebter",
         "pdf_of" to "seg",
         "pdf_footer" to "Yettwafares s Respite",
-        "pdf_share_chooser" to "Sekles neɣ bḍu afaylu PDF"
+        "pdf_share_chooser" to "Sekles neɣ bḍu afaylu PDF",
+        "add_leave_dialog_title" to "Rnu amuras amaynut",
+        "add_leave_dialog_sub" to "Fren amdan, tawsit n yimuras d yizemzan",
+        "select_personnel_label" to "Fren amdan",
+        "search_personnel_hint" to "Nadi s yisem neɣ uṭṭun n usigel...",
+        "no_personnel_for_leave" to "Ulac imdanen tura. Rnu amdan d amezwaru.",
+        "departure_date_label" to "Azemz n unegraw",
+        "leave_return_date_short" to "Azemz n tuɣalin",
+        "leave_days_count_label" to "Amḍan n wussan",
+        "leave_added_success" to "Amuras yettwarna, akalat yettuleqqem",
+        "history_btn" to "Amazray",
+        "leave_history_title" to "Amazray n yimuras",
+        "leave_history_count" to "Amḍan n yimuras",
+        "leave_history_total_days" to "Aɣrud n wussan",
+        "no_leave_history_desc" to "Ulac imuras yettwawekklen i umdan-agi tura."
     )
 }

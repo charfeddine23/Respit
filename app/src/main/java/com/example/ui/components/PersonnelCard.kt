@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
@@ -213,7 +214,8 @@ fun PersonnelCard(
     currentLang: AppLanguage = AppLanguage.ARABIC,
     effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn,
     onTogglePin: () -> Unit = {},
-    onSwipeDelete: () -> Unit = onDelete
+    onSwipeDelete: () -> Unit = onDelete,
+    onViewHistory: () -> Unit = {}
 ) {
     val status = personnel.status
     val isEligible = personnel.isReturnedToDuty && effectiveDaysSinceDuty >= dutyThresholdDays
@@ -1161,11 +1163,10 @@ fun PersonnelCard(
                         }
                     }
 
-                    // Action Buttons Row (48dp minimum touch targets)
-                    Row(
+                    // Action Buttons Section (48dp minimum touch targets)
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (!personnel.isReturnedToDuty) {
                             Button(
@@ -1177,7 +1178,7 @@ fun PersonnelCard(
                                 ),
                                 contentPadding = PaddingValues(horizontal = 12.dp),
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .fillMaxWidth()
                                     .height(48.dp)
                             ) {
                                 Icon(
@@ -1188,7 +1189,7 @@ fun PersonnelCard(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = AppStrings.get("confirm_duty_btn", currentLang),
-                                    fontSize = 11.5.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -1196,22 +1197,59 @@ fun PersonnelCard(
                             }
                         }
 
-                        OutlinedButton(
-                            onClick = onEdit,
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, if (isDarkMode) Color(0x4038BDF8) else Color(0x6000BCD4)),
-                            contentPadding = PaddingValues(horizontal = 12.dp),
-                            modifier = Modifier
-                                .then(if (personnel.isReturnedToDuty) Modifier.weight(1f) else Modifier)
-                                .height(48.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = AppStrings.get("edit", currentLang),
-                                tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            if (personnel.isReturnedToDuty) {
+                            OutlinedButton(
+                                onClick = onViewHistory,
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isDarkMode) Color(0x458B5CF6) else Color(0x667C3AED)
+                                ),
+                                contentPadding = PaddingValues(horizontal = 10.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .testTag("personnel_history_btn_${personnel.id}")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.History,
+                                    contentDescription = AppStrings.get("history_btn", currentLang),
+                                    tint = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("history_btn", currentLang),
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = onEdit,
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isDarkMode) Color(0x4038BDF8) else Color(0x6000BCD4)
+                                ),
+                                contentPadding = PaddingValues(horizontal = 10.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = AppStrings.get("edit", currentLang),
+                                    tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = AppStrings.get("edit", currentLang),
@@ -1222,22 +1260,22 @@ fun PersonnelCard(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                        }
 
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isDarkMode) Color(0x22EF4444) else Color(0x1AEF4444))
-                                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = AppStrings.get("delete", currentLang),
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(18.dp)
-                            )
+                            IconButton(
+                                onClick = onDelete,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isDarkMode) Color(0x22EF4444) else Color(0x1AEF4444))
+                                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = AppStrings.get("delete", currentLang),
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }

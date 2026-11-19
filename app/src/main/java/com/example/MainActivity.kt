@@ -167,7 +167,9 @@ import com.example.ui.PersonnelViewModel
 import com.example.ui.SortOption
 import androidx.fragment.app.FragmentActivity
 import com.example.ui.components.AddEditPersonnelDialog
+import com.example.ui.components.AddNewLeaveDialog
 import com.example.ui.components.AppBottomNavigationPanel
+import com.example.ui.components.PersonnelLeaveHistoryDialog
 import com.example.ui.components.AppNavPage
 import com.example.ui.components.BiometricLockScreen
 import com.example.ui.components.DeveloperInfoDialog
@@ -439,8 +441,10 @@ fun LeaveTrackerMainApp(
     }
 
     var showAddEditDialog by remember { mutableStateOf(false) }
+    var showAddLeaveDialog by remember { mutableStateOf(false) }
     var personnelToEdit by remember { mutableStateOf<Personnel?>(null) }
     var personnelToDelete by remember { mutableStateOf<Personnel?>(null) }
+    var personnelForHistory by remember { mutableStateOf<Personnel?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
     var showDeveloperDialog by remember { mutableStateOf(false) }
     var showFilterSortDialog by remember { mutableStateOf(false) }
@@ -805,15 +809,14 @@ fun LeaveTrackerMainApp(
                                             .clip(CircleShape)
                                             .clickable {
                                                 fabHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                personnelToEdit = null
-                                                showAddEditDialog = true
+                                                showAddLeaveDialog = true
                                             }
                                             .testTag("add_personnel_fab"),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Add,
-                                            contentDescription = AppStrings.get("add_personnel", currentLang),
+                                            contentDescription = AppStrings.get("add_leave_dialog_title", currentLang),
                                             tint = if (effectiveFabDark) Color.White else fabActiveAccent,
                                             modifier = Modifier.size(30.dp)
                                         )
@@ -1433,6 +1436,9 @@ fun LeaveTrackerMainApp(
                                                     },
                                                     onDelete = {
                                                         personnelToDelete = person
+                                                    },
+                                                    onViewHistory = {
+                                                        personnelForHistory = person
                                                     }
                                                 )
                                             }
@@ -1738,6 +1744,9 @@ fun LeaveTrackerMainApp(
                                                                     },
                                                                     onDelete = {
                                                                         personnelToDelete = person
+                                                                    },
+                                                                    onViewHistory = {
+                                                                        personnelForHistory = person
                                                                     }
                                                                 )
                                                             }
@@ -1796,6 +1805,9 @@ fun LeaveTrackerMainApp(
                                                     },
                                                     onDelete = {
                                                         personnelToDelete = person
+                                                    },
+                                                    onViewHistory = {
+                                                        personnelForHistory = person
                                                     }
                                                 )
                                             }
@@ -1939,6 +1951,51 @@ fun LeaveTrackerMainApp(
                     Toast.LENGTH_SHORT
                 ).show()
             },
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            isNeumorphic = isNeumorphic,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled
+        )
+    }
+
+    // Add New Leave Dialog (Triggered by circular + FAB)
+    if (showAddLeaveDialog) {
+        AddNewLeaveDialog(
+            personnelList = allPersonnelList,
+            onDismiss = { showAddLeaveDialog = false },
+            onOpenAddPersonnel = {
+                personnelToEdit = null
+                showAddEditDialog = true
+            },
+            onConfirm = { personnelId, leaveType, startMillis, returnMillis ->
+                viewModel.grantNewLeaveWithType(
+                    personnelId = personnelId,
+                    leaveType = leaveType,
+                    startDateMillis = startMillis,
+                    returnDateMillis = returnMillis
+                )
+                showAddLeaveDialog = false
+                Toast.makeText(
+                    context,
+                    AppStrings.get("leave_added_success", currentLang),
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            isNeumorphic = isNeumorphic,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled
+        )
+    }
+
+    // Personnel Leave History Dialog (Triggered by "السجل" button on personnel cards)
+    personnelForHistory?.let { targetPerson ->
+        PersonnelLeaveHistoryDialog(
+            personnel = targetPerson,
+            allLeaves = allLeavesList,
+            onDismiss = { personnelForHistory = null },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
             isNeumorphic = isNeumorphic,
