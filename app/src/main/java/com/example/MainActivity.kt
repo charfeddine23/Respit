@@ -6,6 +6,9 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -43,15 +46,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -239,6 +246,11 @@ class MainActivity : FragmentActivity() {
         }
 
         enableEdgeToEdge()
+        if (viewModel.isFitToScreenEnabled.value) {
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            insetsController.hide(WindowInsetsCompat.Type.statusBars())
+        }
         // Enforce Maximum Security (No Screenshot) from very first frame when enabled
         WindowSecurityHelper.applySecureFlag(this, viewModel.isNoScreenshotEnabled.value)
         setContent {
@@ -280,9 +292,18 @@ class MainActivity : FragmentActivity() {
             openNotificationsSignal.intValue++
         }
     }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && viewModel.isFitToScreenEnabled.value) {
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.statusBars())
+        }
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LeaveTrackerMainApp(
     viewModel: PersonnelViewModel,
@@ -301,10 +322,24 @@ fun LeaveTrackerMainApp(
     val lastUndo by viewModel.lastUndoAction.collectAsState()
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isNoScreenshotEnabled by viewModel.isNoScreenshotEnabled.collectAsState()
+    val isFitToScreenEnabled by viewModel.isFitToScreenEnabled.collectAsState()
     val isNeumorphic = (currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM) && (activeThemePreset?.isLiquidGlass != true)
 
     LaunchedEffect(isNoScreenshotEnabled) {
         WindowSecurityHelper.applySecureFlag(context as? android.app.Activity, isNoScreenshotEnabled)
+    }
+
+    LaunchedEffect(isFitToScreenEnabled) {
+        val window = (context as? android.app.Activity)?.window
+        if (window != null) {
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if (isFitToScreenEnabled) {
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.statusBars())
+            }
+        }
     }
 
     val personnelList by viewModel.filteredPersonnel.collectAsState()
@@ -533,12 +568,33 @@ fun LeaveTrackerMainApp(
                     val topActiveAccent = topPreset?.primary ?: if (effectiveTopDark) CyanGlow else RoyalBlueAccent
                     val topSecondaryAccent = topPreset?.secondary ?: if (effectiveTopDark) Color(0xFF8B5CF6) else VibrantCyan
 
+                    // Keep exact status bar top spacing even when system status bar is hidden (Fit to Screen)
+                    val localDensity = androidx.compose.ui.platform.LocalDensity.current
+                    val liveStatusBarTopPx = WindowInsets.statusBars.getTop(localDensity)
+                    val ignoringVisStatusBarTopPx = WindowInsets.statusBarsIgnoringVisibility.getTop(localDensity)
+                    val cutoutTopPx = WindowInsets.displayCutout.getTop(localDensity)
+                    var cachedStatusBarTopPx by remember { mutableIntStateOf(0) }
+                    val observedStatusTopPx = maxOf(liveStatusBarTopPx, ignoringVisStatusBarTopPx)
+                    if (observedStatusTopPx > cachedStatusBarTopPx) {
+                        cachedStatusBarTopPx = observedStatusTopPx
+                    }
+                    val preservedStatusBarTopDp = remember(observedStatusTopPx, cachedStatusBarTopPx, cutoutTopPx, isFitToScreenEnabled, localDensity) {
+                        val fallbackResourcePx = if (observedStatusTopPx == 0 && cachedStatusBarTopPx == 0 && isFitToScreenEnabled) {
+                            val resId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
+                            if (resId > 0) context.resources.getDimensionPixelSize(resId) else 0
+                        } else {
+                            0
+                        }
+                        val effectiveTopPx = maxOf(observedStatusTopPx, cachedStatusBarTopPx, cutoutTopPx, fallbackResourcePx)
+                        with(localDensity) { effectiveTopPx.toDp() }
+                    }
+
                     // Transparent outer wrapper — full-bleed content passes right behind the floating Top Bar capsule
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color.Transparent)
-                            .statusBarsPadding()
+                            .padding(top = preservedStatusBarTopDp)
                             .padding(horizontal = 20.dp, vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -722,98 +778,45 @@ fun LeaveTrackerMainApp(
                                     ).value
                                 } else 1f
 
-                                if (isNeumorphic) {
-                                    Surface(
-                                        onClick = {
-                                            personnelToEdit = null
-                                            showAddEditDialog = true
+                                val fabPreset = LocalThemePreset.current
+                                val effectiveFabDark = fabPreset?.isDark ?: isDarkMode
+                                val fabActiveAccent = fabPreset?.primary ?: if (effectiveFabDark) CyanGlow else RoyalBlueAccent
+                                val fabSecondaryAccent = fabPreset?.secondary ?: if (effectiveFabDark) Color(0xFF8B5CF6) else VibrantCyan
+                                val fabHaptic = LocalHapticFeedback.current
+
+                                LiquidGlassFloatingCapsule(
+                                    modifier = Modifier
+                                        .size(58.dp)
+                                        .graphicsLayer {
+                                            scaleX = fabBreathScale
+                                            scaleY = fabBreathScale
                                         },
+                                    isDarkMode = effectiveFabDark,
+                                    activeAccent = fabActiveAccent,
+                                    secondaryAccent = fabSecondaryAccent,
+                                    isLiving = isLivingLuxuryMode,
+                                    showBorder = false,
+                                    backdropLayer = backdropLayer,
+                                    backdropOffsetInRoot = backdropOffsetInRoot
+                                ) {
+                                    Box(
                                         modifier = Modifier
-                                            .size(58.dp)
-                                            .graphicsLayer {
-                                                scaleX = fabBreathScale
-                                                scaleY = fabBreathScale
-                                            }
-                                            .shadow(
-                                                elevation = 10.dp,
-                                                shape = CircleShape,
-                                                ambientColor = Color(0x602563EB),
-                                                spotColor = Color(0x901D4ED8)
-                                            )
+                                            .fillMaxSize()
                                             .clip(CircleShape)
-                                            .background(
-                                                Brush.verticalGradient(
-                                                    listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
-                                                )
-                                            )
-                                            .testTag("add_personnel_fab"),
-                                        shape = CircleShape,
-                                        color = Color(0xFF2563EB)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Add,
-                                                contentDescription = AppStrings.get("add_personnel", currentLang),
-                                                tint = Color.White,
-                                                modifier = Modifier.size(30.dp)
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    Surface(
-                                        onClick = {
-                                            personnelToEdit = null
-                                            showAddEditDialog = true
-                                        },
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .graphicsLayer {
-                                                scaleX = fabBreathScale
-                                                scaleY = fabBreathScale
+                                            .clickable {
+                                                fabHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                personnelToEdit = null
+                                                showAddEditDialog = true
                                             }
-                                            .shadow(
-                                                elevation = 8.dp,
-                                                shape = RoundedCornerShape(18.dp),
-                                                ambientColor = Color(0xFF00BCD4).copy(alpha = 0.45f),
-                                                spotColor = Color(0xFF00E5FF).copy(alpha = 0.55f)
-                                            )
-                                            .clip(RoundedCornerShape(18.dp))
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(Color(0xFF00BCD4), Color(0xFF00E5FF))
-                                                )
-                                            )
-                                            .border(
-                                                BorderStroke(
-                                                    1.5.dp,
-                                                    Brush.linearGradient(
-                                                        listOf(
-                                                            Color.White.copy(alpha = 0.85f),
-                                                            Color(0xFFE0F7FA).copy(alpha = 0.7f),
-                                                            Color.White.copy(alpha = 0.4f)
-                                                        )
-                                                    )
-                                                ),
-                                                RoundedCornerShape(18.dp)
-                                            )
                                             .testTag("add_personnel_fab"),
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = Color.Transparent
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Add,
-                                                contentDescription = AppStrings.get("add_personnel", currentLang),
-                                                tint = Color.White,
-                                                modifier = Modifier.size(28.dp)
-                                            )
-                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = AppStrings.get("add_personnel", currentLang),
+                                            tint = if (effectiveFabDark) Color.White else fabActiveAccent,
+                                            modifier = Modifier.size(30.dp)
+                                        )
                                     }
                                 }
                             }
@@ -962,6 +965,8 @@ fun LeaveTrackerMainApp(
                                                     onToggleDynamicAnimations = { viewModel.setDynamicAnimationsEnabled(it) },
                                                     isLivingLuxuryMode = isLivingLuxuryMode,
                                                     onToggleLivingLuxuryMode = { viewModel.setLivingLuxuryMode(it) },
+                                                    isFitToScreenEnabled = isFitToScreenEnabled,
+                                                    onToggleFitToScreen = { viewModel.setFitToScreenEnabled(it) },
                                                     trashedCount = trashedCount,
                                                     onOpenTrashBin = { showTrashBinDialog = true },
                                                     isDriveSyncEnabled = isDriveSyncEnabled,

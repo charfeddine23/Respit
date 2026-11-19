@@ -51,6 +51,7 @@ class SettingsManager(context: Context) {
         private const val KEY_LIVING_LUXURY_MODE = "pref_living_luxury_mode"
         private const val KEY_NO_SCREENSHOT_ENABLED = "pref_no_screenshot_enabled"
         private const val KEY_THEME_ENGINE_ID = "pref_theme_engine_id"
+        private const val KEY_FIT_TO_SCREEN = "pref_fit_to_screen_enabled"
         const val DEFAULT_DUTY_THRESHOLD = 45
     }
 
@@ -181,6 +182,10 @@ class SettingsManager(context: Context) {
     var isNoScreenshotEnabled: Boolean
         get() = safeGetBoolean(KEY_NO_SCREENSHOT_ENABLED, false) // Disabled by default; toggle in Security Settings
         set(value) = prefs.edit().putBoolean(KEY_NO_SCREENSHOT_ENABLED, value).apply()
+
+    var isFitToScreenEnabled: Boolean
+        get() = safeGetBoolean(KEY_FIT_TO_SCREEN, false)
+        set(value) = prefs.edit().putBoolean(KEY_FIT_TO_SCREEN, value).apply()
 
     var recentSearches: List<String>
         get() {

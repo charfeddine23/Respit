@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Layers
@@ -177,6 +178,8 @@ fun SideNavigationDrawerContent(
     onToggleDynamicAnimations: (Boolean) -> Unit = {},
     isLivingLuxuryMode: Boolean = false,
     onToggleLivingLuxuryMode: (Boolean) -> Unit = {},
+    isFitToScreenEnabled: Boolean = false,
+    onToggleFitToScreen: (Boolean) -> Unit = {},
     trashedCount: Int = 0,
     onOpenTrashBin: () -> Unit = {},
     isDriveSyncEnabled: Boolean = false,
@@ -1092,6 +1095,36 @@ fun SideNavigationDrawerContent(
                             haptic = haptic,
                             switchTag = "drawer_focus_mode_toggle",
                             onToggle = { onToggleFocusMode() }
+                        )
+
+                        HorizontalDivider(color = dividerColor)
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        TactileSwitchSettingRow(
+                            icon = Icons.Default.Fullscreen,
+                            iconTint = Color(0xFF38BDF8),
+                            title = AppStrings.get("fit_to_screen_title", currentLang),
+                            subtitle = AppStrings.get(
+                                if (isFitToScreenEnabled) "fit_to_screen_active" else "fit_to_screen_inactive",
+                                currentLang
+                            ),
+                            subtitleColor = if (isFitToScreenEnabled) Color(0xFF10B981) else null,
+                            checked = isFitToScreenEnabled,
+                            trackColor = Color(0xFF38BDF8),
+                            isDarkMode = isDarkMode,
+                            haptic = haptic,
+                            switchTag = "drawer_fit_to_screen_toggle",
+                            onToggle = { enabled ->
+                                onToggleFitToScreen(enabled)
+                                Toast.makeText(
+                                    context,
+                                    AppStrings.get(
+                                        if (enabled) "fit_to_screen_enabled_toast" else "fit_to_screen_disabled_toast",
+                                        currentLang
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         )
                     }
 

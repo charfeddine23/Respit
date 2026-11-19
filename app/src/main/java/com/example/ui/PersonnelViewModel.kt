@@ -151,6 +151,14 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         settingsManager.isNoScreenshotEnabled = enabled
     }
 
+    // Fit to Screen (hide top phone status bar while keeping element positions fixed)
+    val isFitToScreenEnabled = MutableStateFlow(settingsManager.isFitToScreenEnabled)
+
+    fun setFitToScreenEnabled(enabled: Boolean) {
+        isFitToScreenEnabled.value = enabled
+        settingsManager.isFitToScreenEnabled = enabled
+    }
+
     // Google Drive Sync state
     val isDriveSyncEnabled = MutableStateFlow(settingsManager.isGoogleDriveSyncEnabled)
     val lastDriveBackupTime = MutableStateFlow(settingsManager.lastGoogleDriveBackupTime)

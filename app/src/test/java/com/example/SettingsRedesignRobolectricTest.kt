@@ -42,6 +42,7 @@ class SettingsRedesignRobolectricTest {
         var isFocusMode by mutableStateOf(false)
         var isDynamicAnimations by mutableStateOf(true)
         var isLivingLuxury by mutableStateOf(false)
+        var isFitToScreen by mutableStateOf(false)
         var isBiometric by mutableStateOf(false)
         var isNoScreenshot by mutableStateOf(false)
         var threshold by mutableIntStateOf(45)
@@ -95,6 +96,8 @@ class SettingsRedesignRobolectricTest {
                     onToggleDynamicAnimations = { isDynamicAnimations = it },
                     isLivingLuxuryMode = isLivingLuxury,
                     onToggleLivingLuxuryMode = { isLivingLuxury = it },
+                    isFitToScreenEnabled = isFitToScreen,
+                    onToggleFitToScreen = { isFitToScreen = it },
                     trashedCount = 4,
                     onOpenTrashBin = { trashClicked = true },
                     drawerIsOpen = true
@@ -178,6 +181,9 @@ class SettingsRedesignRobolectricTest {
         composeRule.onNodeWithTag("drawer_focus_mode_toggle").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertTrue(isFocusMode)
+        composeRule.onNodeWithTag("drawer_fit_to_screen_toggle").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertTrue(isFitToScreen)
 
         composeRule.onNodeWithTag("settings_subpage_back_button").performScrollTo().performClick()
         composeRule.waitForIdle()
