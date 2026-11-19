@@ -121,7 +121,7 @@ import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
-import com.example.ui.theme.AmiriArabicBrandFontFamily
+import com.example.ui.theme.KufiArabicBrandFontFamily
 import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
@@ -188,6 +188,7 @@ fun SideNavigationDrawerContent(
     onCheckUpdate: () -> Unit = {},
     availableUpdateVersion: String? = null,
     isFullScreenPage: Boolean = false,
+    topBarClearance: Dp = 0.dp,
     bottomDockClearance: Dp = 0.dp
 ) {
     val context = LocalContext.current
@@ -254,6 +255,9 @@ fun SideNavigationDrawerContent(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    if (topBarClearance > 0.dp) {
+                        Spacer(modifier = Modifier.height(topBarClearance))
+                    }
                     // SECTION 1: App Identity Header Card (Logo + App Title + Subtitle cleanly without nested language prompt)
                     Surface(
                         shape = RoundedCornerShape(22.dp),
@@ -295,9 +299,9 @@ fun SideNavigationDrawerContent(
                                 Text(
                                     text = AppStrings.get("app_title", currentLang),
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        fontFamily = if (isArabicTitle) AmiriArabicBrandFontFamily else FontFamily.Default,
-                                        fontSize = if (isArabicTitle) 22.sp else 17.sp,
-                                        lineHeight = if (isArabicTitle) 28.sp else 22.sp
+                                        fontFamily = if (isArabicTitle) KufiArabicBrandFontFamily else FontFamily.Default,
+                                        fontSize = if (isArabicTitle) 19.sp else 17.sp,
+                                        lineHeight = if (isArabicTitle) 25.sp else 22.sp
                                     ),
                                     fontWeight = FontWeight.Bold,
                                     color = if (isDarkMode) Color.White else Color(0xFF0F172A)
@@ -627,6 +631,9 @@ fun SideNavigationDrawerContent(
                         .testTag("settings_language_page"),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    if (topBarClearance > 0.dp) {
+                        Spacer(modifier = Modifier.height(topBarClearance))
+                    }
                     SettingsSubPageHeader(
                         title = AppStrings.get("language", currentLang),
                         subtitle = AppStrings.get("select_language", currentLang),
@@ -763,6 +770,9 @@ fun SideNavigationDrawerContent(
                         .testTag("settings_appearance_page"),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (topBarClearance > 0.dp) {
+                        Spacer(modifier = Modifier.height(topBarClearance))
+                    }
                     SettingsSubPageHeader(
                         title = AppStrings.get("settings_cat_appearance", currentLang),
                         subtitle = AppStrings.get("settings_cat_appearance_sub", currentLang),
@@ -1102,6 +1112,9 @@ fun SideNavigationDrawerContent(
                         .testTag("settings_security_page"),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (topBarClearance > 0.dp) {
+                        Spacer(modifier = Modifier.height(topBarClearance))
+                    }
                     SettingsSubPageHeader(
                         title = AppStrings.get("settings_cat_security", currentLang),
                         subtitle = AppStrings.get("settings_cat_security_sub", currentLang),
@@ -1224,6 +1237,9 @@ fun SideNavigationDrawerContent(
                         .testTag("settings_notifications_page"),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (topBarClearance > 0.dp) {
+                        Spacer(modifier = Modifier.height(topBarClearance))
+                    }
                     SettingsSubPageHeader(
                         title = AppStrings.get("settings_cat_notifications", currentLang),
                         subtitle = AppStrings.get("settings_cat_notifications_sub", currentLang),
@@ -1384,6 +1400,9 @@ fun SideNavigationDrawerContent(
                         .testTag("settings_backup_restore_page"),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (topBarClearance > 0.dp) {
+                        Spacer(modifier = Modifier.height(topBarClearance))
+                    }
                     SettingsSubPageHeader(
                         title = AppStrings.get("settings_cat_backup", currentLang),
                         subtitle = AppStrings.get("settings_cat_backup_sub", currentLang),

@@ -25,7 +25,7 @@ object AppStrings {
 
     private val stringsAr = mapOf(
         // Invariant App Title & Developer Info
-        "app_title" to "الراحة",
+        "app_title" to "ريسبيت",
         "developer_name" to "Developed by Charfeddine Ka",
         "app_subtitle" to "نظام تسيير إجازات وعطل الأفراد",
         "developer_role" to "المطور المعتمد",
@@ -390,7 +390,7 @@ object AppStrings {
         "biometric_lock_inactive_sub" to "الحماية معطّلة حالياً",
         "biometric_lock_enabled_toast" to "تم تفعيل قفل الأمان بنجاح",
         "biometric_lock_disabled_toast" to "تم إلغاء تفعيل قفل التطبيق",
-        "biometric_screen_protected" to "تطبيق الراحة محمي بنظام المصادقة",
+        "biometric_screen_protected" to "تطبيق ريسبيت محمي بنظام المصادقة",
         "biometric_screen_instruction" to "يرجى المصادقة عبر بصمة الإصبع أو رمز حماية الجهاز للمتابعة",
         "biometric_unlock_device_btn" to "فتح القفل بالبصمة / رمز الجهاز",
         "biometric_auth_failed" to "تعذّر التحقق من الهوية، يرجى المحاولة مجدداً",
@@ -458,7 +458,7 @@ object AppStrings {
         "pdf_total_records" to "إجمالي السجلات:",
         "pdf_page" to "صفحة",
         "pdf_of" to "من",
-        "pdf_footer" to "تم إنشاء هذا التقرير تلقائياً بواسطة تطبيق الراحة",
+        "pdf_footer" to "تم إنشاء هذا التقرير تلقائياً بواسطة تطبيق ريسبيت",
         "pdf_share_chooser" to "حفظ أو مشاركة ملف PDF",
 
         // Undo & Import ViewModel

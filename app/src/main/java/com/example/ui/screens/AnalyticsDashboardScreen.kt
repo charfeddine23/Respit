@@ -98,6 +98,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -148,7 +149,8 @@ private val analyticsPalette = listOf(
 fun AnalyticsDashboardScreen(
     viewModel: PersonnelViewModel,
     onBack: () -> Unit,
-    onSelectPersonnel: ((Long) -> Unit)? = null
+    onSelectPersonnel: ((Long) -> Unit)? = null,
+    topBarClearance: Dp = 0.dp
 ) {
     BackHandler { onBack() }
 
@@ -233,7 +235,12 @@ fun AnalyticsDashboardScreen(
                     .fillMaxSize()
                     .widthIn(max = contentMaxWidth)
                     .testTag("analytics_lazy_column"),
-                contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 12.dp),
+                contentPadding = PaddingValues(
+                    start = horizontalPadding,
+                    end = horizontalPadding,
+                    top = topBarClearance + 8.dp,
+                    bottom = 12.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // 1. Header Banner + Year Selector
