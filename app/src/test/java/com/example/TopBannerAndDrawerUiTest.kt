@@ -34,10 +34,9 @@ class TopBannerAndDrawerUiTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.waitForIdle()
 
-            // 1. Arabic (RTL): Menu button removed; Liquid Glass top_nav_panel renders Left->Right: [Logo + ريسبيت] ... [Theme] [Notifications (Far Right)]
-            composeRule.onNodeWithTag("top_nav_panel").assertExists()
+            // 1. Arabic (RTL): Menu button removed; Left->Right order is [Logo + الراحة] ... [Theme] [Notifications (Far Right)]
             composeRule.onNodeWithTag("header_menu_button").assertDoesNotExist()
-            composeRule.onNodeWithText("ريسبيت").assertExists()
+            composeRule.onNodeWithText("الراحة").assertExists()
             val titleBoundsAr = composeRule.onNodeWithTag("app_title_row").getBoundsInRoot()
             val themeBoundsAr = composeRule.onNodeWithTag("header_theme_toggle").getBoundsInRoot()
             val notifBoundsAr = composeRule.onNodeWithTag("header_notifications_button").getBoundsInRoot()

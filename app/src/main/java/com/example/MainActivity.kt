@@ -162,7 +162,6 @@ import androidx.fragment.app.FragmentActivity
 import com.example.ui.components.AddEditPersonnelDialog
 import com.example.ui.components.AppBottomNavigationPanel
 import com.example.ui.components.AppNavPage
-import com.example.ui.components.AppTopLiquidGlassBar
 import com.example.ui.components.BiometricLockScreen
 import com.example.ui.components.DeveloperInfoDialog
 import com.example.ui.components.ExportDialog
@@ -175,6 +174,7 @@ import com.example.ui.components.TrashBinDialog
 import com.example.ui.screens.AnalyticsDashboardScreen
 import com.example.ui.screens.NotificationScreen
 import com.example.ui.screens.RoomDatabaseScreen
+import com.example.ui.theme.AmiriArabicBrandFontFamily
 import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.DynamicAuroraBackground
 import com.example.ui.theme.EmeraldSuccess
@@ -521,20 +521,158 @@ fun LeaveTrackerMainApp(
                 .testTag("main_scaffold"),
             containerColor = Color.Transparent,
             topBar = {
-                AppTopLiquidGlassBar(
-                    currentLang = currentLang,
-                    isDarkMode = isDarkMode,
-                    isNeumorphic = isNeumorphic,
-                    animationsEnabled = isDynamicAnimationsEnabled,
-                    notificationsCount = notificationsCount,
-                    isNotificationsOpen = selectedNavPage == AppNavPage.NOTIFICATIONS,
-                    appUpdateState = appUpdateState,
-                    onOpenNotifications = openNotificationsPage,
-                    onToggleTheme = { viewModel.toggleTheme() },
-                    onOpenUpdateDialog = { viewModel.openUpdateDialog() },
-                    backdropLayer = backdropLayer,
-                    backdropOffsetInRoot = backdropOffsetInRoot
-                )
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+                ) {
+                    Surface(
+                        color = Color.Transparent,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                    ) {
+                        val iconShape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Start Side (Right in Arabic/RTL, Left in English/LTR):
+                            // Arabic (RTL, Left->Right): [Update?] [Theme] [Notifications (Far Right)]
+                            // English (LTR, Left->Right): [Notifications (Far Left)] [Theme] [Update?]
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Notifications Button (Far Right in Arabic, Far Left in English)
+                                val isNotifOpen = selectedNavPage == AppNavPage.NOTIFICATIONS
+                                Box(
+                                    modifier = Modifier.liquidGlassInteractive(
+                                        shape = iconShape,
+                                        glowColor = if (isNotifOpen || notificationsCount > 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                        isDark = isDarkMode,
+                                        isNeumorphic = isNeumorphic
+                                    )
+                                ) {
+                                    IconButton(
+                                        onClick = openNotificationsPage,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(iconShape)
+                                            .testTag("header_notifications_button")
+                                    ) {
+                                        BadgedBox(
+                                            badge = {
+                                                if (notificationsCount > 0) {
+                                                    Badge(
+                                                        containerColor = Color(0xFFEF4444),
+                                                        contentColor = Color.White
+                                                    ) {
+                                                        Text(
+                                                            text = if (notificationsCount > 99) "99+" else "$notificationsCount",
+                                                            fontSize = 9.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isNotifOpen) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                                contentDescription = AppStrings.get("header_notifications_desc", currentLang),
+                                                tint = if (isNotifOpen) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(21.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Light / Dark Mode Toggle Button
+                                Box(
+                                    modifier = Modifier.liquidGlassInteractive(
+                                        shape = iconShape,
+                                        glowColor = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
+                                        isDark = isDarkMode,
+                                        isNeumorphic = isNeumorphic
+                                    )
+                                ) {
+                                    IconButton(
+                                        onClick = { viewModel.toggleTheme() },
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(iconShape)
+                                            .testTag("header_theme_toggle")
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                            contentDescription = AppStrings.get(if (isDarkMode) "theme_light" else "theme_dark", currentLang),
+                                            tint = if (isDarkMode) Color(0xFFFBBF24) else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(21.dp)
+                                        )
+                                    }
+                                }
+
+                                val hasAvailableUpdate = appUpdateState is AppUpdateState.UpdateAvailable ||
+                                    appUpdateState is AppUpdateState.Downloading ||
+                                    appUpdateState is AppUpdateState.ReadyToInstall
+
+                                // Sleek Dynamic Download Arrow shown ONLY in the Top Banner when an update exists
+                                AnimatedVisibility(
+                                    visible = hasAvailableUpdate,
+                                    enter = fadeIn(tween(260)) + scaleIn(
+                                        initialScale = 0.72f,
+                                        animationSpec = spring(
+                                            dampingRatio = 0.65f,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    ),
+                                    exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.75f)
+                                ) {
+                                    HeaderUpdateDownloadButton(
+                                        updateState = appUpdateState,
+                                        isDarkMode = isDarkMode,
+                                        isNeumorphic = isNeumorphic,
+                                        animationsEnabled = isDynamicAnimationsEnabled,
+                                        contentDescription = AppStrings.get("update_top_banner_desc", currentLang),
+                                        onClick = { viewModel.openUpdateDialog() }
+                                    )
+                                }
+                            }
+
+                            // End Side (Far Left in Arabic/RTL -> [Logo] [الراحة], Far Right in English/LTR -> [Respite] [Logo])
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .padding(vertical = 4.dp, horizontal = 2.dp)
+                                    .testTag("app_title_row")
+                            ) {
+                                val isArabicTitle = currentLang == AppLanguage.ARABIC
+                                Text(
+                                    text = AppStrings.get("app_title", currentLang),
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontFamily = if (isArabicTitle) AmiriArabicBrandFontFamily else androidx.compose.ui.text.font.FontFamily.Default,
+                                        fontSize = if (isArabicTitle) 23.sp else 18.sp,
+                                        lineHeight = if (isArabicTitle) 28.sp else 24.sp
+                                    ),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Image(
+                                    painter = painterResource(id = R.drawable.app_logo),
+                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                    contentScale = ContentScale.Fit,
+                                    colorFilter = ColorFilter.tint(
+                                        if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.size(width = 52.dp, height = 40.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             },
                         floatingActionButton = {
                             if (selectedNavPage == AppNavPage.DASHBOARD || selectedNavPage == AppNavPage.RECORDS) {
@@ -662,7 +800,6 @@ fun LeaveTrackerMainApp(
                             )
                         }
                     ) { innerPadding ->
-                        val topBarClearance = innerPadding.calculateTopPadding()
                         val bottomDockClearance = innerPadding.calculateBottomPadding()
                         Box(
                             modifier = Modifier
@@ -683,18 +820,15 @@ fun LeaveTrackerMainApp(
                             )
 
                             BoxWithConstraints(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(top = innerPadding.calculateTopPadding()),
                                 contentAlignment = Alignment.TopCenter
                             ) {
                             val isTablet = maxWidth >= 600.dp
                             val contentMaxWidth = if (isTablet) 980.dp else 680.dp
                             val horizontalPadding = if (isTablet) 24.dp else 16.dp
-                            val contentPadding = PaddingValues(
-                                start = horizontalPadding,
-                                end = horizontalPadding,
-                                top = topBarClearance + 8.dp,
-                                bottom = 14.dp
-                            )
+                            val contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 14.dp)
 
                             val saveableStateHolder = rememberSaveableStateHolder()
                             val dashboardListState = rememberLazyListState()
@@ -713,8 +847,7 @@ fun LeaveTrackerMainApp(
                                         AppNavPage.DATABASE -> {
                                             RoomDatabaseScreen(
                                                 viewModel = viewModel,
-                                                onBack = { selectedNavPage = AppNavPage.DASHBOARD },
-                                                topBarClearance = topBarClearance
+                                                onBack = { selectedNavPage = AppNavPage.DASHBOARD }
                                             )
                                         }
                                         AppNavPage.ANALYTICS -> {
@@ -727,8 +860,7 @@ fun LeaveTrackerMainApp(
                                                         personnelToEdit = p
                                                         showAddEditDialog = true
                                                     }
-                                                },
-                                                topBarClearance = topBarClearance
+                                                }
                                             )
                                         }
                                         AppNavPage.NOTIFICATIONS -> {
@@ -741,8 +873,7 @@ fun LeaveTrackerMainApp(
                                                         personnelToEdit = p
                                                         showAddEditDialog = true
                                                     }
-                                                },
-                                                topBarClearance = topBarClearance
+                                                }
                                             )
                                         }
                                         AppNavPage.SETTINGS -> {
@@ -805,7 +936,6 @@ fun LeaveTrackerMainApp(
                                                     onCheckUpdate = { viewModel.checkForAppUpdate(manual = true) },
                                                     availableUpdateVersion = null,
                                                     isFullScreenPage = true,
-                                                    topBarClearance = topBarClearance,
                                                     bottomDockClearance = bottomDockClearance
                                                 )
                                             }
@@ -1920,6 +2050,196 @@ fun LeaveTrackerMainApp(
             },
             onDismiss = { showTrashBinDialog = false }
         )
+    }
+}
+
+@Composable
+private fun HeaderUpdateDownloadButton(
+    updateState: AppUpdateState,
+    isDarkMode: Boolean,
+    isNeumorphic: Boolean,
+    animationsEnabled: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium),
+        label = "headerDownloadScale"
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "headerDownloadMotion")
+    val arrowFloatY by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = -2.2f,
+            targetValue = 2.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1050, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "arrowFloatY"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+
+    val ringRotation by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "headerRingRotation"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+
+    val haloPulse by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "headerHaloPulse"
+        )
+    } else {
+        remember { mutableStateOf(0.8f) }
+    }
+
+    // Match adjacent header_theme_toggle & header_notifications_button exact shape and 48.dp size
+    val shape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+    val isReady = updateState is AppUpdateState.ReadyToInstall
+    val isDownloading = updateState is AppUpdateState.Downloading
+    val accentGlow = if (isReady) Color(0xFF10B981) else Color(0xFF00E5FF)
+
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .liquidGlassInteractive(
+                shape = shape,
+                glowColor = accentGlow,
+                isDark = isDarkMode,
+                isNeumorphic = isNeumorphic
+            )
+            .drawWithContent {
+                drawContent()
+                if (size.width <= 0f || size.height <= 0f) return@drawWithContent
+                val strokePx = 1.6.dp.toPx()
+                val insetPx = 1.4.dp.toPx()
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                val radius = (size.minDimension / 2f).coerceAtLeast(1f)
+                val rad = Math.toRadians(ringRotation.toDouble())
+                val dx = (cos(rad) * radius).toFloat()
+                val dy = (sin(rad) * radius).toFloat()
+
+                val ringColors = if (isReady) {
+                    listOf(
+                        Color(0xFF10B981).copy(alpha = 0.92f * haloPulse),
+                        Color(0xFF34D399).copy(alpha = 0.55f * haloPulse),
+                        Color(0xFF00E5FF).copy(alpha = 0.85f * haloPulse)
+                    )
+                } else {
+                    listOf(
+                        Color(0xFF00E5FF).copy(alpha = 0.92f * haloPulse),
+                        Color(0xFF3B82F6).copy(alpha = 0.55f * haloPulse),
+                        Color(0xFF10B981).copy(alpha = 0.85f * haloPulse)
+                    )
+                }
+                val ringBrush = Brush.linearGradient(
+                    colors = ringColors,
+                    start = Offset(cx + dx, cy + dy),
+                    end = Offset(cx - dx, cy - dy)
+                )
+
+                if (isNeumorphic) {
+                    drawCircle(
+                        brush = ringBrush,
+                        radius = radius - insetPx,
+                        center = Offset(cx, cy),
+                        style = Stroke(width = strokePx)
+                    )
+                } else {
+                    val crPx = (12.dp.toPx() - insetPx).coerceAtLeast(2f)
+                    drawRoundRect(
+                        brush = ringBrush,
+                        topLeft = Offset(insetPx, insetPx),
+                        size = Size(size.width - insetPx * 2f, size.height - insetPx * 2f),
+                        cornerRadius = CornerRadius(crPx, crPx),
+                        style = Stroke(width = strokePx)
+                    )
+                }
+            }
+            .clip(shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClickLabel = contentDescription
+            ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
+            .testTag("header_update_download_button"),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            isDownloading -> {
+                val dlState = updateState as AppUpdateState.Downloading
+                if (dlState.totalBytes > 0L) {
+                    CircularProgressIndicator(
+                        progress = { dlState.progress.coerceIn(0f, 1f) },
+                        color = Color(0xFF00E5FF),
+                        trackColor = Color(0xFF00E5FF).copy(alpha = 0.22f),
+                        strokeWidth = 2.4.dp,
+                        modifier = Modifier.size(26.dp)
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        color = Color(0xFF00E5FF),
+                        strokeWidth = 2.4.dp,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = contentDescription,
+                    tint = Color(0xFF00E5FF),
+                    modifier = Modifier
+                        .size(14.dp)
+                        .graphicsLayer { translationY = arrowFloatY.dp.toPx() * 0.5f }
+                )
+            }
+            isReady -> {
+                Icon(
+                    imageVector = Icons.Default.DownloadDone,
+                    contentDescription = contentDescription,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(21.dp)
+                )
+            }
+            else -> {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = contentDescription,
+                    tint = if (isDarkMode) Color(0xFF38BDF8) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(21.dp)
+                        .graphicsLayer { translationY = arrowFloatY.dp.toPx() }
+                )
+            }
+        }
     }
 }
 

@@ -11,9 +11,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.example.R
 
-val KufiArabicBrandFontFamily = FontFamily(
-    Font(R.font.noto_kufi_arabic, FontWeight.Normal),
-    Font(R.font.noto_kufi_arabic, FontWeight.Bold)
+val AmiriArabicBrandFontFamily = FontFamily(
+    Font(R.font.amiri, FontWeight.Normal),
+    Font(R.font.amiri, FontWeight.Bold)
 )
 
 // Scalable, accessible Material 3 Typography system using scalable SP units
