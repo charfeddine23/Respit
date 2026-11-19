@@ -19,6 +19,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -79,6 +80,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -139,8 +141,6 @@ fun AppBottomNavigationPanel(
     val activeAccent = preset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
     val secondaryAccent = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else VibrantCyan
 
-    val capsuleShape = CircleShape
-    var capsulePositionInRoot by remember { mutableStateOf(Offset.Zero) }
     val tabBounds = remember { mutableStateMapOf<AppNavPage, Pair<Float, Float>>() }
 
     val selectedTabKey = if (selectedPage == AppNavPage.NOTIFICATIONS || selectedPage == AppNavPage.ANALYTICS) null else selectedPage
@@ -172,11 +172,6 @@ fun AppBottomNavigationPanel(
     val glideDelta = if (targetBounds != null) abs(lensX - targetBounds.first) else 0f
     val stretchFactor = (1f + (glideDelta / 380f).coerceIn(0f, 0.14f))
 
-    val supportsHardwareBlur = remember {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            !Build.FINGERPRINT.equals("robolectric", ignoreCase = true)
-    }
-
     // Outer container is 100% transparent — zero scrim, zero opaque bar, full-bleed content passes right behind it
     Box(
         modifier = modifier
@@ -186,142 +181,19 @@ fun AppBottomNavigationPanel(
             .padding(horizontal = 20.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Floating Apple iOS 26 Liquid Glass Capsule
-        Box(
+        LiquidGlassFloatingCapsule(
             modifier = Modifier
                 .widthIn(max = 520.dp)
                 .fillMaxWidth()
                 .height(66.dp)
-                .shadow(
-                    elevation = if (isLiving) 18.dp else 14.dp,
-                    shape = capsuleShape,
-                    clip = false,
-                    ambientColor = if (effectiveDark) {
-                        Color(0x99000000)
-                    } else {
-                        Color(0x380F172A)
-                    },
-                    spotColor = if (effectiveDark) {
-                        activeAccent.copy(alpha = 0.35f)
-                    } else {
-                        activeAccent.copy(alpha = 0.22f)
-                    }
-                )
-                .clip(capsuleShape)
-                .onGloballyPositioned { coords ->
-                    capsulePositionInRoot = coords.positionInRoot()
-                }
-                .testTag("bottom_nav_panel")
+                .testTag("bottom_nav_panel"),
+            isDarkMode = effectiveDark,
+            activeAccent = activeAccent,
+            secondaryAccent = secondaryAccent,
+            isLiving = isLiving,
+            backdropLayer = backdropLayer,
+            backdropOffsetInRoot = backdropOffsetInRoot
         ) {
-            // 1. Live Optical Backdrop Refraction & Frosted Blur (Real content flowing underneath)
-            if (backdropLayer != null) {
-                val blurModifier = if (supportsHardwareBlur) {
-                    Modifier.blur(radius = 22.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
-                } else {
-                    Modifier
-                }
-                Canvas(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .then(blurModifier)
-                ) {
-                    val layerSize = backdropLayer.size
-                    if (layerSize.width > 0 && layerSize.height > 0) {
-                        val dx = backdropOffsetInRoot.x - capsulePositionInRoot.x
-                        val dy = backdropOffsetInRoot.y - capsulePositionInRoot.y
-                        withTransform({
-                            // Subtle convex lens magnification of the underlying content
-                            scale(scaleX = 1.045f, scaleY = 1.045f, pivot = center)
-                            translate(left = dx, top = dy)
-                        }) {
-                            drawLayer(backdropLayer)
-                        }
-                    }
-                }
-            }
-
-            // 2. iOS 26 Liquid Glass Translucent Medium + Specular Dome Gloss + Caustic Rim
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            if (effectiveDark) {
-                                listOf(
-                                    Color(0xFF1E293B).copy(alpha = if (backdropLayer != null) 0.44f else 0.72f),
-                                    Color(0xFF0F172A).copy(alpha = if (backdropLayer != null) 0.34f else 0.64f),
-                                    Color(0xFF1E293B).copy(alpha = if (backdropLayer != null) 0.42f else 0.70f)
-                                )
-                            } else {
-                                listOf(
-                                    Color.White.copy(alpha = if (backdropLayer != null) 0.44f else 0.72f),
-                                    Color(0xFFF8FAFC).copy(alpha = if (backdropLayer != null) 0.24f else 0.56f),
-                                    Color.White.copy(alpha = if (backdropLayer != null) 0.36f else 0.66f)
-                                )
-                            }
-                        )
-                    )
-                    .drawBehind {
-                        // Subtle chromatic glass tint wash
-                        drawRoundRect(
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    activeAccent.copy(alpha = if (effectiveDark) 0.08f else 0.05f),
-                                    Color.Transparent,
-                                    secondaryAccent.copy(alpha = if (effectiveDark) 0.07f else 0.04f)
-                                )
-                            ),
-                            cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
-                        )
-                        // Top curved specular dome gloss (signature iOS Liquid Glass highlight)
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = if (effectiveDark) 0.16f else 0.54f),
-                                    Color.White.copy(alpha = if (effectiveDark) 0.04f else 0.14f),
-                                    Color.Transparent
-                                ),
-                                startY = 0f,
-                                endY = size.height * 0.48f
-                            ),
-                            cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
-                        )
-                        // Subtle bottom internal caustic bounce
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = if (effectiveDark) 0.06f else 0.22f)
-                                ),
-                                startY = size.height * 0.72f,
-                                endY = size.height
-                            ),
-                            cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
-                        )
-                    }
-                    .border(
-                        width = 1.25.dp,
-                        brush = Brush.linearGradient(
-                            colors = if (effectiveDark) {
-                                listOf(
-                                    Color.White.copy(alpha = 0.48f),
-                                    activeAccent.copy(alpha = 0.34f),
-                                    Color.White.copy(alpha = 0.10f),
-                                    Color.White.copy(alpha = 0.26f)
-                                )
-                            } else {
-                                listOf(
-                                    Color.White.copy(alpha = 0.95f),
-                                    activeAccent.copy(alpha = 0.26f),
-                                    Color.White.copy(alpha = 0.42f),
-                                    Color.White.copy(alpha = 0.85f)
-                                )
-                            }
-                        ),
-                        shape = capsuleShape
-                    )
-            )
-
             // 3. Tabs Row + Fluid Sliding Liquid Glass Lens Pill
             Box(
                 modifier = Modifier
@@ -438,6 +310,156 @@ fun AppBottomNavigationPanel(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun LiquidGlassFloatingCapsule(
+    modifier: Modifier = Modifier,
+    isDarkMode: Boolean,
+    activeAccent: Color,
+    secondaryAccent: Color,
+    isLiving: Boolean = false,
+    backdropLayer: GraphicsLayer? = null,
+    backdropOffsetInRoot: Offset = Offset.Zero,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val capsuleShape = CircleShape
+    var capsulePositionInRoot by remember { mutableStateOf(Offset.Zero) }
+
+    val supportsHardwareBlur = remember {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !Build.FINGERPRINT.equals("robolectric", ignoreCase = true)
+    }
+
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = if (isLiving) 18.dp else 14.dp,
+                shape = capsuleShape,
+                clip = false,
+                ambientColor = if (isDarkMode) Color(0x99000000) else Color(0x380F172A),
+                spotColor = if (isDarkMode) {
+                    activeAccent.copy(alpha = 0.35f)
+                } else {
+                    activeAccent.copy(alpha = 0.22f)
+                }
+            )
+            .clip(capsuleShape)
+            .onGloballyPositioned { coords ->
+                capsulePositionInRoot = coords.positionInRoot()
+            }
+    ) {
+        // 1. Live Optical Backdrop Refraction & Frosted Blur (Real content flowing underneath)
+        if (backdropLayer != null) {
+            val blurModifier = if (supportsHardwareBlur) {
+                Modifier.blur(radius = 22.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+            } else {
+                Modifier
+            }
+            Canvas(
+                modifier = Modifier
+                    .matchParentSize()
+                    .then(blurModifier)
+            ) {
+                val layerSize = backdropLayer.size
+                if (layerSize.width > 0 && layerSize.height > 0) {
+                    val dx = backdropOffsetInRoot.x - capsulePositionInRoot.x
+                    val dy = backdropOffsetInRoot.y - capsulePositionInRoot.y
+                    withTransform({
+                        // Subtle convex lens magnification of the underlying content
+                        scale(scaleX = 1.045f, scaleY = 1.045f, pivot = center)
+                        translate(left = dx, top = dy)
+                    }) {
+                        drawLayer(backdropLayer)
+                    }
+                }
+            }
+        }
+
+        // 2. iOS 26 Liquid Glass Translucent Medium + Specular Dome Gloss + Caustic Rim
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        if (isDarkMode) {
+                            listOf(
+                                Color(0xFF1E293B).copy(alpha = if (backdropLayer != null) 0.44f else 0.72f),
+                                Color(0xFF0F172A).copy(alpha = if (backdropLayer != null) 0.34f else 0.64f),
+                                Color(0xFF1E293B).copy(alpha = if (backdropLayer != null) 0.42f else 0.70f)
+                            )
+                        } else {
+                            listOf(
+                                Color.White.copy(alpha = if (backdropLayer != null) 0.44f else 0.72f),
+                                Color(0xFFF8FAFC).copy(alpha = if (backdropLayer != null) 0.24f else 0.56f),
+                                Color.White.copy(alpha = if (backdropLayer != null) 0.36f else 0.66f)
+                            )
+                        }
+                    )
+                )
+                .drawBehind {
+                    // Subtle chromatic glass tint wash
+                    drawRoundRect(
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                activeAccent.copy(alpha = if (isDarkMode) 0.08f else 0.05f),
+                                Color.Transparent,
+                                secondaryAccent.copy(alpha = if (isDarkMode) 0.07f else 0.04f)
+                            )
+                        ),
+                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
+                    )
+                    // Top curved specular dome gloss (signature iOS Liquid Glass highlight)
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkMode) 0.16f else 0.54f),
+                                Color.White.copy(alpha = if (isDarkMode) 0.04f else 0.14f),
+                                Color.Transparent
+                            ),
+                            startY = 0f,
+                            endY = size.height * 0.48f
+                        ),
+                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
+                    )
+                    // Subtle bottom internal caustic bounce
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = if (isDarkMode) 0.06f else 0.22f)
+                            ),
+                            startY = size.height * 0.72f,
+                            endY = size.height
+                        ),
+                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
+                    )
+                }
+                .border(
+                    width = 1.25.dp,
+                    brush = Brush.linearGradient(
+                        colors = if (isDarkMode) {
+                            listOf(
+                                Color.White.copy(alpha = 0.48f),
+                                activeAccent.copy(alpha = 0.34f),
+                                Color.White.copy(alpha = 0.10f),
+                                Color.White.copy(alpha = 0.26f)
+                            )
+                        } else {
+                            listOf(
+                                Color.White.copy(alpha = 0.95f),
+                                activeAccent.copy(alpha = 0.26f),
+                                Color.White.copy(alpha = 0.42f),
+                                Color.White.copy(alpha = 0.85f)
+                            )
+                        }
+                    ),
+                    shape = capsuleShape
+                )
+        )
+
+        content()
     }
 }
 

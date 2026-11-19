@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import com.example.R
-import com.example.ui.theme.AmiriArabicBrandFontFamily
+import com.example.ui.theme.KufiArabicBrandFontFamily
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.BiometricAuthHelper
@@ -150,8 +150,8 @@ fun BiometricLockScreen(
                 val isArabicTitle = currentLang == AppLanguage.ARABIC
                 Text(
                     text = AppStrings.get("app_title", currentLang),
-                    fontFamily = if (isArabicTitle) AmiriArabicBrandFontFamily else FontFamily.Default,
-                    fontSize = if (isArabicTitle) 30.sp else 26.sp,
+                    fontFamily = if (isArabicTitle) KufiArabicBrandFontFamily else FontFamily.Default,
+                    fontSize = if (isArabicTitle) 28.sp else 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryCyan
                 )

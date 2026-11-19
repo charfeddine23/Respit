@@ -110,6 +110,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -137,7 +138,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun RoomDatabaseScreen(
     viewModel: PersonnelViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    topBarClearance: Dp = 0.dp
 ) {
     BackHandler { onBack() }
 
@@ -202,7 +204,7 @@ fun RoomDatabaseScreen(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
         Box(modifier = Modifier.fillMaxSize().testTag("room_database_screen")) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().padding(top = topBarClearance)) {
                 Surface(
                     color = if (isDarkMode) Color(0xCC0F172A) else Color(0xDAE2E8F0),
                     tonalElevation = 0.dp,

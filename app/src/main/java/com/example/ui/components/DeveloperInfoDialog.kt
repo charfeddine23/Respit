@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.R
-import com.example.ui.theme.AmiriArabicBrandFontFamily
+import com.example.ui.theme.KufiArabicBrandFontFamily
 import com.example.ui.theme.liquidGlassInteractive
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
@@ -164,8 +164,8 @@ fun DeveloperInfoDialog(
                 Text(
                     text = AppStrings.get("app_title", currentLang),
                     style = MaterialTheme.typography.headlineSmall.copy(
-                        fontFamily = if (isArabicTitle) AmiriArabicBrandFontFamily else FontFamily.Default,
-                        fontSize = if (isArabicTitle) 28.sp else 24.sp
+                        fontFamily = if (isArabicTitle) KufiArabicBrandFontFamily else FontFamily.Default,
+                        fontSize = if (isArabicTitle) 26.sp else 24.sp
                     ),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
