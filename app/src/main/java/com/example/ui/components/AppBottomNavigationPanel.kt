@@ -320,6 +320,7 @@ fun LiquidGlassFloatingCapsule(
     activeAccent: Color,
     secondaryAccent: Color,
     isLiving: Boolean = false,
+    showBorder: Boolean = true,
     backdropLayer: GraphicsLayer? = null,
     backdropOffsetInRoot: Offset = Offset.Zero,
     content: @Composable BoxScope.() -> Unit
@@ -436,26 +437,32 @@ fun LiquidGlassFloatingCapsule(
                         cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
                     )
                 }
-                .border(
-                    width = 1.25.dp,
-                    brush = Brush.linearGradient(
-                        colors = if (isDarkMode) {
-                            listOf(
-                                Color.White.copy(alpha = 0.48f),
-                                activeAccent.copy(alpha = 0.34f),
-                                Color.White.copy(alpha = 0.10f),
-                                Color.White.copy(alpha = 0.26f)
-                            )
-                        } else {
-                            listOf(
-                                Color.White.copy(alpha = 0.95f),
-                                activeAccent.copy(alpha = 0.26f),
-                                Color.White.copy(alpha = 0.42f),
-                                Color.White.copy(alpha = 0.85f)
-                            )
-                        }
-                    ),
-                    shape = capsuleShape
+                .then(
+                    if (showBorder) {
+                        Modifier.border(
+                            width = 1.25.dp,
+                            brush = Brush.linearGradient(
+                                colors = if (isDarkMode) {
+                                    listOf(
+                                        Color.White.copy(alpha = 0.48f),
+                                        activeAccent.copy(alpha = 0.34f),
+                                        Color.White.copy(alpha = 0.10f),
+                                        Color.White.copy(alpha = 0.26f)
+                                    )
+                                } else {
+                                    listOf(
+                                        Color.White.copy(alpha = 0.95f),
+                                        activeAccent.copy(alpha = 0.26f),
+                                        Color.White.copy(alpha = 0.42f),
+                                        Color.White.copy(alpha = 0.85f)
+                                    )
+                                }
+                            ),
+                            shape = capsuleShape
+                        )
+                    } else {
+                        Modifier
+                    }
                 )
         )
 

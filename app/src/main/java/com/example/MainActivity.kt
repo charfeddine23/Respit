@@ -552,6 +552,7 @@ fun LeaveTrackerMainApp(
                             activeAccent = topActiveAccent,
                             secondaryAccent = topSecondaryAccent,
                             isLiving = isLivingLuxuryMode,
+                            showBorder = false,
                             backdropLayer = backdropLayer,
                             backdropOffsetInRoot = backdropOffsetInRoot
                         ) {
@@ -576,20 +577,12 @@ fun LeaveTrackerMainApp(
                                     } else if (effectiveTopDark) {
                                         Color.White.copy(alpha = 0.10f)
                                     } else {
-                                        Color.White.copy(alpha = 0.46f)
-                                    }
-                                    val notifBorderColor = if (isNotifOpen) {
-                                        Color(0xFFEF4444).copy(alpha = 0.55f)
-                                    } else if (effectiveTopDark) {
-                                        Color.White.copy(alpha = 0.22f)
-                                    } else {
-                                        Color.White.copy(alpha = 0.85f)
+                                        Color.White.copy(alpha = 0.42f)
                                     }
                                     Box(
                                         modifier = Modifier
                                             .clip(CircleShape)
                                             .background(notifPillTint, CircleShape)
-                                            .border(1.dp, notifBorderColor, CircleShape)
                                     ) {
                                         IconButton(
                                             onClick = openNotificationsPage,
@@ -628,18 +621,12 @@ fun LeaveTrackerMainApp(
                                     val themePillTint = if (effectiveTopDark) {
                                         Color.White.copy(alpha = 0.10f)
                                     } else {
-                                        Color.White.copy(alpha = 0.46f)
-                                    }
-                                    val themeBorderColor = if (effectiveTopDark) {
-                                        Color.White.copy(alpha = 0.22f)
-                                    } else {
-                                        Color.White.copy(alpha = 0.85f)
+                                        Color.White.copy(alpha = 0.42f)
                                     }
                                     Box(
                                         modifier = Modifier
                                             .clip(CircleShape)
                                             .background(themePillTint, CircleShape)
-                                            .border(1.dp, themeBorderColor, CircleShape)
                                     ) {
                                         IconButton(
                                             onClick = { viewModel.toggleTheme() },
