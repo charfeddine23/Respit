@@ -399,9 +399,11 @@ class ComposeUiRobolectricTest {
     composeTestRule.waitForIdle()
     composeTestRule.onNodeWithTag("add_leave_dialog").assertIsDisplayed()
 
-    // Select second person
+    // Select second person via dedicated Liquid Glass picker dialog
     composeTestRule.onNodeWithTag("add_leave_personnel_selector").performClick()
     composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("add_leave_personnel_picker_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("add_leave_personnel_search").assertIsDisplayed()
     composeTestRule.onNodeWithTag("add_leave_personnel_item_20").performClick()
     composeTestRule.waitForIdle()
 
@@ -410,9 +412,7 @@ class ComposeUiRobolectricTest {
     composeTestRule.waitForIdle()
 
     // Select 10 days quick chip and verify inclusive days == 10
-    composeTestRule.onNodeWithTag("add_leave_form_scroll", useUnmergedTree = true).performTouchInput {
-      swipeUp(startY = 550f, endY = 50f)
-    }
+    composeTestRule.onNodeWithTag("add_leave_quick_days_10").performScrollTo()
     composeTestRule.waitForIdle()
     composeTestRule.onNodeWithTag("add_leave_quick_days_10").performClick()
     composeTestRule.waitForIdle()
@@ -543,7 +543,7 @@ class ComposeUiRobolectricTest {
     val viewModel = com.example.ui.PersonnelViewModel(context)
     val newStart = getOffsetDateMillis(0)
     val newReturn = getOffsetDateMillis(7)
-    val newType = com.example.data.algerianLeaveTypes[1]
+    val newType = com.example.data.algerianLeaveTypes[2]
 
     viewModel.grantNewLeaveWithType(
       personnelId = insertedId,
@@ -569,5 +569,87 @@ class ComposeUiRobolectricTest {
     assertEquals(1, leaves.size)
     assertEquals(newType, leaves.first().leaveType)
     assertEquals(8L, leaves.first().durationDays)
+  }
+
+  @Test
+  fun `short leave is recorded directly in history without overriding displayed last leave or duty baseline`() {
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val dbFile = context.getDatabasePath("personnel_leaves_db")
+    if (dbFile.exists()) dbFile.delete()
+
+    val db = com.example.data.AppDatabase.getDatabase(
+      context,
+      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+    )
+    val annualStart = getOffsetDateMillis(-60)
+    val annualReturn = getOffsetDateMillis(-45)
+    val annualType = com.example.data.algerianLeaveTypes[2] // "عطلة سنوية"
+    val initialPerson = Personnel(
+      fullName = "عمر بن يوسف",
+      fullNameLatin = "Omar Benyoucef",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "DZ-8888",
+      startDateMillis = annualStart,
+      returnDateMillis = annualReturn,
+      isReturnedToDuty = true,
+      leaveType = annualType
+    )
+    val insertedId = runBlocking {
+      val id = db.personnelDao().insert(initialPerson)
+      db.leaveRecordDao().insert(
+        com.example.data.LeaveRecord(
+          personnelId = id,
+          personnelName = "عمر بن يوسف",
+          personnelNameLatin = "Omar Benyoucef",
+          rank = "نقيب - Capitaine",
+          registrationNumber = "DZ-8888",
+          leaveType = annualType,
+          startDateMillis = annualStart,
+          returnDateMillis = annualReturn,
+          durationDays = 16L,
+          statusText = "مكتملة"
+        )
+      )
+      id
+    }
+
+    val viewModel = com.example.ui.PersonnelViewModel(context)
+    val shortType = com.example.data.algerianLeaveTypes[1] // "إجازة قصيرة"
+    val shortStart = getOffsetDateMillis(-1)
+    val shortReturn = getOffsetDateMillis(1)
+
+    viewModel.grantNewLeaveWithType(
+      personnelId = insertedId,
+      leaveType = shortType,
+      startDateMillis = shortStart,
+      returnDateMillis = shortReturn
+    )
+
+    var personAfter: Personnel? = null
+    var leaves: List<com.example.data.LeaveRecord> = emptyList()
+    repeat(30) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      runBlocking {
+        personAfter = db.personnelDao().getPersonnelById(insertedId)
+        leaves = db.leaveRecordDao().getLeavesForPersonnel(insertedId).first()
+      }
+      if (leaves.size >= 2) return@repeat
+      Thread.sleep(50)
+    }
+
+    // Recorded directly in history (السجل)
+    assertEquals(2, leaves.size)
+    assertTrue(leaves.any { it.leaveType == shortType && it.durationDays == 3L })
+
+    // Does NOT display as the last/active leave in the main UI (الواجهة)
+    assertEquals(annualType, personAfter?.leaveType)
+    assertEquals(annualStart, personAfter?.startDateMillis)
+    assertEquals(annualReturn, personAfter?.returnDateMillis)
+    assertEquals(true, personAfter?.isReturnedToDuty)
+
+    // Duty reference still uses the prior Annual Leave (45 days), not the Short Leave
+    val dutyInfo = personAfter!!.computeDutyReferenceInfo(leaves)
+    assertEquals(annualReturn, dutyInfo.lastLeaveReturnMillis)
+    assertEquals(45L, dutyInfo.daysSinceReference)
   }
 }

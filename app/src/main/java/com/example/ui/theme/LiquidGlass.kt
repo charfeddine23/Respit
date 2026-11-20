@@ -7,6 +7,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import android.os.Build
+import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -14,17 +16,22 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogWindowProvider
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -625,4 +632,293 @@ fun Modifier.liquidGlassInteractive(
         .clip(shape)
         .background(bg)
         .border(BorderStroke(if (isLiving) 1.45.dp else 1.2.dp, borderBrush), shape)
+}
+
+/**
+ * Enables genuine Android 12+ blur-behind + softer frosted dim on Compose Dialog windows
+ * while safely no-oping on older SDKs or Robolectric test environments.
+ */
+@Composable
+fun SyncDialogLiquidGlassWindow(
+    dimAmount: Float = 0.30f,
+    blurRadiusPx: Int = 38
+) {
+    val view = LocalView.current
+    DisposableEffect(view, dimAmount, blurRadiusPx) {
+        val dialogWindow = (view.parent as? DialogWindowProvider)?.window
+        if (dialogWindow != null) {
+            runCatching {
+                dialogWindow.setDimAmount(dimAmount)
+                val isRobolectric = Build.FINGERPRINT.equals("robolectric", ignoreCase = true)
+                if (!isRobolectric && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    dialogWindow.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                    val params = dialogWindow.attributes
+                    params.blurBehindRadius = blurRadiusPx
+                    dialogWindow.attributes = params
+                }
+            }
+        }
+        onDispose { }
+    }
+}
+
+/**
+ * Full iOS 26-inspired Liquid Glass outer shell for Dialogs and Floating Sheets:
+ * translucent frosted medium + chromatic refraction wash + top curved specular dome gloss +
+ * bottom internal caustic bounce + luminous multi-stop glass rim border.
+ */
+@Composable
+fun Modifier.liquidGlassDialogShell(
+    shape: Shape = LiquidGlassDefaults.DialogShape,
+    cornerRadius: Dp = 28.dp,
+    elevation: Dp = 20.dp,
+    isDark: Boolean = false,
+    primaryAccent: Color = CyanGlow,
+    secondaryAccent: Color = RoyalBlueAccent
+): Modifier {
+    val preset = LocalThemePreset.current
+    val isLiving = LocalLivingLuxuryMode.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val accent1 = preset?.primary ?: primaryAccent
+    val accent2 = preset?.secondary ?: secondaryAccent
+
+    val shimmerPhase = if (isLiving) {
+        val transition = rememberInfiniteTransition(label = "dialogGlassShimmer")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 5200, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dialogGlassShift"
+        ).value
+    } else 0f
+
+    val borderBrush = if (isLiving) {
+        val shift = shimmerPhase * 520f
+        Brush.linearGradient(
+            colors = if (effectiveDark) {
+                listOf(
+                    Color.White.copy(alpha = 0.56f),
+                    accent1.copy(alpha = 0.72f),
+                    accent2.copy(alpha = 0.45f),
+                    Color.White.copy(alpha = 0.24f)
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.98f),
+                    accent1.copy(alpha = 0.52f),
+                    accent2.copy(alpha = 0.34f),
+                    Color.White.copy(alpha = 0.90f)
+                )
+            },
+            start = Offset(shift, 0f),
+            end = Offset(shift + 580f, 580f)
+        )
+    } else {
+        remember(effectiveDark, accent1, accent2) {
+            Brush.linearGradient(
+                colors = if (effectiveDark) {
+                    listOf(
+                        Color.White.copy(alpha = 0.44f),
+                        accent1.copy(alpha = 0.48f),
+                        Color.White.copy(alpha = 0.14f),
+                        accent2.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.26f)
+                    )
+                } else {
+                    listOf(
+                        Color.White.copy(alpha = 0.96f),
+                        accent1.copy(alpha = 0.36f),
+                        Color.White.copy(alpha = 0.52f),
+                        accent2.copy(alpha = 0.22f),
+                        Color.White.copy(alpha = 0.88f)
+                    )
+                }
+            )
+        }
+    }
+
+    return this
+        .shadow(
+            elevation = elevation,
+            shape = shape,
+            clip = false,
+            ambientColor = if (effectiveDark) Color(0xAA000000) else Color(0x380F172A),
+            spotColor = accent1.copy(alpha = if (effectiveDark) 0.42f else 0.24f)
+        )
+        .clip(shape)
+        .drawBehind {
+            val radiusPx = cornerRadius.toPx()
+            val cr = CornerRadius(radiusPx, radiusPx)
+            // 1. Frosted translucent glass medium
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = if (effectiveDark) {
+                        listOf(
+                            Color(0xFF1E293B).copy(alpha = 0.76f),
+                            Color(0xFF0F172A).copy(alpha = 0.68f),
+                            Color(0xFF1E293B).copy(alpha = 0.74f)
+                        )
+                    } else {
+                        listOf(
+                            Color.White.copy(alpha = 0.78f),
+                            Color(0xFFF1F5F9).copy(alpha = 0.66f),
+                            Color.White.copy(alpha = 0.74f)
+                        )
+                    }
+                ),
+                cornerRadius = cr
+            )
+            // 2. Subtle chromatic refraction tint wash
+            drawRoundRect(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        accent1.copy(alpha = if (effectiveDark) 0.14f else 0.08f),
+                        Color.Transparent,
+                        accent2.copy(alpha = if (effectiveDark) 0.12f else 0.07f)
+                    )
+                ),
+                cornerRadius = cr
+            )
+            // 3. Top specular dome gloss (signature Liquid Glass upper highlight)
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (effectiveDark) 0.16f else 0.58f),
+                        Color.White.copy(alpha = if (effectiveDark) 0.04f else 0.16f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = size.height * 0.28f
+                ),
+                cornerRadius = cr
+            )
+            // 4. Bottom internal caustic bounce
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.White.copy(alpha = if (effectiveDark) 0.06f else 0.24f)
+                    ),
+                    startY = size.height * 0.80f,
+                    endY = size.height
+                ),
+                cornerRadius = cr
+            )
+        }
+        .border(BorderStroke(if (isLiving) 1.6.dp else 1.4.dp, borderBrush), shape)
+}
+
+/**
+ * Inner Liquid Glass panel / card / interactive tile / pill surface with specular top highlight,
+ * caustic bottom glow, and multi-stop glass rim border.
+ */
+@Composable
+fun Modifier.liquidGlassPanel(
+    shape: Shape = LiquidGlassDefaults.SmallShape,
+    cornerRadius: Dp = 18.dp,
+    isDark: Boolean = false,
+    accent: Color = VibrantCyan,
+    secondaryAccent: Color = RoyalBlueAccent,
+    isSelected: Boolean = false,
+    softTintWhenSelected: Boolean = true,
+    borderWidth: Dp = if (isSelected) 1.4.dp else 1.05.dp
+): Modifier {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val borderBrush = remember(effectiveDark, accent, secondaryAccent, isSelected, softTintWhenSelected) {
+        when {
+            isSelected && !softTintWhenSelected -> Brush.linearGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.72f),
+                    accent.copy(alpha = 0.90f),
+                    Color.White.copy(alpha = 0.45f)
+                )
+            )
+            isSelected -> Brush.linearGradient(
+                listOf(
+                    Color.White.copy(alpha = if (effectiveDark) 0.50f else 0.94f),
+                    accent.copy(alpha = if (effectiveDark) 0.92f else 0.82f),
+                    accent.copy(alpha = if (effectiveDark) 0.62f else 0.55f)
+                )
+            )
+            effectiveDark -> Brush.linearGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.26f),
+                    accent.copy(alpha = 0.24f),
+                    Color.White.copy(alpha = 0.08f)
+                )
+            )
+            else -> Brush.linearGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.94f),
+                    Color(0xFFCBD5E1).copy(alpha = 0.48f),
+                    Color.White.copy(alpha = 0.78f)
+                )
+            )
+        }
+    }
+
+    return this
+        .clip(shape)
+        .drawBehind {
+            val radiusPx = cornerRadius.toPx()
+            val cr = CornerRadius(radiusPx, radiusPx)
+            val baseBrush = when {
+                isSelected && !softTintWhenSelected -> Brush.linearGradient(
+                    listOf(
+                        accent.copy(alpha = 0.90f),
+                        secondaryAccent.copy(alpha = 0.84f)
+                    )
+                )
+                isSelected -> Brush.verticalGradient(
+                    if (effectiveDark) {
+                        listOf(
+                            accent.copy(alpha = 0.34f),
+                            accent.copy(alpha = 0.20f)
+                        )
+                    } else {
+                        listOf(
+                            accent.copy(alpha = 0.22f),
+                            accent.copy(alpha = 0.12f)
+                        )
+                    }
+                )
+                effectiveDark -> Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF1E293B).copy(alpha = 0.56f),
+                        Color(0xFF0F172A).copy(alpha = 0.42f)
+                    )
+                )
+                else -> Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.62f),
+                        Color(0xFFF8FAFC).copy(alpha = 0.40f)
+                    )
+                )
+            }
+            drawRoundRect(brush = baseBrush, cornerRadius = cr)
+
+            // Top specular dome sheen
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(
+                            alpha = when {
+                                isSelected && !softTintWhenSelected -> 0.34f
+                                effectiveDark -> 0.13f
+                                else -> 0.52f
+                            }
+                        ),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = size.height * 0.46f
+                ),
+                cornerRadius = cr
+            )
+        }
+        .border(BorderStroke(borderWidth, borderBrush), shape)
 }

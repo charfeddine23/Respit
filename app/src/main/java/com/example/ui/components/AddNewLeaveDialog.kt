@@ -2,6 +2,8 @@ package com.example.ui.components
 
 import android.app.DatePickerDialog
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
@@ -11,27 +13,17 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,21 +41,14 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EventAvailable
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -77,11 +62,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -100,7 +84,14 @@ import com.example.data.Personnel
 import com.example.data.algerianLeaveTypes
 import com.example.data.formatLeaveType
 import com.example.data.formatRank
+import com.example.data.isShortLeaveType
+import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
+import com.example.ui.theme.LocalThemePreset
+import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.SyncDialogLiquidGlassWindow
+import com.example.ui.theme.liquidGlassDialogShell
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.SyncDialogSecureWindow
@@ -109,7 +100,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddNewLeaveDialog(
     personnelList: List<Personnel>,
@@ -153,7 +143,7 @@ fun AddNewLeaveDialog(
         personnelList.firstOrNull { it.id == selectedPersonnelId }
     }
 
-    var isPersonnelPickerExpanded by remember { mutableStateOf(false) }
+    var showPersonnelPickerDialog by remember { mutableStateOf(false) }
     var personnelSearchQuery by remember { mutableStateOf("") }
 
     var selectedLeaveType by remember {
@@ -232,31 +222,21 @@ fun AddNewLeaveDialog(
         }
     }
 
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-    val dialogContainerBg = when {
-        isNeumorphic && isDarkMode -> Color(0xFF161F30)
-        isNeumorphic -> Color(0xFFE6EEF8)
-        isDarkMode -> Color(0xF50F172A)
-        else -> Color(0xFAFFFFFF)
-    }
-    val sectionCardBg = when {
-        isNeumorphic && isDarkMode -> Color(0xFF1C273B)
-        isNeumorphic -> Color(0xFFF0F5FC)
-        isDarkMode -> Color(0xFF182338)
-        else -> Color(0xFFF8FAFC)
-    }
-    val sectionBorderColor = if (isDarkMode) primaryColor.copy(alpha = 0.24f) else primaryColor.copy(alpha = 0.16f)
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val primaryColor = preset?.primary ?: if (effectiveDark) CyanGlow else MaterialTheme.colorScheme.primary
+    val secondaryColor = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else RoyalBlueAccent
+    val glassDividerColor = if (effectiveDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.65f)
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else Color(0xFF0F172A)
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF475569)
 
     val inputColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = textPrimary,
         unfocusedTextColor = textPrimary,
-        focusedContainerColor = if (isDarkMode) Color(0x400F172A) else Color.White,
-        unfocusedContainerColor = if (isDarkMode) Color(0x280F172A) else Color.White.copy(alpha = 0.85f),
+        focusedContainerColor = if (effectiveDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.56f),
+        unfocusedContainerColor = if (effectiveDark) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.36f),
         focusedBorderColor = primaryColor,
-        unfocusedBorderColor = if (isDarkMode) Color(0x45475569) else Color(0x55CBD5E1),
+        unfocusedBorderColor = if (effectiveDark) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.78f),
         focusedLabelColor = primaryColor,
         unfocusedLabelColor = textSecondary,
         cursorColor = primaryColor
@@ -265,111 +245,132 @@ fun AddNewLeaveDialog(
     val entranceState = remember { MutableTransitionState(!animationsEnabled).apply { targetState = true } }
     val dialogLayoutDir = if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         SyncDialogSecureWindow(enabled = isNoScreenshotEnabled)
+        SyncDialogLiquidGlassWindow()
 
         CompositionLocalProvider(LocalLayoutDirection provides dialogLayoutDir) {
-            AnimatedVisibility(
-                visibleState = entranceState,
-                enter = if (animationsEnabled) {
-                    fadeIn(tween(200, easing = FastOutSlowInEasing)) + scaleIn(
-                        initialScale = 0.93f,
-                        animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMedium)
-                    )
-                } else EnterTransition.None,
-                exit = if (animationsEnabled) {
-                    fadeOut(tween(140)) + scaleOut(targetScale = 0.95f)
-                } else ExitTransition.None
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = dialogContainerBg,
-                    border = BorderStroke(
-                        1.3.dp,
-                        Brush.linearGradient(
-                            listOf(
-                                primaryColor.copy(alpha = if (isDarkMode) 0.50f else 0.38f),
-                                secondaryColor.copy(alpha = if (isDarkMode) 0.35f else 0.25f),
-                                Color.White.copy(alpha = if (isDarkMode) 0.14f else 0.90f)
-                            )
+                AnimatedVisibility(
+                    visibleState = entranceState,
+                    enter = if (animationsEnabled) {
+                        fadeIn(tween(200, easing = FastOutSlowInEasing)) + scaleIn(
+                            initialScale = 0.93f,
+                            animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMedium)
                         )
-                    ),
-                    shadowElevation = 14.dp,
+                    } else EnterTransition.None,
+                    exit = if (animationsEnabled) {
+                        fadeOut(tween(140)) + scaleOut(targetScale = 0.95f)
+                    } else ExitTransition.None
+                ) {
+                    Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color.Transparent,
+                    shadowElevation = 0.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 560.dp)
                         .heightIn(max = 680.dp)
-                        .imePadding()
+                        .liquidGlassDialogShell(
+                            shape = RoundedCornerShape(28.dp),
+                            cornerRadius = 28.dp,
+                            isDark = effectiveDark,
+                            primaryAccent = primaryColor,
+                            secondaryAccent = secondaryColor
+                        )
                         .testTag("add_leave_dialog")
                 ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            // Header
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(
-                                                primaryColor.copy(alpha = if (isDarkMode) 0.18f else 0.10f),
-                                                secondaryColor.copy(alpha = if (isDarkMode) 0.10f else 0.05f),
-                                                Color.Transparent
-                                            )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // Liquid Glass Header
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            primaryColor.copy(alpha = if (effectiveDark) 0.20f else 0.12f),
+                                            secondaryColor.copy(alpha = if (effectiveDark) 0.12f else 0.06f),
+                                            Color.Transparent
                                         )
                                     )
-                                    .padding(horizontal = 18.dp, vertical = 14.dp)
+                                )
+                                .padding(horizontal = 18.dp, vertical = 14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(44.dp)
-                                                .clip(RoundedCornerShape(14.dp))
-                                                .background(
-                                                    Brush.linearGradient(listOf(primaryColor, secondaryColor))
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.EventAvailable,
-                                                contentDescription = null,
-                                                tint = Color.White,
-                                                modifier = Modifier.size(22.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = AppStrings.get("add_leave_dialog_title", currentLang),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Black,
-                                                color = textPrimary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = AppStrings.get("add_leave_dialog_sub", currentLang),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 11.sp,
-                                                color = textSecondary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-
-                                    IconButton(
-                                        onClick = onDismiss,
+                                    Box(
                                         modifier = Modifier
-                                            .size(48.dp)
-                                            .testTag("add_leave_close_btn")
+                                            .size(44.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(14.dp),
+                                                cornerRadius = 14.dp,
+                                                isDark = effectiveDark,
+                                                accent = primaryColor,
+                                                secondaryAccent = secondaryColor,
+                                                isSelected = true,
+                                                softTintWhenSelected = false
+                                            ),
+                                        contentAlignment = Alignment.Center
                                     ) {
+                                        Icon(
+                                            imageVector = Icons.Default.EventAvailable,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = AppStrings.get("add_leave_dialog_title", currentLang),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Black,
+                                            color = textPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = AppStrings.get("add_leave_dialog_sub", currentLang),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 11.sp,
+                                            color = textSecondary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    onClick = onDismiss,
+                                    shape = CircleShape,
+                                    color = Color.Transparent,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .liquidGlassPanel(
+                                            shape = CircleShape,
+                                            cornerRadius = 24.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryColor,
+                                            secondaryAccent = secondaryColor
+                                        )
+                                        .testTag("add_leave_close_btn")
+                                ) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = AppStrings.get("close", currentLang),
@@ -378,249 +379,205 @@ fun AddNewLeaveDialog(
                                     }
                                 }
                             }
+                        }
 
-                            HorizontalDivider(color = sectionBorderColor)
+                        HorizontalDivider(color = glassDividerColor)
 
-                            if (personnelList.isEmpty()) {
-                                Column(
+                        if (personnelList.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Text(
+                                    text = AppStrings.get("no_personnel_for_leave", currentLang),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textPrimary,
+                                    textAlign = TextAlign.Center
+                                )
+                                Surface(
+                                    onClick = {
+                                        onDismiss()
+                                        onOpenAddPersonnel()
+                                    },
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color.Transparent,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                                        .height(48.dp)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(14.dp),
+                                            cornerRadius = 14.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryColor,
+                                            secondaryAccent = secondaryColor,
+                                            isSelected = true,
+                                            softTintWhenSelected = false
+                                        )
+                                        .testTag("add_leave_open_add_personnel_btn")
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PersonAdd,
-                                        contentDescription = null,
-                                        tint = primaryColor,
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                    Text(
-                                        text = AppStrings.get("no_personnel_for_leave", currentLang),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = textPrimary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Button(
-                                        onClick = {
-                                            onDismiss()
-                                            onOpenAddPersonnel()
-                                        },
-                                        shape = RoundedCornerShape(14.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(48.dp)
-                                            .testTag("add_leave_open_add_personnel_btn")
+                                    Row(
+                                        modifier = Modifier.fillMaxSize(),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Icon(
+                                            Icons.Default.PersonAdd,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(AppStrings.get("add_personnel", currentLang), fontWeight = FontWeight.Bold)
+                                        Text(
+                                            AppStrings.get("add_personnel", currentLang),
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
-                            } else {
-                                Column(
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f, fill = false)
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                                    .testTag("add_leave_form_scroll"),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                // 1. Personnel Selector Section (Liquid Glass Card)
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color.Transparent,
                                     modifier = Modifier
-                                        .weight(1f, fill = false)
-                                        .verticalScroll(rememberScrollState())
-                                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                                        .testTag("add_leave_form_scroll"),
-                                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                                        .fillMaxWidth()
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(20.dp),
+                                            cornerRadius = 20.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryColor,
+                                            secondaryAccent = secondaryColor
+                                        )
                                 ) {
-                                    // 1. Personnel Selector Section
-                                    Surface(
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = sectionCardBg,
-                                        border = BorderStroke(1.dp, sectionBorderColor),
-                                        modifier = Modifier.fillMaxWidth()
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Column(
-                                            modifier = Modifier.padding(14.dp),
-                                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                                        ) {
-                                            Text(
-                                                text = AppStrings.get("select_personnel_label", currentLang),
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = primaryColor
-                                            )
+                                        Text(
+                                            text = AppStrings.get("select_personnel_label", currentLang),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = primaryColor
+                                        )
 
-                                            Surface(
-                                                onClick = { isPersonnelPickerExpanded = !isPersonnelPickerExpanded },
-                                                shape = RoundedCornerShape(14.dp),
-                                                color = if (isDarkMode) Color(0x380F172A) else Color.White,
-                                                border = BorderStroke(
-                                                    1.2.dp,
-                                                    if (isPersonnelPickerExpanded) primaryColor else sectionBorderColor
-                                                ),
+                                        Surface(
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                showPersonnelPickerDialog = true
+                                            },
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = Color.Transparent,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .liquidGlassPanel(
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    cornerRadius = 14.dp,
+                                                    isDark = effectiveDark,
+                                                    accent = primaryColor,
+                                                    secondaryAccent = secondaryColor,
+                                                    isSelected = showPersonnelPickerDialog,
+                                                    softTintWhenSelected = true
+                                                )
+                                                .testTag("add_leave_personnel_selector")
+                                        ) {
+                                            Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .testTag("add_leave_personnel_selector")
+                                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(horizontal = 12.dp, vertical = 12.dp),
                                                     verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                    modifier = Modifier.weight(1f)
                                                 ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                                        modifier = Modifier.weight(1f)
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Person,
-                                                            contentDescription = null,
-                                                            tint = primaryColor,
-                                                            modifier = Modifier.size(20.dp)
+                                                    Icon(
+                                                        imageVector = Icons.Default.Person,
+                                                        contentDescription = null,
+                                                        tint = primaryColor,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = selectedPersonnel?.getLocalizedName(currentLang)
+                                                                ?: AppStrings.get("select_personnel_label", currentLang),
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 14.sp,
+                                                            color = textPrimary,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
-                                                        Column(modifier = Modifier.weight(1f)) {
+                                                        if (selectedPersonnel != null) {
                                                             Text(
-                                                                text = selectedPersonnel?.getLocalizedName(currentLang)
-                                                                    ?: AppStrings.get("select_personnel_label", currentLang),
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 14.sp,
-                                                                color = textPrimary,
+                                                                text = "${formatRank(selectedPersonnel.rank, currentLang)} • ${selectedPersonnel.registrationNumber}",
+                                                                fontSize = 11.5.sp,
+                                                                color = textSecondary,
                                                                 maxLines = 1,
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
-                                                            if (selectedPersonnel != null) {
-                                                                Text(
-                                                                    text = "${formatRank(selectedPersonnel.rank, currentLang)} • ${selectedPersonnel.registrationNumber}",
-                                                                    fontSize = 11.5.sp,
-                                                                    color = textSecondary,
-                                                                    maxLines = 1,
-                                                                    overflow = TextOverflow.Ellipsis
-                                                                )
-                                                            }
                                                         }
                                                     }
-                                                    Icon(
-                                                        imageVector = if (isPersonnelPickerExpanded) {
-                                                            Icons.Default.KeyboardArrowUp
-                                                        } else {
-                                                            Icons.Default.KeyboardArrowDown
-                                                        },
-                                                        contentDescription = null,
-                                                        tint = primaryColor
-                                                    )
                                                 }
-                                            }
-
-                                            AnimatedVisibility(visible = isPersonnelPickerExpanded) {
-                                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    OutlinedTextField(
-                                                        value = personnelSearchQuery,
-                                                        onValueChange = { personnelSearchQuery = it },
-                                                        placeholder = {
-                                                            Text(
-                                                                AppStrings.get("search_personnel_hint", currentLang),
-                                                                fontSize = 12.5.sp
-                                                            )
-                                                        },
-                                                        leadingIcon = {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Search,
-                                                                contentDescription = null,
-                                                                tint = primaryColor
-                                                            )
-                                                        },
-                                                        trailingIcon = {
-                                                            if (personnelSearchQuery.isNotEmpty()) {
-                                                                IconButton(onClick = { personnelSearchQuery = "" }) {
-                                                                    Icon(
-                                                                        imageVector = Icons.Default.Close,
-                                                                        contentDescription = AppStrings.get("clear_search", currentLang),
-                                                                        modifier = Modifier.size(18.dp)
-                                                                    )
-                                                                }
-                                                            }
-                                                        },
-                                                        singleLine = true,
-                                                        shape = RoundedCornerShape(12.dp),
-                                                        colors = inputColors,
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .testTag("add_leave_personnel_search")
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(34.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = CircleShape,
+                                                            cornerRadius = 17.dp,
+                                                            isDark = effectiveDark,
+                                                            accent = primaryColor,
+                                                            secondaryAccent = secondaryColor,
+                                                            isSelected = true,
+                                                            softTintWhenSelected = true
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Search,
+                                                        contentDescription = AppStrings.get("select_personnel_label", currentLang),
+                                                        tint = primaryColor,
+                                                        modifier = Modifier.size(18.dp)
                                                     )
-
-                                                    LazyColumn(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .heightIn(max = 190.dp),
-                                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                                    ) {
-                                                        items(filteredPersonnel, key = { it.id }) { person ->
-                                                            val isSelected = person.id == selectedPersonnel?.id
-                                                            Surface(
-                                                                onClick = {
-                                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                                    selectedPersonnelId = person.id
-                                                                    isPersonnelPickerExpanded = false
-                                                                    personnelSearchQuery = ""
-                                                                },
-                                                                shape = RoundedCornerShape(12.dp),
-                                                                color = when {
-                                                                    isSelected -> primaryColor.copy(alpha = if (isDarkMode) 0.25f else 0.14f)
-                                                                    isDarkMode -> Color(0x280F172A)
-                                                                    else -> Color.White
-                                                                },
-                                                                border = BorderStroke(
-                                                                    1.dp,
-                                                                    if (isSelected) primaryColor else sectionBorderColor
-                                                                ),
-                                                                modifier = Modifier
-                                                                    .fillMaxWidth()
-                                                                    .testTag("add_leave_personnel_item_${person.id}")
-                                                            ) {
-                                                                Row(
-                                                                    modifier = Modifier
-                                                                        .fillMaxWidth()
-                                                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                                                    verticalAlignment = Alignment.CenterVertically,
-                                                                    horizontalArrangement = Arrangement.SpaceBetween
-                                                                ) {
-                                                                    Column(modifier = Modifier.weight(1f)) {
-                                                                        Text(
-                                                                            text = person.getLocalizedName(currentLang),
-                                                                            fontWeight = FontWeight.Bold,
-                                                                            fontSize = 13.5.sp,
-                                                                            color = textPrimary,
-                                                                            maxLines = 1,
-                                                                            overflow = TextOverflow.Ellipsis
-                                                                        )
-                                                                        Text(
-                                                                            text = "${formatRank(person.rank, currentLang)} • ${person.registrationNumber}",
-                                                                            fontSize = 11.sp,
-                                                                            color = textSecondary,
-                                                                            maxLines = 1,
-                                                                            overflow = TextOverflow.Ellipsis
-                                                                        )
-                                                                    }
-                                                                    if (isSelected) {
-                                                                        Icon(
-                                                                            imageVector = Icons.Default.Check,
-                                                                            contentDescription = null,
-                                                                            tint = primaryColor,
-                                                                            modifier = Modifier.size(18.dp)
-                                                                        )
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                }
 
-                                    // 2. Leave Type Section
+                                    // 2. Leave Type Section (Liquid Glass Card + Glass Pills)
                                     Surface(
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = sectionCardBg,
-                                        border = BorderStroke(1.dp, sectionBorderColor),
-                                        modifier = Modifier.fillMaxWidth()
+                                        shape = RoundedCornerShape(20.dp),
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(20.dp),
+                                                cornerRadius = 20.dp,
+                                                isDark = effectiveDark,
+                                                accent = primaryColor,
+                                                secondaryAccent = secondaryColor
+                                            )
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(14.dp),
@@ -633,53 +590,119 @@ fun AddNewLeaveDialog(
                                                 color = primaryColor
                                             )
 
-                                            FlowRow(
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            Column(
                                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                                 modifier = Modifier.fillMaxWidth()
                                             ) {
-                                                algerianLeaveTypes.forEachIndexed { index, type ->
-                                                    val isSelected = selectedLeaveType == type
-                                                    FilterChip(
-                                                        selected = isSelected,
-                                                        onClick = {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                            selectedLeaveType = type
-                                                        },
-                                                        label = {
-                                                            Text(
-                                                                text = formatLeaveType(type, currentLang),
-                                                                fontSize = 12.sp,
-                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                            )
-                                                        },
-                                                        leadingIcon = if (isSelected) {
-                                                            {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Check,
-                                                                    contentDescription = null,
-                                                                    modifier = Modifier.size(16.dp)
-                                                                )
+                                                algerianLeaveTypes.withIndex().toList().chunked(2).forEach { pair ->
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        pair.forEach { (index, type) ->
+                                                            val isSelected = selectedLeaveType == type
+                                                            Surface(
+                                                                onClick = {
+                                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                    selectedLeaveType = type
+                                                                },
+                                                                shape = RoundedCornerShape(14.dp),
+                                                                color = Color.Transparent,
+                                                                modifier = Modifier
+                                                                    .weight(1f)
+                                                                    .defaultMinSize(minHeight = 44.dp)
+                                                                    .liquidGlassPanel(
+                                                                        shape = RoundedCornerShape(14.dp),
+                                                                        cornerRadius = 14.dp,
+                                                                        isDark = effectiveDark,
+                                                                        accent = primaryColor,
+                                                                        secondaryAccent = secondaryColor,
+                                                                        isSelected = isSelected,
+                                                                        softTintWhenSelected = true
+                                                                    )
+                                                                    .testTag("add_leave_type_option_$index")
+                                                            ) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    horizontalArrangement = Arrangement.Center,
+                                                                    modifier = Modifier
+                                                                        .fillMaxWidth()
+                                                                        .padding(horizontal = 10.dp, vertical = 10.dp)
+                                                                ) {
+                                                                    if (isSelected) {
+                                                                        Icon(
+                                                                            imageVector = Icons.Default.Check,
+                                                                            contentDescription = null,
+                                                                            tint = primaryColor,
+                                                                            modifier = Modifier.size(15.dp)
+                                                                        )
+                                                                        Spacer(modifier = Modifier.width(5.dp))
+                                                                    }
+                                                                    Text(
+                                                                        text = formatLeaveType(type, currentLang),
+                                                                        fontSize = 12.sp,
+                                                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                                        color = if (isSelected) primaryColor else textPrimary,
+                                                                        maxLines = 1,
+                                                                        overflow = TextOverflow.Ellipsis
+                                                                    )
+                                                                }
                                                             }
-                                                        } else null,
-                                                        colors = FilterChipDefaults.filterChipColors(
-                                                            selectedContainerColor = primaryColor.copy(alpha = if (isDarkMode) 0.28f else 0.16f),
-                                                            selectedLabelColor = primaryColor,
-                                                            selectedLeadingIconColor = primaryColor
-                                                        ),
-                                                        modifier = Modifier.testTag("add_leave_type_option_$index")
+                                                        }
+                                                        if (pair.size == 1) {
+                                                            Spacer(modifier = Modifier.weight(1f))
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            AnimatedVisibility(
+                                                visible = isShortLeaveType(selectedLeaveType),
+                                                enter = if (animationsEnabled) fadeIn(tween(150)) else EnterTransition.None,
+                                                exit = if (animationsEnabled) fadeOut(tween(120)) else ExitTransition.None
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    color = Color.Transparent,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(14.dp),
+                                                            cornerRadius = 14.dp,
+                                                            isDark = effectiveDark,
+                                                            accent = primaryColor,
+                                                            secondaryAccent = secondaryColor,
+                                                            isSelected = true,
+                                                            softTintWhenSelected = true
+                                                        )
+                                                        .testTag("add_leave_short_hint")
+                                                ) {
+                                                    Text(
+                                                        text = AppStrings.get("short_leave_history_only_hint", currentLang),
+                                                        fontSize = 11.5.sp,
+                                                        lineHeight = 16.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = textPrimary,
+                                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
                                                     )
                                                 }
                                             }
                                         }
                                     }
 
-                                    // 3. Departure Date, Return Date & Number of Days
+                                    // 3. Departure Date, Return Date & Number of Days (Liquid Glass Card)
                                     Surface(
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = sectionCardBg,
-                                        border = BorderStroke(1.dp, sectionBorderColor),
-                                        modifier = Modifier.fillMaxWidth()
+                                        shape = RoundedCornerShape(20.dp),
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(20.dp),
+                                                cornerRadius = 20.dp,
+                                                isDark = effectiveDark,
+                                                accent = primaryColor,
+                                                secondaryAccent = secondaryColor
+                                            )
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(14.dp),
@@ -699,11 +722,17 @@ fun AddNewLeaveDialog(
                                                 Surface(
                                                     onClick = { startDatePickerDialog.show() },
                                                     shape = RoundedCornerShape(14.dp),
-                                                    color = if (isDarkMode) Color(0x380F172A) else Color.White,
-                                                    border = BorderStroke(1.dp, sectionBorderColor),
+                                                    color = Color.Transparent,
                                                     modifier = Modifier
                                                         .weight(1f)
                                                         .heightIn(min = 56.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(14.dp),
+                                                            cornerRadius = 14.dp,
+                                                            isDark = effectiveDark,
+                                                            accent = primaryColor,
+                                                            secondaryAccent = secondaryColor
+                                                        )
                                                         .testTag("add_leave_start_date_btn")
                                                 ) {
                                                     Column(
@@ -741,11 +770,17 @@ fun AddNewLeaveDialog(
                                                 Surface(
                                                     onClick = { returnDatePickerDialog.show() },
                                                     shape = RoundedCornerShape(14.dp),
-                                                    color = if (isDarkMode) Color(0x380F172A) else Color.White,
-                                                    border = BorderStroke(1.dp, sectionBorderColor),
+                                                    color = Color.Transparent,
                                                     modifier = Modifier
                                                         .weight(1f)
                                                         .heightIn(min = 56.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(14.dp),
+                                                            cornerRadius = 14.dp,
+                                                            isDark = effectiveDark,
+                                                            accent = EmeraldSuccess,
+                                                            secondaryAccent = primaryColor
+                                                        )
                                                         .testTag("add_leave_return_date_btn")
                                                 ) {
                                                     Column(
@@ -787,23 +822,32 @@ fun AddNewLeaveDialog(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                IconButton(
+                                                Surface(
                                                     onClick = {
                                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                         val current = currentInclusiveDays.toInt()
                                                         if (current > 1) applyDaysCount(current - 1)
                                                     },
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    color = Color.Transparent,
                                                     modifier = Modifier
                                                         .size(48.dp)
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(primaryColor.copy(alpha = 0.12f))
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(14.dp),
+                                                            cornerRadius = 14.dp,
+                                                            isDark = effectiveDark,
+                                                            accent = primaryColor,
+                                                            secondaryAccent = secondaryColor
+                                                        )
                                                         .testTag("add_leave_days_minus")
                                                 ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Remove,
-                                                        contentDescription = null,
-                                                        tint = primaryColor
-                                                    )
+                                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Remove,
+                                                            contentDescription = null,
+                                                            tint = primaryColor
+                                                        )
+                                                    }
                                                 }
 
                                                 OutlinedTextField(
@@ -823,11 +867,12 @@ fun AddNewLeaveDialog(
                                                             overflow = TextOverflow.Ellipsis
                                                         )
                                                     },
-                                                    suffix = {
+                                                    trailingIcon = {
                                                         Text(
                                                             text = AppStrings.get("days", currentLang),
-                                                            fontSize = 12.sp,
-                                                            color = textSecondary
+                                                            fontSize = 11.5.sp,
+                                                            color = textSecondary,
+                                                            modifier = Modifier.padding(horizontal = 8.dp)
                                                         )
                                                     },
                                                     singleLine = true,
@@ -839,26 +884,35 @@ fun AddNewLeaveDialog(
                                                         .testTag("add_leave_days_input")
                                                 )
 
-                                                IconButton(
+                                                Surface(
                                                     onClick = {
                                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                         applyDaysCount(currentInclusiveDays.toInt() + 1)
                                                     },
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    color = Color.Transparent,
                                                     modifier = Modifier
                                                         .size(48.dp)
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(primaryColor.copy(alpha = 0.12f))
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(14.dp),
+                                                            cornerRadius = 14.dp,
+                                                            isDark = effectiveDark,
+                                                            accent = primaryColor,
+                                                            secondaryAccent = secondaryColor
+                                                        )
                                                         .testTag("add_leave_days_plus")
                                                 ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Add,
-                                                        contentDescription = null,
-                                                        tint = primaryColor
-                                                    )
+                                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Add,
+                                                            contentDescription = null,
+                                                            tint = primaryColor
+                                                        )
+                                                    }
                                                 }
                                             }
 
-                                            // Quick duration chips
+                                            // Quick duration Liquid Glass pills
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -870,18 +924,26 @@ fun AddNewLeaveDialog(
                                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                             applyDaysCount(quickDays)
                                                         },
-                                                        shape = RoundedCornerShape(10.dp),
-                                                        color = if (isMatch) primaryColor else primaryColor.copy(alpha = 0.09f),
-                                                        border = BorderStroke(
-                                                            1.dp,
-                                                            if (isMatch) primaryColor else primaryColor.copy(alpha = 0.22f)
-                                                        ),
+                                                        shape = RoundedCornerShape(50.dp),
+                                                        color = Color.Transparent,
                                                         modifier = Modifier
                                                             .weight(1f)
-                                                            .heightIn(min = 40.dp)
+                                                            .heightIn(min = 48.dp)
+                                                            .liquidGlassPanel(
+                                                                shape = RoundedCornerShape(50.dp),
+                                                                cornerRadius = 50.dp,
+                                                                isDark = effectiveDark,
+                                                                accent = primaryColor,
+                                                                secondaryAccent = secondaryColor,
+                                                                isSelected = isMatch,
+                                                                softTintWhenSelected = false
+                                                            )
                                                             .testTag("add_leave_quick_days_$quickDays")
                                                     ) {
-                                                        Box(contentAlignment = Alignment.Center) {
+                                                        Box(
+                                                            contentAlignment = Alignment.Center,
+                                                            modifier = Modifier.fillMaxSize()
+                                                        ) {
                                                             Text(
                                                                 text = "$quickDays",
                                                                 fontSize = 12.5.sp,
@@ -896,35 +958,45 @@ fun AddNewLeaveDialog(
                                     }
                                 }
 
-                                HorizontalDivider(color = sectionBorderColor)
+                                HorizontalDivider(color = glassDividerColor)
 
-                                // Action Footer
+                                // Action Footer (Pinned Liquid Glass Buttons)
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp, vertical = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    OutlinedButton(
+                                    Surface(
                                         onClick = onDismiss,
-                                        shape = RoundedCornerShape(14.dp),
-                                        contentPadding = PaddingValues(horizontal = 14.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color.Transparent,
                                         modifier = Modifier
                                             .weight(0.85f)
                                             .height(48.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(16.dp),
+                                                cornerRadius = 16.dp,
+                                                isDark = effectiveDark,
+                                                accent = primaryColor,
+                                                secondaryAccent = secondaryColor
+                                            )
                                             .testTag("cancel_add_leave_button")
                                     ) {
-                                        Text(
-                                            text = AppStrings.get("cancel", currentLang),
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Text(
+                                                text = AppStrings.get("cancel", currentLang),
+                                                fontWeight = FontWeight.Bold,
+                                                color = textSecondary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
 
-                                    Button(
+                                    Surface(
                                         onClick = {
-                                            val target = selectedPersonnel ?: return@Button
+                                            val target = selectedPersonnel ?: return@Surface
                                             val effectiveDays = daysInputText.toIntOrNull()?.coerceIn(1, 365)
                                                 ?: currentInclusiveDays.toInt().coerceAtLeast(1)
                                             val finalReturn = getOffsetMillis(startDateMillis, effectiveDays - 1)
@@ -937,33 +1009,371 @@ fun AddNewLeaveDialog(
                                             )
                                         },
                                         enabled = selectedPersonnel != null,
-                                        shape = RoundedCornerShape(14.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = EmeraldSuccess,
-                                            contentColor = Color.White
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color.Transparent,
                                         modifier = Modifier
                                             .weight(1.35f)
                                             .height(48.dp)
+                                            .shadow(
+                                                elevation = 8.dp,
+                                                shape = RoundedCornerShape(16.dp),
+                                                ambientColor = EmeraldSuccess.copy(alpha = 0.35f),
+                                                spotColor = EmeraldSuccess.copy(alpha = 0.35f)
+                                            )
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(16.dp),
+                                                cornerRadius = 16.dp,
+                                                isDark = effectiveDark,
+                                                accent = EmeraldSuccess,
+                                                secondaryAccent = Color(0xFF059669),
+                                                isSelected = true,
+                                                softTintWhenSelected = false
+                                            )
                                             .testTag("confirm_add_leave_button")
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = AppStrings.get("confirm", currentLang),
-                                            fontWeight = FontWeight.ExtraBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(horizontal = 16.dp),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = AppStrings.get("confirm", currentLang),
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                         }
                     }
+                }
+            }
+            }
+        }
+    }
+
+    if (showPersonnelPickerDialog) {
+        Dialog(
+            onDismissRequest = { showPersonnelPickerDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            SyncDialogSecureWindow(enabled = isNoScreenshotEnabled)
+            SyncDialogLiquidGlassWindow()
+
+            CompositionLocalProvider(LocalLayoutDirection provides dialogLayoutDir) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color.Transparent,
+                    shadowElevation = 0.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 520.dp)
+                        .heightIn(max = 560.dp)
+                        .liquidGlassDialogShell(
+                            shape = RoundedCornerShape(28.dp),
+                            cornerRadius = 28.dp,
+                            isDark = effectiveDark,
+                            primaryAccent = primaryColor,
+                            secondaryAccent = secondaryColor
+                        )
+                        .testTag("add_leave_personnel_picker_dialog")
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // Liquid Glass Picker Header
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            primaryColor.copy(alpha = if (effectiveDark) 0.22f else 0.12f),
+                                            secondaryColor.copy(alpha = if (effectiveDark) 0.12f else 0.06f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                                .padding(horizontal = 18.dp, vertical = 14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(13.dp),
+                                                cornerRadius = 13.dp,
+                                                isDark = effectiveDark,
+                                                accent = primaryColor,
+                                                secondaryAccent = secondaryColor,
+                                                isSelected = true,
+                                                softTintWhenSelected = false
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    Text(
+                                        text = AppStrings.get("select_personnel_label", currentLang),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
+                                    Box(
+                                        modifier = Modifier.liquidGlassPanel(
+                                            shape = RoundedCornerShape(50.dp),
+                                            cornerRadius = 50.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryColor,
+                                            secondaryAccent = secondaryColor,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "${filteredPersonnel.size}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = primaryColor,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    onClick = { showPersonnelPickerDialog = false },
+                                    shape = CircleShape,
+                                    color = Color.Transparent,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .liquidGlassPanel(
+                                            shape = CircleShape,
+                                            cornerRadius = 24.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryColor,
+                                            secondaryAccent = secondaryColor
+                                        )
+                                        .testTag("add_leave_personnel_picker_close_btn")
+                                ) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = AppStrings.get("close", currentLang),
+                                            tint = textSecondary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = glassDividerColor)
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Liquid Glass Search Bar
+                            OutlinedTextField(
+                                value = personnelSearchQuery,
+                                onValueChange = { personnelSearchQuery = it },
+                                placeholder = {
+                                    Text(
+                                        AppStrings.get("search_personnel_hint", currentLang),
+                                        fontSize = 12.5.sp,
+                                        color = textSecondary
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = primaryColor
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (personnelSearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { personnelSearchQuery = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = AppStrings.get("clear_search", currentLang),
+                                                tint = textSecondary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(16.dp),
+                                colors = inputColors,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("add_leave_personnel_search")
+                            )
+
+                            // Scrollable Liquid Glass Personnel List
+                            if (filteredPersonnel.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(180.dp)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(18.dp),
+                                            cornerRadius = 18.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryColor,
+                                            secondaryAccent = secondaryColor
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = null,
+                                            tint = primaryColor.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                        Text(
+                                            text = AppStrings.get("no_results", currentLang),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = textSecondary,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 120.dp, max = 360.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(filteredPersonnel, key = { it.id }) { person ->
+                                        val isSelected = person.id == selectedPersonnel?.id
+                                        Surface(
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                selectedPersonnelId = person.id
+                                                showPersonnelPickerDialog = false
+                                                personnelSearchQuery = ""
+                                            },
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = Color.Transparent,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .liquidGlassPanel(
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    cornerRadius = 16.dp,
+                                                    isDark = effectiveDark,
+                                                    accent = primaryColor,
+                                                    secondaryAccent = secondaryColor,
+                                                    isSelected = isSelected,
+                                                    softTintWhenSelected = true
+                                                )
+                                                .testTag("add_leave_personnel_item_${person.id}")
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 12.dp, vertical = 11.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = CircleShape,
+                                                            cornerRadius = 18.dp,
+                                                            isDark = effectiveDark,
+                                                            accent = primaryColor,
+                                                            secondaryAccent = secondaryColor,
+                                                            isSelected = isSelected,
+                                                            softTintWhenSelected = !isSelected
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Person,
+                                                        contentDescription = null,
+                                                        tint = if (isSelected) Color.White else primaryColor,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = person.getLocalizedName(currentLang),
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.5.sp,
+                                                        color = textPrimary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Text(
+                                                        text = "${formatRank(person.rank, currentLang)} • ${person.registrationNumber}",
+                                                        fontSize = 11.sp,
+                                                        color = textSecondary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = primaryColor,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 }
             }
         }

@@ -250,3 +250,11 @@ fun formatLeaveType(rawType: String?, lang: AppLanguage): String {
         }
     }
 }
+
+fun isShortLeaveType(rawType: String?): Boolean {
+    val t = rawType?.trim() ?: return false
+    return t == "إجازة قصيرة" ||
+        t.equals("Permission courte", ignoreCase = true) ||
+        t.equals("Short Leave", ignoreCase = true) ||
+        t.equals("Turagt tawezzlant", ignoreCase = true)
+}

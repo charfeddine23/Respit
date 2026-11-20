@@ -1978,7 +1978,14 @@ fun LeaveTrackerMainApp(
                 showAddLeaveDialog = false
                 Toast.makeText(
                     context,
-                    AppStrings.get("leave_added_success", currentLang),
+                    AppStrings.get(
+                        if (com.example.data.isShortLeaveType(leaveType)) {
+                            "short_leave_recorded_success"
+                        } else {
+                            "leave_added_success"
+                        },
+                        currentLang
+                    ),
                     Toast.LENGTH_SHORT
                 ).show()
             },

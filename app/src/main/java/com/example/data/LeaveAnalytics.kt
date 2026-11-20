@@ -218,8 +218,13 @@ object LeaveAnalyticsCalculator {
             val latest = personAllLeaves.maxWithOrNull(
                 compareBy<LeaveRecord> { it.returnDateMillis }.thenBy { it.createdAtMillis }
             ) ?: return@forEach
+            val latestNonShort = personAllLeaves
+                .filterNot { isShortLeaveType(it.leaveType) }
+                .maxWithOrNull(
+                    compareBy<LeaveRecord> { it.returnDateMillis }.thenBy { it.createdAtMillis }
+                )
             val personYearLeaves = personAllLeaves.filter { extractYear(it.startDateMillis) == selectedYear }
-            val refStart = Personnel.toStartOfDay(latest.returnDateMillis)
+            val refStart = Personnel.toStartOfDay((latestNonShort ?: latest).returnDateMillis)
             val daysSince = Personnel.signedDaysBetween(refStart, todayStart).coerceAtLeast(0L)
             val typeCounts = personYearLeaves.groupingBy { it.leaveType.ifBlank { "إجازة" } }.eachCount()
 

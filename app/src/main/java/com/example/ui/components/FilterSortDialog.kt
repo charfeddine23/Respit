@@ -3,7 +3,6 @@ package com.example.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -13,7 +12,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,10 +19,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -54,13 +52,9 @@ import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -95,8 +89,10 @@ import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
 import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.SlateTextPrimary
-import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.SyncDialogLiquidGlassWindow
 import com.example.ui.theme.VibrantCyan
+import com.example.ui.theme.liquidGlassDialogShell
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.SyncDialogSecureWindow
@@ -133,27 +129,15 @@ fun FilterSortDialog(
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
-    val effectiveNeumorphic = isNeumorphic && (preset?.isLiquidGlass != true)
     val haptic = LocalHapticFeedback.current
 
     val primaryColor = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
     val secondaryColor = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else RoyalBlueAccent
 
-    val dialogBg = when {
-        preset != null -> preset.surfacePrimary.copy(alpha = if (preset.isLiquidGlass) 0.94f else 0.98f)
-        effectiveNeumorphic && effectiveDark -> Color(0xFF161F30)
-        effectiveNeumorphic -> Color(0xFFE6EEF8)
-        effectiveDark -> Color(0xF50F172A)
-        else -> Color(0xFAFFFFFF)
-    }
-    val sectionBg = when {
-        preset != null -> preset.surfaceSecondary.copy(alpha = if (effectiveDark) 0.55f else 0.72f)
-        effectiveDark -> Color(0x661E293B)
-        else -> Color(0xFFF8FAFC)
-    }
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
-    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
-    val dividerColor = if (effectiveDark) Color(0x2E475569) else Color(0x30CBD5E1)
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+    val glassDividerColor = if (effectiveDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.62f)
+    val innerDividerColor = if (effectiveDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.45f)
 
     val activeFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
         (if (selectedRank != "ALL") 1 else 0) +
@@ -165,6 +149,8 @@ fun FilterSortDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         SyncDialogSecureWindow(enabled = isNoScreenshotEnabled)
+        SyncDialogLiquidGlassWindow()
+
         CompositionLocalProvider(
             LocalLayoutDirection provides if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
         ) {
@@ -182,34 +168,23 @@ fun FilterSortDialog(
             ) {
                 Surface(
                     shape = RoundedCornerShape(28.dp),
-                    color = dialogBg,
-                    border = BorderStroke(
-                        1.2.dp,
-                        Brush.linearGradient(
-                            if (effectiveDark) {
-                                listOf(
-                                    Color.White.copy(alpha = 0.28f),
-                                    primaryColor.copy(alpha = 0.55f),
-                                    secondaryColor.copy(alpha = 0.30f)
-                                )
-                            } else {
-                                listOf(
-                                    Color.White.copy(alpha = 0.96f),
-                                    primaryColor.copy(alpha = 0.45f),
-                                    Color(0x55CBD5E1)
-                                )
-                            }
-                        )
-                    ),
-                    shadowElevation = 16.dp,
+                    color = Color.Transparent,
+                    shadowElevation = 0.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 560.dp)
                         .heightIn(max = 680.dp)
+                        .liquidGlassDialogShell(
+                            shape = RoundedCornerShape(28.dp),
+                            cornerRadius = 28.dp,
+                            isDark = effectiveDark,
+                            primaryAccent = primaryColor,
+                            secondaryAccent = secondaryColor
+                        )
                         .testTag("filter_sort_dialog")
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        // 1) Sticky Gradient Header
+                        // 1) Liquid Glass Header
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -217,7 +192,8 @@ fun FilterSortDialog(
                                     Brush.horizontalGradient(
                                         listOf(
                                             primaryColor.copy(alpha = if (effectiveDark) 0.22f else 0.12f),
-                                            secondaryColor.copy(alpha = if (effectiveDark) 0.14f else 0.06f)
+                                            secondaryColor.copy(alpha = if (effectiveDark) 0.14f else 0.06f),
+                                            Color.Transparent
                                         )
                                     )
                                 )
@@ -235,10 +211,15 @@ fun FilterSortDialog(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(
-                                                Brush.linearGradient(listOf(primaryColor, secondaryColor))
+                                            .size(44.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(14.dp),
+                                                cornerRadius = 14.dp,
+                                                isDark = effectiveDark,
+                                                accent = primaryColor,
+                                                secondaryAccent = secondaryColor,
+                                                isSelected = true,
+                                                softTintWhenSelected = false
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -264,9 +245,16 @@ fun FilterSortDialog(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             if (activeFilterCount > 0) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(50.dp),
-                                                    color = primaryColor
+                                                Box(
+                                                    modifier = Modifier.liquidGlassPanel(
+                                                        shape = RoundedCornerShape(50.dp),
+                                                        cornerRadius = 50.dp,
+                                                        isDark = effectiveDark,
+                                                        accent = primaryColor,
+                                                        secondaryAccent = secondaryColor,
+                                                        isSelected = true,
+                                                        softTintWhenSelected = false
+                                                    )
                                                 ) {
                                                     Text(
                                                         text = "$activeFilterCount",
@@ -288,26 +276,36 @@ fun FilterSortDialog(
                                     }
                                 }
 
-                                IconButton(
+                                Surface(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onDismiss()
                                     },
+                                    shape = CircleShape,
+                                    color = Color.Transparent,
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .clip(CircleShape)
+                                        .liquidGlassPanel(
+                                            shape = CircleShape,
+                                            cornerRadius = 24.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryColor,
+                                            secondaryAccent = secondaryColor
+                                        )
                                         .testTag("filter_sort_close_button")
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = AppStrings.get("close", currentLang),
-                                        tint = textSecondary
-                                    )
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = AppStrings.get("close", currentLang),
+                                            tint = textSecondary
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        HorizontalDivider(color = dividerColor)
+                        HorizontalDivider(color = glassDividerColor)
 
                         // 2) Scrollable Structured Sections
                         Column(
@@ -372,6 +370,7 @@ fun FilterSortDialog(
                                     icon = Icons.Default.Shield,
                                     title = AppStrings.get("status_col_header", currentLang),
                                     accent = primaryColor,
+                                    isDark = effectiveDark,
                                     textPrimary = textPrimary
                                 )
 
@@ -388,7 +387,6 @@ fun FilterSortDialog(
                                                 isDark = effectiveDark,
                                                 textPrimary = textPrimary,
                                                 textSecondary = textSecondary,
-                                                surfaceBg = sectionBg,
                                                 animationsEnabled = animationsEnabled,
                                                 modifier = Modifier
                                                     .weight(1f)
@@ -406,20 +404,28 @@ fun FilterSortDialog(
                                 }
                             }
 
-                            // SECTION B: Sort Order (Clean Interactive Radio Rows)
+                            // SECTION B: Sort Order (Liquid Glass Panel + Interactive Rows)
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 SectionHeaderRow(
                                     icon = Icons.Default.Sort,
                                     title = AppStrings.get("sort", currentLang),
                                     accent = secondaryColor,
+                                    isDark = effectiveDark,
                                     textPrimary = textPrimary
                                 )
 
                                 Surface(
-                                    shape = RoundedCornerShape(18.dp),
-                                    color = sectionBg,
-                                    border = BorderStroke(1.dp, dividerColor),
-                                    modifier = Modifier.fillMaxWidth()
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color.Transparent,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(20.dp),
+                                            cornerRadius = 20.dp,
+                                            isDark = effectiveDark,
+                                            accent = secondaryColor,
+                                            secondaryAccent = primaryColor
+                                        )
                                 ) {
                                     Column(modifier = Modifier.fillMaxWidth()) {
                                         SortOption.entries.forEachIndexed { index, option ->
@@ -437,10 +443,10 @@ fun FilterSortDialog(
                                                 icon = icon,
                                                 isSelected = isSelected,
                                                 accent = primaryColor,
+                                                secondaryAccent = secondaryColor,
                                                 isDark = effectiveDark,
                                                 textPrimary = textPrimary,
                                                 textSecondary = textSecondary,
-                                                animationsEnabled = animationsEnabled,
                                                 modifier = Modifier.testTag("filter_sort_${option.name}"),
                                                 onClick = {
                                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -450,7 +456,7 @@ fun FilterSortDialog(
 
                                             if (index < SortOption.entries.lastIndex) {
                                                 HorizontalDivider(
-                                                    color = dividerColor,
+                                                    color = innerDividerColor,
                                                     modifier = Modifier.padding(horizontal = 14.dp)
                                                 )
                                             }
@@ -459,7 +465,7 @@ fun FilterSortDialog(
                                 }
                             }
 
-                            // SECTION C: Military Rank Filter (Sleek Horizontal Capsule Strip)
+                            // SECTION C: Military Rank Filter (Sleek Liquid Glass Capsule Strip)
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 val selectedRankLabel = if (selectedRank == "ALL") {
                                     AppStrings.get("all_ranks", currentLang)
@@ -476,13 +482,21 @@ fun FilterSortDialog(
                                         icon = Icons.Default.MilitaryTech,
                                         title = AppStrings.get("all_ranks", currentLang),
                                         accent = AmberWarning,
+                                        isDark = effectiveDark,
                                         textPrimary = textPrimary
                                     )
 
                                     if (selectedRank != "ALL") {
-                                        Surface(
-                                            shape = RoundedCornerShape(50.dp),
-                                            color = primaryColor.copy(alpha = if (effectiveDark) 0.20f else 0.12f)
+                                        Box(
+                                            modifier = Modifier.liquidGlassPanel(
+                                                shape = RoundedCornerShape(50.dp),
+                                                cornerRadius = 50.dp,
+                                                isDark = effectiveDark,
+                                                accent = primaryColor,
+                                                secondaryAccent = secondaryColor,
+                                                isSelected = true,
+                                                softTintWhenSelected = true
+                                            )
                                         ) {
                                             Text(
                                                 text = selectedRankLabel,
@@ -511,31 +525,24 @@ fun FilterSortDialog(
                                 ) {
                                     rankOptions.forEach { (code, label) ->
                                         val isSelected = selectedRank == code
-                                        val pillBg by animateColorAsState(
-                                            targetValue = when {
-                                                isSelected -> primaryColor
-                                                effectiveDark -> Color(0x551E293B)
-                                                else -> Color(0xFFFFFFFF)
-                                            },
-                                            animationSpec = if (animationsEnabled) {
-                                                spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 420f)
-                                            } else tween(0),
-                                            label = "rankPillBg"
-                                        )
-
                                         Surface(
                                             onClick = {
                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 onSelectRank(code)
                                             },
                                             shape = RoundedCornerShape(50.dp),
-                                            color = pillBg,
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (isSelected) primaryColor else dividerColor
-                                            ),
+                                            color = Color.Transparent,
                                             modifier = Modifier
                                                 .defaultMinSize(minHeight = 48.dp)
+                                                .liquidGlassPanel(
+                                                    shape = RoundedCornerShape(50.dp),
+                                                    cornerRadius = 50.dp,
+                                                    isDark = effectiveDark,
+                                                    accent = primaryColor,
+                                                    secondaryAccent = secondaryColor,
+                                                    isSelected = isSelected,
+                                                    softTintWhenSelected = false
+                                                )
                                                 .testTag("filter_rank_$code")
                                         ) {
                                             Box(
@@ -556,9 +563,9 @@ fun FilterSortDialog(
                             }
                         }
 
-                        HorizontalDivider(color = dividerColor)
+                        HorizontalDivider(color = glassDividerColor)
 
-                        // 3) Sticky Action Footer (Reset + Gradient Apply)
+                        // 3) Sticky Liquid Glass Action Footer (Reset + Apply)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -566,77 +573,100 @@ fun FilterSortDialog(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            OutlinedButton(
+                            Surface(
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onResetFilters()
                                 },
                                 shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(1.1.dp, dividerColor),
-                                contentPadding = PaddingValues(horizontal = 14.dp),
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(16.dp),
+                                        cornerRadius = 16.dp,
+                                        isDark = effectiveDark,
+                                        accent = primaryColor,
+                                        secondaryAccent = secondaryColor
+                                    )
                                     .testTag("filter_sort_reset_button")
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = null,
-                                    tint = textSecondary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = AppStrings.get("reset_filters", currentLang),
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textSecondary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 14.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = textSecondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("reset_filters", currentLang),
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
 
-                            Button(
+                            Surface(
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onDismiss()
                                 },
                                 shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.Transparent,
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(0.dp),
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .weight(1.25f)
                                     .height(48.dp)
                                     .shadow(
-                                        elevation = 6.dp,
+                                        elevation = 8.dp,
                                         shape = RoundedCornerShape(16.dp),
                                         ambientColor = primaryColor.copy(alpha = 0.35f),
                                         spotColor = secondaryColor.copy(alpha = 0.35f)
                                     )
-                                    .background(
-                                        brush = Brush.horizontalGradient(listOf(primaryColor, secondaryColor)),
-                                        shape = RoundedCornerShape(16.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(16.dp),
+                                        cornerRadius = 16.dp,
+                                        isDark = effectiveDark,
+                                        accent = primaryColor,
+                                        secondaryAccent = secondaryColor,
+                                        isSelected = true,
+                                        softTintWhenSelected = false
                                     )
                                     .testTag("filter_sort_apply_button")
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = AppStrings.get("apply", currentLang),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 14.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("apply", currentLang),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
@@ -651,6 +681,7 @@ private fun SectionHeaderRow(
     icon: ImageVector,
     title: String,
     accent: Color,
+    isDark: Boolean,
     textPrimary: Color
 ) {
     Row(
@@ -659,9 +690,16 @@ private fun SectionHeaderRow(
     ) {
         Box(
             modifier = Modifier
-                .size(26.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(accent.copy(alpha = 0.14f)),
+                .size(28.dp)
+                .liquidGlassPanel(
+                    shape = RoundedCornerShape(9.dp),
+                    cornerRadius = 9.dp,
+                    isDark = isDark,
+                    accent = accent,
+                    secondaryAccent = accent,
+                    isSelected = true,
+                    softTintWhenSelected = true
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -687,22 +725,10 @@ private fun StatusFilterTile(
     isDark: Boolean,
     textPrimary: Color,
     textSecondary: Color,
-    surfaceBg: Color,
     animationsEnabled: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val bgColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            item.accent.copy(alpha = if (isDark) 0.24f else 0.14f)
-        } else {
-            surfaceBg
-        },
-        animationSpec = if (animationsEnabled) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 400f)
-        } else tween(0),
-        label = "statusTileBg"
-    )
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.015f else 1f,
         animationSpec = if (animationsEnabled) {
@@ -714,17 +740,22 @@ private fun StatusFilterTile(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = bgColor,
-        border = BorderStroke(
-            width = if (isSelected) 1.5.dp else 1.dp,
-            color = if (isSelected) item.accent else (if (isDark) Color(0x30475569) else Color(0x30CBD5E1))
-        ),
+        color = Color.Transparent,
         modifier = modifier
             .defaultMinSize(minHeight = 52.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(16.dp),
+                cornerRadius = 16.dp,
+                isDark = isDark,
+                accent = item.accent,
+                secondaryAccent = item.accent,
+                isSelected = isSelected,
+                softTintWhenSelected = true
+            )
     ) {
         Row(
             modifier = Modifier
@@ -736,9 +767,14 @@ private fun StatusFilterTile(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(
-                        if (isSelected) item.accent else item.accent.copy(alpha = if (isDark) 0.20f else 0.12f)
+                    .liquidGlassPanel(
+                        shape = RoundedCornerShape(9.dp),
+                        cornerRadius = 9.dp,
+                        isDark = isDark,
+                        accent = item.accent,
+                        secondaryAccent = item.accent,
+                        isSelected = true,
+                        softTintWhenSelected = !isSelected
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -762,15 +798,16 @@ private fun StatusFilterTile(
             )
 
             if (item.count != null) {
-                Surface(
-                    shape = RoundedCornerShape(50.dp),
-                    color = if (isSelected) {
-                        item.accent.copy(alpha = 0.22f)
-                    } else if (isDark) {
-                        Color(0x33475569)
-                    } else {
-                        Color(0xFFE2E8F0)
-                    }
+                Box(
+                    modifier = Modifier.liquidGlassPanel(
+                        shape = RoundedCornerShape(50.dp),
+                        cornerRadius = 50.dp,
+                        isDark = isDark,
+                        accent = item.accent,
+                        secondaryAccent = item.accent,
+                        isSelected = isSelected,
+                        softTintWhenSelected = true
+                    )
                 ) {
                     Text(
                         text = "${item.count}",
@@ -791,26 +828,34 @@ private fun SortOptionRow(
     icon: ImageVector,
     isSelected: Boolean,
     accent: Color,
+    secondaryAccent: Color,
     isDark: Boolean,
     textPrimary: Color,
     textSecondary: Color,
-    animationsEnabled: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val rowBg by animateColorAsState(
-        targetValue = if (isSelected) accent.copy(alpha = if (isDark) 0.16f else 0.09f) else Color.Transparent,
-        animationSpec = if (animationsEnabled) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 400f)
-        } else tween(0),
-        label = "sortRowBg"
-    )
-
-    Row(
-        modifier = modifier
+    val rowModifier = if (isSelected) {
+        modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp)
-            .background(rowBg)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        accent.copy(alpha = if (isDark) 0.24f else 0.14f),
+                        secondaryAccent.copy(alpha = if (isDark) 0.12f else 0.06f),
+                        Color.Transparent
+                    )
+                )
+            )
+    } else {
+        modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+    }
+
+    Row(
+        modifier = rowModifier
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -837,10 +882,16 @@ private fun SortOptionRow(
             modifier = Modifier
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(if (isSelected) accent else Color.Transparent)
+                .background(
+                    if (isSelected) {
+                        Brush.linearGradient(listOf(accent, secondaryAccent))
+                    } else {
+                        Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+                    }
+                )
                 .border(
                     width = 1.5.dp,
-                    color = if (isSelected) accent else textSecondary.copy(alpha = 0.5f),
+                    color = if (isSelected) Color.White.copy(alpha = 0.75f) else textSecondary.copy(alpha = 0.5f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center

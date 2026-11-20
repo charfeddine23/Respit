@@ -611,7 +611,9 @@ object AppStrings {
         "leave_history_title" to "سجل الإجازات",
         "leave_history_count" to "عدد الإجازات",
         "leave_history_total_days" to "إجمالي الأيام",
-        "no_leave_history_desc" to "لا توجد إجازات مسجلة لهذا الفرد حتى الآن."
+        "no_leave_history_desc" to "لا توجد إجازات مسجلة لهذا الفرد حتى الآن.",
+        "short_leave_history_only_hint" to "تُسجّل الإجازة القصيرة في السجل مباشرة دون أن تظهر كآخر إجازة في الواجهة.",
+        "short_leave_recorded_success" to "تم تسجيل الإجازة القصيرة في السجل بنجاح"
     )
 
     private val stringsFr = mapOf(
@@ -1202,7 +1204,9 @@ object AppStrings {
         "leave_history_title" to "Historique des congés",
         "leave_history_count" to "Total congés",
         "leave_history_total_days" to "Total jours",
-        "no_leave_history_desc" to "Aucun congé enregistré pour ce personnel pour le moment."
+        "no_leave_history_desc" to "Aucun congé enregistré pour ce personnel pour le moment.",
+        "short_leave_history_only_hint" to "La permission courte est enregistrée dans l'historique sans remplacer le dernier congé affiché.",
+        "short_leave_recorded_success" to "Permission courte enregistrée dans l'historique"
     )
 
     private val stringsEn = mapOf(
@@ -1793,7 +1797,9 @@ object AppStrings {
         "leave_history_title" to "Leave History",
         "leave_history_count" to "Total Leaves",
         "leave_history_total_days" to "Total Days",
-        "no_leave_history_desc" to "No leaves recorded for this person yet."
+        "no_leave_history_desc" to "No leaves recorded for this person yet.",
+        "short_leave_history_only_hint" to "Short leave is saved directly to History without replacing the last displayed leave on the main UI.",
+        "short_leave_recorded_success" to "Short leave recorded directly in History"
     )
 
     private val stringsTzm = mapOf(
@@ -2199,6 +2205,8 @@ object AppStrings {
         "leave_history_title" to "Amazray n yimuras",
         "leave_history_count" to "Amḍan n yimuras",
         "leave_history_total_days" to "Aɣrud n wussan",
-        "no_leave_history_desc" to "Ulac imuras yettwawekklen i umdan-agi tura."
+        "no_leave_history_desc" to "Ulac imuras yettwawekklen i umdan-agi tura.",
+        "short_leave_history_only_hint" to "Turagt tawezzlant tettusekles deg umazray kan war ma tbeddel amuras aneggaru deg ugdil.",
+        "short_leave_recorded_success" to "Turagt tawezzlant tettusekles deg umazray"
     )
 }

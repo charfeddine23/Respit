@@ -887,10 +887,49 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     ) {
         viewModelScope.launch {
             val previous = repository.getPersonnelById(personnelId) ?: return@launch
-            lastUndoAction.value = UndoAction.Updated(previous)
-
             val normalizedStart = Personnel.toStartOfDay(startDateMillis)
             val normalizedReturn = maxOf(normalizedStart, Personnel.toStartOfDay(returnDateMillis))
+            val lang = currentLanguage.value
+
+            if (com.example.data.isShortLeaveType(leaveType)) {
+                val todayStart = Personnel.toStartOfDay(System.currentTimeMillis())
+                val isCompleted = normalizedReturn < todayStart
+                val preview = previous.copy(
+                    leaveType = leaveType,
+                    startDateMillis = normalizedStart,
+                    returnDateMillis = normalizedReturn,
+                    isReturnedToDuty = isCompleted
+                )
+                val completedLabel = when (lang) {
+                    AppLanguage.TAMAZIGHT -> "Yemmed (Yuɣal ɣer umahil)"
+                    AppLanguage.FRENCH -> "Terminé (Repris le service)"
+                    AppLanguage.ENGLISH -> "Completed (Returned to duty)"
+                    AppLanguage.ARABIC -> "مكتملة (مستأنف للعمل)"
+                }
+                val statusLabel = if (isCompleted) {
+                    completedLabel
+                } else {
+                    preview.status.getCompactBadgeLabel(lang)
+                }
+                val record = LeaveRecord(
+                    personnelId = previous.id,
+                    personnelName = previous.fullName.ifBlank { previous.fullNameLatin },
+                    personnelNameLatin = previous.fullNameLatin,
+                    rank = previous.rank,
+                    registrationNumber = previous.registrationNumber,
+                    leaveType = leaveType,
+                    startDateMillis = normalizedStart,
+                    returnDateMillis = normalizedReturn,
+                    durationDays = Personnel.inclusiveLeaveDays(normalizedStart, normalizedReturn),
+                    statusText = statusLabel,
+                    destinationWilaya = previous.wilaya,
+                    notes = previous.notes
+                )
+                repository.insertLeave(record)
+                return@launch
+            }
+
+            lastUndoAction.value = UndoAction.Updated(previous)
             val updated = previous.copy(
                 leaveType = leaveType,
                 startDateMillis = normalizedStart,
@@ -899,7 +938,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             )
             repository.update(updated)
 
-            val lang = currentLanguage.value
             val record = LeaveRecord(
                 personnelId = updated.id,
                 personnelName = updated.fullName.ifBlank { updated.fullNameLatin },

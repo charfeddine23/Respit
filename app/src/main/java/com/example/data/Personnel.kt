@@ -128,7 +128,8 @@ data class Personnel(
         todayMillis: Long = System.currentTimeMillis()
     ): DutyReferenceInfo {
         val personLeaves = findLeavesForPersonnel(this, allLeaves)
-        val lastLeave = personLeaves.maxWithOrNull(
+        val nonShortLeaves = personLeaves.filterNot { isShortLeaveType(it.leaveType) }
+        val lastLeave = nonShortLeaves.maxWithOrNull(
             compareBy<LeaveRecord> { it.returnDateMillis }.thenBy { it.createdAtMillis }
         )
         val todayStart = toStartOfDay(todayMillis)
@@ -155,7 +156,7 @@ data class Personnel(
                 lastLeaveStartMillis = toStartOfDay(lastLeave.startDateMillis),
                 lastLeaveReturnMillis = refStart
             )
-        } else if (returnDateMillis > 0L) {
+        } else if (returnDateMillis > 0L && !isShortLeaveType(leaveType)) {
             val refStart = toStartOfDay(returnDateMillis)
             val days = signedDaysBetween(refStart, todayStart).coerceAtLeast(0L)
             DutyReferenceInfo(
