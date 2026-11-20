@@ -51,51 +51,6 @@ data class DutyReferenceInfo(
     val lastLeaveReturnMillis: Long? = null
 )
 
-data class ShortLeaveCounterInfo(
-    val record: LeaveRecord,
-    val daysCounter: Long
-) {
-    val isCurrentlyOnShortLeave: Boolean
-        get() = daysCounter < 0L
-
-    val isReturningToday: Boolean
-        get() = daysCounter == 0L
-
-    fun getCounterStatusText(lang: AppLanguage): String = when {
-        daysCounter < 0L -> {
-            val rem = -daysCounter
-            when (lang) {
-                AppLanguage.ARABIC -> when {
-                    rem == 1L -> "باقي يوم واحد على الدخول"
-                    rem == 2L -> "باقي يومان على الدخول"
-                    rem in 3L..10L -> "باقي $rem أيام على الدخول"
-                    else -> "باقي $rem يوماً على الدخول"
-                }
-                AppLanguage.FRENCH -> if (rem == 1L) "1 jour restant" else "$rem jours restants"
-                AppLanguage.TAMAZIGHT -> "$rem n wussan i d-yeqqimen"
-                else -> if (rem == 1L) "1 day remaining" else "$rem days remaining"
-            }
-        }
-        daysCounter == 0L -> when (lang) {
-            AppLanguage.ARABIC -> "الدخول اليوم"
-            AppLanguage.FRENCH -> "Reprise aujourd'hui"
-            AppLanguage.TAMAZIGHT -> "Tuɣalin ass-a"
-            else -> "Return today"
-        }
-        else -> when (lang) {
-            AppLanguage.ARABIC -> when {
-                daysCounter == 1L -> "منقضي يوم واحد منذ العودة"
-                daysCounter == 2L -> "منقضي يومان منذ العودة"
-                daysCounter in 3L..10L -> "منقضي $daysCounter أيام منذ العودة"
-                else -> "منقضي $daysCounter يوماً منذ العودة"
-            }
-            AppLanguage.FRENCH -> "$daysCounter j écoulé(s) depuis la reprise"
-            AppLanguage.TAMAZIGHT -> "Zrin $daysCounter n wussan seg tuɣalin"
-            else -> if (daysCounter == 1L) "1 day since return" else "$daysCounter days since return"
-        }
-    }
-}
-
 @Entity(tableName = "personnel")
 data class Personnel(
     @PrimaryKey(autoGenerate = true)
@@ -234,35 +189,13 @@ data class Personnel(
         return computeDutyReferenceInfo(allLeaves, todayMillis).daysSinceReference >= thresholdDays
     }
 
-    fun computeLastShortLeaveInfo(
-        allLeaves: List<LeaveRecord>,
-        todayMillis: Long = System.currentTimeMillis()
-    ): ShortLeaveCounterInfo? {
-        val lastShort = findLeavesForPersonnel(this, allLeaves)
-            .filter { isShortLeaveType(it.leaveType) }
-            .maxWithOrNull(
-                compareBy<LeaveRecord> { it.returnDateMillis }
-                    .thenBy { it.startDateMillis }
-                    .thenBy { it.createdAtMillis }
-            ) ?: return null
-
-        val todayStart = toStartOfDay(todayMillis)
-        val returnStart = toStartOfDay(lastShort.returnDateMillis)
-        return ShortLeaveCounterInfo(
-            record = lastShort,
-            daysCounter = signedDaysBetween(returnStart, todayStart)
-        )
-    }
-
     // إجمالي مدة الإجازة بالأيام (عدّ شامل لتاريخ البداية وتاريخ النهاية)
     val totalLeaveDays: Long
-        get() = if (startDateMillis <= 0L || returnDateMillis <= 0L) 0L
-        else inclusiveLeaveDays(startDateMillis, returnDateMillis)
+        get() = inclusiveLeaveDays(startDateMillis, returnDateMillis)
 
     // الأيام المتبقية على الدخول (شحال بقالو فدار ويدخل)
     val daysRemainingToReturn: Long
         get() {
-            if (returnDateMillis <= 0L) return 0L
             val today = toStartOfDay(System.currentTimeMillis())
             val returnDay = toStartOfDay(returnDateMillis)
             return signedDaysBetween(today, returnDay)
@@ -271,7 +204,6 @@ data class Personnel(
     // الأيام المنقضية من الإجازة
     val daysElapsedInLeave: Long
         get() {
-            if (startDateMillis <= 0L) return 0L
             val today = toStartOfDay(System.currentTimeMillis())
             val start = toStartOfDay(startDateMillis)
             return signedDaysBetween(start, today).coerceAtLeast(0)
@@ -280,7 +212,6 @@ data class Personnel(
     // عدد أيام التأخر عن الدخول (إن وجد)
     val daysOverdue: Long
         get() {
-            if (returnDateMillis <= 0L) return 0L
             val today = toStartOfDay(System.currentTimeMillis())
             val returnDay = toStartOfDay(returnDateMillis)
             return signedDaysBetween(returnDay, today).coerceAtLeast(0)
@@ -290,9 +221,7 @@ data class Personnel(
     val daysSinceDutyReturn: Long
         get() {
             val today = toStartOfDay(System.currentTimeMillis())
-            val refMillis = if (returnDateMillis > 0L) returnDateMillis
-            else if (addedAtMillis > 0L) addedAtMillis else System.currentTimeMillis()
-            val returnDay = toStartOfDay(refMillis)
+            val returnDay = toStartOfDay(returnDateMillis)
             val rawDays = signedDaysBetween(returnDay, today)
             return if (isReturnedToDuty) rawDays.coerceAtLeast(0L) else rawDays
         }
@@ -305,7 +234,7 @@ data class Personnel(
     // هل الفرد حالياً في إجازة بالبيت
     val isCurrentlyAtHome: Boolean
         get() {
-            if (isReturnedToDuty || startDateMillis <= 0L || returnDateMillis <= 0L) return false
+            if (isReturnedToDuty) return false
             val today = toStartOfDay(System.currentTimeMillis())
             val start = toStartOfDay(startDateMillis)
             val returnDay = toStartOfDay(returnDateMillis)
@@ -315,7 +244,7 @@ data class Personnel(
     // الوضعية الحالية
     val status: LeaveStatus
         get() {
-            if (isReturnedToDuty || startDateMillis <= 0L || returnDateMillis <= 0L) return LeaveStatus.ON_DUTY
+            if (isReturnedToDuty) return LeaveStatus.ON_DUTY
 
             val today = toStartOfDay(System.currentTimeMillis())
             val start = toStartOfDay(startDateMillis)
@@ -435,14 +364,12 @@ data class Personnel(
 
     val formattedStartDate: String
         get() {
-            if (startDateMillis <= 0L) return "—"
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(startDateMillis))}\u200E"
         }
 
     val formattedReturnDate: String
         get() {
-            if (returnDateMillis <= 0L) return "—"
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(returnDateMillis))}\u200E"
         }
@@ -450,7 +377,6 @@ data class Personnel(
     // نسبة تقدم الإجازة من 0.0 إلى 1.0
     val leaveProgressFraction: Float
         get() {
-            if (startDateMillis <= 0L || returnDateMillis <= 0L) return 0f
             val today = toStartOfDay(System.currentTimeMillis())
             val start = toStartOfDay(startDateMillis)
             val end = toStartOfDay(returnDateMillis)
