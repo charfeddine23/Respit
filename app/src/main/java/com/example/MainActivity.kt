@@ -336,6 +336,7 @@ fun LeaveTrackerMainApp(
     val allPersonnelList by viewModel.allPersonnel.collectAsState()
     val allLeavesList by viewModel.allLeaves.collectAsState()
     val dutyReferenceMap by viewModel.dutyReferenceMap.collectAsState()
+    val lastShortLeaveMap by viewModel.lastShortLeaveMap.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val uniqueRanks by viewModel.uniqueRanks.collectAsState()
 
@@ -1398,6 +1399,7 @@ fun LeaveTrackerMainApp(
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
+                                                    lastShortLeaveInfo = lastShortLeaveMap[person.id],
                                                     onTogglePin = {
                                                         val willPin = !person.isPinned
                                                         viewModel.togglePinPersonnel(person)
@@ -1706,6 +1708,7 @@ fun LeaveTrackerMainApp(
                                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                                     currentLang = currentLang,
                                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
+                                                                    lastShortLeaveInfo = lastShortLeaveMap[person.id],
                                                                     onTogglePin = {
                                                                         val willPin = !person.isPinned
                                                                         viewModel.togglePinPersonnel(person)
@@ -1767,6 +1770,7 @@ fun LeaveTrackerMainApp(
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
+                                                    lastShortLeaveInfo = lastShortLeaveMap[person.id],
                                                     onTogglePin = {
                                                         val willPin = !person.isPinned
                                                         viewModel.togglePinPersonnel(person)

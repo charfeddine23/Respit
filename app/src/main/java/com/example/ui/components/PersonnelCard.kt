@@ -114,6 +114,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.data.LeaveStatus
 import com.example.data.Personnel
+import com.example.data.ShortLeaveCounterInfo
 import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
@@ -213,6 +214,7 @@ fun PersonnelCard(
     animationsEnabled: Boolean = true,
     currentLang: AppLanguage = AppLanguage.ARABIC,
     effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn,
+    lastShortLeaveInfo: ShortLeaveCounterInfo? = null,
     onTogglePin: () -> Unit = {},
     onSwipeDelete: () -> Unit = onDelete,
     onViewHistory: () -> Unit = {}
@@ -816,7 +818,8 @@ fun PersonnelCard(
 
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             // Localized Military Rank Pill
                             Surface(
@@ -925,6 +928,48 @@ fun PersonnelCard(
                 }
             }
 
+            // Compact Last Short Leave Counter Pill (outside clickable header Row for crisp visibility & semantics)
+            if (lastShortLeaveInfo != null) {
+                val shortAccent = when {
+                    lastShortLeaveInfo.isCurrentlyOnShortLeave -> if (isDarkMode) CyanGlow else VibrantCyan
+                    lastShortLeaveInfo.isReturningToday -> AmberWarning
+                    else -> if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF7C3AED)
+                }
+                val formattedCounter = if (lastShortLeaveInfo.daysCounter < 0L) {
+                    "\u200E${lastShortLeaveInfo.daysCounter}\u200E"
+                } else {
+                    "${lastShortLeaveInfo.daysCounter}"
+                }
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = shortAccent.copy(alpha = if (isDarkMode) 0.18f else 0.10f),
+                    border = BorderStroke(0.9.dp, shortAccent.copy(alpha = 0.42f)),
+                    modifier = Modifier.testTag("short_leave_counter_pill_${personnel.id}")
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${AppStrings.get("short_leave_compact_label", currentLang)}: $formattedCounter",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = shortAccent,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "• ${lastShortLeaveInfo.getCounterStatusText(currentLang)}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
             // Expand / Collapse Bar + Expandable Details grouped to eliminate inter-item spacing jump
             val expandBarBg by animateColorAsState(
                 targetValue = when {
@@ -989,6 +1034,10 @@ fun PersonnelCard(
                         }
                     }
 
+                    val hasLeaveDates = personnel.startDateMillis > 0L &&
+                        personnel.returnDateMillis > 0L &&
+                        personnel.leaveType.isNotBlank()
+
                     AnimatedVisibility(
                         visible = !isExpanded,
                         enter = if (animationsEnabled) {
@@ -999,10 +1048,15 @@ fun PersonnelCard(
                         } else ExitTransition.None
                     ) {
                         Text(
-                            text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
+                            text = if (hasLeaveDates) {
+                                "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}"
+                            } else {
+                                "${AppStrings.get("days_served", currentLang)}: $effectiveDaysSinceDuty ${AppStrings.get("days", currentLang)}"
+                            },
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
+                            color = if (hasLeaveDates && personnel.isOverdue) RedDanger
+                            else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1045,91 +1099,120 @@ fun PersonnelCard(
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Leave Type & Duration Summary
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                        if (hasLeaveDates) {
+                            // Leave Type & Duration Summary
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                                ) {
+                                    Text(
+                                        text = localizedLeaveType,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
+
                                 Text(
-                                    text = localizedLeaveType,
+                                    text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
                                     fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
                                 )
                             }
 
-                            Text(
-                                text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
-                            )
-                        }
-
-                        // Dates Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                            // Dates Row
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = if (isDarkMode) CyanGlow else VibrantCyan,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = if (isDarkMode) CyanGlow else VibrantCyan,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
+                                        fontSize = 11.sp,
+                                        color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
                                 Text(
-                                    text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
+                                    text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
                                     fontSize = 11.sp,
-                                    color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color.White else SlateTextPrimary),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
 
-                            Spacer(modifier = Modifier.width(6.dp))
+                            // Progress Bar & Localized Countdown Text
+                            if (!personnel.isReturnedToDuty) {
+                                LinearProgressIndicator(
+                                    progress = { animatedProgress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(50.dp)),
+                                    color = visual.color,
+                                    trackColor = if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
+                                )
 
-                            Text(
-                                text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color.White else SlateTextPrimary),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        // Progress Bar & Localized Countdown Text
-                        if (!personnel.isReturnedToDuty) {
-                            LinearProgressIndicator(
-                                progress = { animatedProgress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(50.dp)),
-                                color = visual.color,
-                                trackColor = if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
-                            )
-
-                            Text(
-                                text = personnel.getCountdownText(currentLang),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = visual.color
-                            )
+                                Text(
+                                    text = personnel.getCountdownText(currentLang),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = visual.color
+                                )
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${AppStrings.get("days_served", currentLang)}: $effectiveDaysSinceDuty ${AppStrings.get("days", currentLang)}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = EmeraldSuccess
+                                    )
+                                    if (isEligible) {
+                                        Text(
+                                            text = AppStrings.get("status_eligible", currentLang),
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = AmberWarning
+                                        )
+                                    }
+                                }
+                            }
                         } else {
+                            Text(
+                                text = AppStrings.get("no_leave_recorded_yet", currentLang),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+                            )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1148,6 +1231,69 @@ fun PersonnelCard(
                                         fontWeight = FontWeight.Black,
                                         color = AmberWarning
                                     )
+                                }
+                            }
+                        }
+
+                        if (lastShortLeaveInfo != null) {
+                            val shortAccent = when {
+                                lastShortLeaveInfo.isCurrentlyOnShortLeave -> if (isDarkMode) CyanGlow else VibrantCyan
+                                lastShortLeaveInfo.isReturningToday -> AmberWarning
+                                else -> if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF7C3AED)
+                            }
+                            val formattedShortDays = if (lastShortLeaveInfo.daysCounter < 0L) {
+                                "\u200E${lastShortLeaveInfo.daysCounter}\u200E"
+                            } else {
+                                "${lastShortLeaveInfo.daysCounter}"
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = shortAccent.copy(alpha = if (isDarkMode) 0.16f else 0.09f),
+                                border = BorderStroke(1.dp, shortAccent.copy(alpha = 0.35f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("short_leave_counter_card_${personnel.id}")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(shortAccent.copy(alpha = if (isDarkMode) 0.24f else 0.16f))
+                                            .border(1.dp, shortAccent.copy(alpha = 0.65f), RoundedCornerShape(10.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = formattedShortDays,
+                                            fontSize = if (kotlin.math.abs(lastShortLeaveInfo.daysCounter) >= 100L) 11.sp else 13.5.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = shortAccent,
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = AppStrings.get("last_short_leave_counter", currentLang),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = shortAccent,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${lastShortLeaveInfo.getCounterStatusText(currentLang)} • ${lastShortLeaveInfo.record.formattedStartDate} → ${lastShortLeaveInfo.record.formattedReturnDate}",
+                                            fontSize = 10.sp,
+                                            color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }

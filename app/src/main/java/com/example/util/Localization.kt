@@ -613,7 +613,20 @@ object AppStrings {
         "leave_history_total_days" to "إجمالي الأيام",
         "no_leave_history_desc" to "لا توجد إجازات مسجلة لهذا الفرد حتى الآن.",
         "short_leave_history_only_hint" to "تُسجّل الإجازة القصيرة في السجل مباشرة دون أن تظهر كآخر إجازة في الواجهة.",
-        "short_leave_recorded_success" to "تم تسجيل الإجازة القصيرة في السجل بنجاح"
+        "short_leave_recorded_success" to "تم تسجيل الإجازة القصيرة في السجل بنجاح",
+        "last_short_leave_counter" to "عداد آخر إجازة قصيرة",
+        "short_leave_compact_label" to "آخر قصيرة",
+        "last_short_leave_tag" to "آخر إجازة قصيرة",
+        "add_leave_holiday_btn" to "إضافة إجازة/ عطلة",
+        "edit_leave_holiday_btn" to "تعديل الإجازة/ العطلة",
+        "optional_leave_hint" to "اختياري — يمكنك الحفظ مباشرة أو إضافة إجازة الآن",
+        "leave_subdialog_title" to "إضافة إجازة/ عطلة",
+        "leave_subdialog_sub" to "حدد نوع الإجازة وتواريخ الذهاب والعودة (اختياري)",
+        "apply_leave_details" to "تأكيد الإجازة",
+        "remove_leave_details" to "إلغاء الإجازة",
+        "wilaya_picker_title" to "اختيار الولاية",
+        "wilaya_picker_sub" to "ابحث بالرقم أو باسم الولاية",
+        "no_leave_recorded_yet" to "لا توجد إجازة مسجلة بعد"
     )
 
     private val stringsFr = mapOf(
@@ -1206,7 +1219,20 @@ object AppStrings {
         "leave_history_total_days" to "Total jours",
         "no_leave_history_desc" to "Aucun congé enregistré pour ce personnel pour le moment.",
         "short_leave_history_only_hint" to "La permission courte est enregistrée dans l'historique sans remplacer le dernier congé affiché.",
-        "short_leave_recorded_success" to "Permission courte enregistrée dans l'historique"
+        "short_leave_recorded_success" to "Permission courte enregistrée dans l'historique",
+        "last_short_leave_counter" to "Compteur dernière permission courte",
+        "short_leave_compact_label" to "Dern. courte",
+        "last_short_leave_tag" to "Dernière permission courte",
+        "add_leave_holiday_btn" to "Ajouter congé / permission",
+        "edit_leave_holiday_btn" to "Modifier congé / permission",
+        "optional_leave_hint" to "Optionnel — enregistrez directement ou ajoutez un congé",
+        "leave_subdialog_title" to "Ajouter congé / permission",
+        "leave_subdialog_sub" to "Définissez le type de congé et les dates (optionnel)",
+        "apply_leave_details" to "Valider le congé",
+        "remove_leave_details" to "Retirer le congé",
+        "wilaya_picker_title" to "Sélectionner la wilaya",
+        "wilaya_picker_sub" to "Rechercher par numéro ou par nom",
+        "no_leave_recorded_yet" to "Aucun congé enregistré"
     )
 
     private val stringsEn = mapOf(
@@ -1799,7 +1825,20 @@ object AppStrings {
         "leave_history_total_days" to "Total Days",
         "no_leave_history_desc" to "No leaves recorded for this person yet.",
         "short_leave_history_only_hint" to "Short leave is saved directly to History without replacing the last displayed leave on the main UI.",
-        "short_leave_recorded_success" to "Short leave recorded directly in History"
+        "short_leave_recorded_success" to "Short leave recorded directly in History",
+        "last_short_leave_counter" to "Last Short Leave Counter",
+        "short_leave_compact_label" to "Last short",
+        "last_short_leave_tag" to "Last Short Leave",
+        "add_leave_holiday_btn" to "Add Leave / Holiday",
+        "edit_leave_holiday_btn" to "Edit Leave / Holiday",
+        "optional_leave_hint" to "Optional — save directly or add leave details now",
+        "leave_subdialog_title" to "Add Leave / Holiday",
+        "leave_subdialog_sub" to "Choose leave type and schedule dates (optional)",
+        "apply_leave_details" to "Confirm Leave",
+        "remove_leave_details" to "Remove Leave",
+        "wilaya_picker_title" to "Select Wilaya",
+        "wilaya_picker_sub" to "Search by code number or province name",
+        "no_leave_recorded_yet" to "No leave recorded yet"
     )
 
     private val stringsTzm = mapOf(
@@ -2207,6 +2246,19 @@ object AppStrings {
         "leave_history_total_days" to "Aɣrud n wussan",
         "no_leave_history_desc" to "Ulac imuras yettwawekklen i umdan-agi tura.",
         "short_leave_history_only_hint" to "Turagt tawezzlant tettusekles deg umazray kan war ma tbeddel amuras aneggaru deg ugdil.",
-        "short_leave_recorded_success" to "Turagt tawezzlant tettusekles deg umazray"
+        "short_leave_recorded_success" to "Turagt tawezzlant tettusekles deg umazray",
+        "last_short_leave_counter" to "Amessid n turagt tawezzlant taneggarut",
+        "short_leave_compact_label" to "Tawezzlant",
+        "last_short_leave_tag" to "Turagt tawezzlant taneggarut",
+        "add_leave_holiday_btn" to "Rnu turagt / imuras",
+        "edit_leave_holiday_btn" to "Ẓreg turagt / imuras",
+        "optional_leave_hint" to "Afran — sekles tura neɣ rnu imuras",
+        "leave_subdialog_title" to "Rnu turagt / imuras",
+        "leave_subdialog_sub" to "Fren anaw n yimuras d yizemzan (afran)",
+        "apply_leave_details" to "Sentem imuras",
+        "remove_leave_details" to "Kkes imuras",
+        "wilaya_picker_title" to "Fren tawilayt",
+        "wilaya_picker_sub" to "Nadi s wuṭṭun neɣ s yisem n twilayt",
+        "no_leave_recorded_yet" to "Ulac imuras yettuseklen tura"
     )
 }

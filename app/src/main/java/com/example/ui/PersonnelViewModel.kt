@@ -17,6 +17,7 @@ import com.example.data.LeaveStatus
 import com.example.data.Personnel
 import com.example.data.PersonnelRepository
 import com.example.data.SettingsManager
+import com.example.data.ShortLeaveCounterInfo
 import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
@@ -251,6 +252,17 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         personnelList.associate { p ->
             p.id to p.computeDutyReferenceInfo(leavesList, now)
         }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val lastShortLeaveMap: StateFlow<Map<Long, ShortLeaveCounterInfo>> = combine(
+        allPersonnel,
+        allLeaves,
+        dayRefreshTrigger
+    ) { personnelList, leavesList, _ ->
+        val now = System.currentTimeMillis()
+        personnelList.mapNotNull { p ->
+            p.computeLastShortLeaveInfo(leavesList, now)?.let { info -> p.id to info }
+        }.toMap()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val analyticsReport: StateFlow<LeaveAnalyticsReport> = combine(
@@ -763,6 +775,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 lastUndoAction.value = UndoAction.Updated(previous)
             }
 
+            val hasValidLeave = startDateMillis > 0L && returnDateMillis > 0L && leaveType.isNotBlank()
+            val normalizedReturnedToDuty = if (!hasValidLeave) true else isReturnedToDuty
+
             val preservedAddedAt = previous?.addedAtMillis?.takeIf { it > 0L } ?: System.currentTimeMillis()
             val entity = Personnel(
                 id = id,
@@ -770,10 +785,10 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 fullNameLatin = fullNameLatin,
                 rank = normalizeRank(rank),
                 registrationNumber = registrationNumber,
-                startDateMillis = startDateMillis,
-                returnDateMillis = returnDateMillis,
-                isReturnedToDuty = isReturnedToDuty,
-                leaveType = leaveType,
+                startDateMillis = if (hasValidLeave) startDateMillis else 0L,
+                returnDateMillis = if (hasValidLeave) returnDateMillis else 0L,
+                isReturnedToDuty = normalizedReturnedToDuty,
+                leaveType = if (hasValidLeave) leaveType else "",
                 wilaya = normalizeWilaya(wilaya),
                 notes = notes,
                 addedAtMillis = preservedAddedAt,
@@ -786,24 +801,28 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 val newId = repository.insert(entity)
                 val insertedEntity = entity.copy(id = newId)
                 lastUndoAction.value = UndoAction.Added(newId)
-                if (!insertedEntity.isReturnedToDuty) {
-                    autoRecordLeaveIfNeeded(insertedEntity)
-                } else {
-                    markLeaveRecordCompleted(insertedEntity)
+                if (hasValidLeave) {
+                    if (!insertedEntity.isReturnedToDuty) {
+                        autoRecordLeaveIfNeeded(insertedEntity)
+                    } else {
+                        markLeaveRecordCompleted(insertedEntity)
+                    }
+                    LeaveNotificationHelper.notifyLeaveApproved(
+                        getApplication(),
+                        insertedEntity,
+                        currentLanguage.value.code
+                    )
                 }
-                LeaveNotificationHelper.notifyLeaveApproved(
-                    getApplication(),
-                    insertedEntity,
-                    currentLanguage.value.code
-                )
             } else {
                 repository.update(entity)
-                syncLeaveRecordForEditedPersonnel(previous, entity)
-                LeaveNotificationHelper.notifyLeaveApproved(
-                    getApplication(),
-                    entity,
-                    currentLanguage.value.code
-                )
+                if (hasValidLeave) {
+                    syncLeaveRecordForEditedPersonnel(previous, entity)
+                    LeaveNotificationHelper.notifyLeaveApproved(
+                        getApplication(),
+                        entity,
+                        currentLanguage.value.code
+                    )
+                }
             }
         }
     }
@@ -1240,6 +1259,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     // ==========================================
 
     private suspend fun autoRecordLeaveIfNeeded(person: Personnel) {
+        if (person.startDateMillis <= 0L || person.returnDateMillis <= 0L || person.leaveType.isBlank()) return
         val existsForId = if (person.id > 0L) {
             repository.countExactLeave(person.id, person.startDateMillis, person.returnDateMillis) > 0
         } else {
@@ -1325,6 +1345,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun markLeaveRecordCompleted(person: Personnel) {
+        if (person.startDateMillis <= 0L || person.returnDateMillis <= 0L || person.leaveType.isBlank()) return
         val completedLabel = when (currentLanguage.value) {
             AppLanguage.TAMAZIGHT -> "Yemmed (Yuɣal ɣer umahil)"
             AppLanguage.FRENCH -> "Terminé (Repris le service)"

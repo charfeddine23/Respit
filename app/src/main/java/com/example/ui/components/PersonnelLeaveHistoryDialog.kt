@@ -106,6 +106,10 @@ fun PersonnelLeaveHistoryDialog(
         }
     }
 
+    val lastShortLeaveInfo = remember(personnel, allLeaves) {
+        personnel.computeLastShortLeaveInfo(allLeaves)
+    }
+
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val dialogContainerBg = when {
@@ -302,6 +306,80 @@ fun PersonnelLeaveHistoryDialog(
                                 }
                             }
 
+                            if (lastShortLeaveInfo != null) {
+                                val shortAccent = when {
+                                    lastShortLeaveInfo.isCurrentlyOnShortLeave -> if (isDarkMode) CyanGlow else VibrantCyan
+                                    lastShortLeaveInfo.isReturningToday -> Color(0xFFF59E0B)
+                                    else -> if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF7C3AED)
+                                }
+                                val formattedCounter = if (lastShortLeaveInfo.daysCounter < 0L) {
+                                    "\u200E${lastShortLeaveInfo.daysCounter}\u200E"
+                                } else {
+                                    "${lastShortLeaveInfo.daysCounter}"
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = shortAccent.copy(alpha = if (isDarkMode) 0.16f else 0.09f),
+                                    border = BorderStroke(1.dp, shortAccent.copy(alpha = 0.42f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+                                        .testTag("history_last_short_leave_counter")
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(shortAccent.copy(alpha = if (isDarkMode) 0.25f else 0.16f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = formattedCounter,
+                                                fontSize = if (kotlin.math.abs(lastShortLeaveInfo.daysCounter) >= 100L) 13.sp else 17.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = shortAccent,
+                                                maxLines = 1
+                                            )
+                                        }
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Text(
+                                                text = AppStrings.get("last_short_leave_counter", currentLang),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = shortAccent,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = lastShortLeaveInfo.getCounterStatusText(currentLang),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = textPrimary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "${lastShortLeaveInfo.record.formattedStartDate} → ${lastShortLeaveInfo.record.formattedReturnDate}",
+                                                fontSize = 10.5.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = textSecondary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             if (personLeaves.isEmpty()) {
                                 Column(
                                     modifier = Modifier
@@ -356,22 +434,55 @@ fun PersonnelLeaveHistoryDialog(
                                                     .padding(12.dp),
                                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
+                                                val isLastShortRecord = lastShortLeaveInfo != null &&
+                                                    record.id == lastShortLeaveInfo.record.id &&
+                                                    record.startDateMillis == lastShortLeaveInfo.record.startDateMillis &&
+                                                    record.returnDateMillis == lastShortLeaveInfo.record.returnDateMillis
+
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween,
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    Surface(
-                                                        shape = RoundedCornerShape(8.dp),
-                                                        color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                        modifier = Modifier.weight(1f, fill = false)
                                                     ) {
-                                                        Text(
-                                                            text = formatLeaveType(record.leaveType, currentLang),
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
-                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                                        )
+                                                        Surface(
+                                                            shape = RoundedCornerShape(8.dp),
+                                                            color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                                                        ) {
+                                                            Text(
+                                                                text = formatLeaveType(record.leaveType, currentLang),
+                                                                fontSize = 11.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                            )
+                                                        }
+
+                                                        if (isLastShortRecord) {
+                                                            val badgeCounter = if (lastShortLeaveInfo.daysCounter < 0L) {
+                                                                "\u200E${lastShortLeaveInfo.daysCounter}\u200E"
+                                                            } else {
+                                                                "${lastShortLeaveInfo.daysCounter}"
+                                                            }
+                                                            Surface(
+                                                                shape = RoundedCornerShape(8.dp),
+                                                                color = EmeraldSuccess.copy(alpha = if (isDarkMode) 0.22f else 0.14f),
+                                                                modifier = Modifier.testTag("leave_history_short_counter_badge")
+                                                            ) {
+                                                                Text(
+                                                                    text = "${AppStrings.get("short_leave_compact_label", currentLang)}: $badgeCounter",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.ExtraBold,
+                                                                    color = EmeraldSuccess,
+                                                                    maxLines = 1,
+                                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                                                )
+                                                            }
+                                                        }
                                                     }
 
                                                     Surface(
