@@ -52,9 +52,6 @@ interface PersonnelDao {
     @Query("UPDATE personnel SET isReturnedToDuty = 1 WHERE id = :id")
     suspend fun confirmReturnToDuty(id: Long)
 
-    @Query("UPDATE personnel SET startDateMillis = :startMillis, returnDateMillis = :returnMillis, isReturnedToDuty = 0 WHERE id = :id")
-    suspend fun grantNewLeave(id: Long, startMillis: Long, returnMillis: Long)
-
     @Query("UPDATE personnel SET isPinned = :pinned, pinnedAtMillis = :pinnedAt WHERE id = :id")
     suspend fun setPinned(id: Long, pinned: Boolean, pinnedAt: Long)
 

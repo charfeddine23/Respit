@@ -34,13 +34,7 @@ class SettingsManager(context: Context) {
         private const val KEY_THEME_STYLE = "pref_theme_style"
         private const val KEY_DARK_MODE = "pref_dark_mode"
         private const val KEY_DUTY_THRESHOLD = "pref_duty_threshold_days"
-        private const val KEY_PIN_ENABLED = "pref_pin_enabled"
-        private const val KEY_PIN_CODE = "pref_pin_code"
-        private const val KEY_SECURITY_LOCK_TYPE = "pref_security_lock_type"
-        private const val KEY_PATTERN_CODE = "pref_pattern_code"
         private const val KEY_BIOMETRIC_ENABLED = "pref_biometric_enabled"
-        private const val KEY_FINGERPRINT_ENABLED = "pref_fingerprint_enabled"
-        private const val KEY_PASSKEY_ENABLED = "pref_passkey_enabled"
         private const val KEY_LANGUAGE = "pref_language"
         private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
         private const val KEY_DISMISSED_NOTIFICATIONS = "pref_dismissed_notifications"
@@ -114,38 +108,9 @@ class SettingsManager(context: Context) {
         get() = safeGetString(KEY_THEME_ENGINE_ID, "") ?: ""
         set(value) = prefs.edit().putString(KEY_THEME_ENGINE_ID, value).apply()
 
-    var isPinEnabled: Boolean
-        get() = safeGetBoolean(KEY_PIN_ENABLED, false)
-        set(value) = prefs.edit().putBoolean(KEY_PIN_ENABLED, value).apply()
-
-    var pinCode: String
-        get() = safeGetString(KEY_PIN_CODE, "") ?: ""
-        set(value) = prefs.edit().putString(KEY_PIN_CODE, value).apply()
-
-    var securityLockType: String
-        get() = safeGetString(KEY_SECURITY_LOCK_TYPE, "PIN") ?: "PIN"
-        set(value) = prefs.edit().putString(KEY_SECURITY_LOCK_TYPE, value).apply()
-
-    var patternCode: String
-        get() = safeGetString(KEY_PATTERN_CODE, "") ?: ""
-        set(value) = prefs.edit().putString(KEY_PATTERN_CODE, value).apply()
-
     var isBiometricEnabled: Boolean
         get() = safeGetBoolean(KEY_BIOMETRIC_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_BIOMETRIC_ENABLED, value).apply()
-
-    var isFingerprintEnabled: Boolean
-        get() = safeGetBoolean(KEY_FINGERPRINT_ENABLED, false) || safeGetBoolean(KEY_BIOMETRIC_ENABLED, false)
-        set(value) {
-            prefs.edit()
-                .putBoolean(KEY_FINGERPRINT_ENABLED, value)
-                .putBoolean(KEY_BIOMETRIC_ENABLED, value)
-                .apply()
-        }
-
-    var isPasskeyEnabled: Boolean
-        get() = safeGetBoolean(KEY_PASSKEY_ENABLED, false)
-        set(value) = prefs.edit().putBoolean(KEY_PASSKEY_ENABLED, value).apply()
 
     var language: String
         get() = safeGetString(KEY_LANGUAGE, "ar") ?: "ar"

@@ -107,11 +107,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     )
     val dutyThresholdDays = MutableStateFlow(settingsManager.dutyThresholdDays)
     val isBiometricEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
-    val isPinEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
-    val pinCode = MutableStateFlow("")
-    val securityLockType = MutableStateFlow("BIOMETRIC")
-    val patternCode = MutableStateFlow("")
-    val isPasskeyEnabled = MutableStateFlow(false)
     val isLocked = MutableStateFlow(settingsManager.isBiometricEnabled)
     val currentLanguage = MutableStateFlow(AppLanguage.fromCode(settingsManager.language))
     val isFocusMode = MutableStateFlow(settingsManager.isFocusMode)
@@ -700,45 +695,13 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setBiometricLock(enabled: Boolean) {
         settingsManager.isBiometricEnabled = enabled
-        settingsManager.isPinEnabled = enabled
         isBiometricEnabled.value = enabled
-        isPinEnabled.value = enabled
         if (!enabled) {
             isLocked.value = false
         }
     }
 
-    fun setPinCode(newPin: String, enabled: Boolean) {
-        setBiometricLock(enabled)
-    }
-
-    fun setSecuritySettings(
-        enabled: Boolean,
-        lockType: String = "BIOMETRIC",
-        pin: String = "",
-        pattern: String = "",
-        biometric: Boolean = enabled,
-        passkey: Boolean = false
-    ) {
-        setBiometricLock(enabled || biometric)
-    }
-
-    fun verifyPin(enteredPin: String): Boolean {
-        isLocked.value = false
-        return true
-    }
-
-    fun verifyPattern(enteredPattern: String): Boolean {
-        isLocked.value = false
-        return true
-    }
-
     fun unlockWithBiometric(): Boolean {
-        isLocked.value = false
-        return true
-    }
-
-    fun unlockWithPasskey(): Boolean {
         isLocked.value = false
         return true
     }
@@ -854,27 +817,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             repository.confirmReturnToDuty(id)
             if (previous != null) {
                 markLeaveRecordCompleted(previous.copy(isReturnedToDuty = true))
-            }
-        }
-    }
-
-    fun grantNewLeave(id: Long, startDateMillis: Long, returnDateMillis: Long) {
-        viewModelScope.launch {
-            val previous = repository.getPersonnelById(id)
-            repository.grantNewLeave(id, startDateMillis, returnDateMillis)
-            if (previous != null) {
-                lastUndoAction.value = UndoAction.Updated(previous)
-                val updated = previous.copy(
-                    startDateMillis = startDateMillis,
-                    returnDateMillis = returnDateMillis,
-                    isReturnedToDuty = false
-                )
-                autoRecordLeaveIfNeeded(updated)
-                LeaveNotificationHelper.notifyLeaveApproved(
-                    getApplication(),
-                    updated,
-                    currentLanguage.value.code
-                )
             }
         }
     }

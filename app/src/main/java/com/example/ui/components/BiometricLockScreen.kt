@@ -219,31 +219,3 @@ fun BiometricLockScreen(
         }
     }
 }
-
-/**
- * Backward compatibility alias for PinLockScreen.
- * Legacy PIN and pattern drawing systems have been completely removed
- * and routed to modern AndroidX Biometric authentication.
- */
-@Composable
-fun PinLockScreen(
-    onVerifyPin: (String) -> Boolean = { true },
-    onVerifyPattern: ((String) -> Boolean)? = null,
-    onBiometricUnlock: (() -> Unit)? = null,
-    onPasskeyUnlock: (() -> Unit)? = null,
-    lockType: String = "BIOMETRIC",
-    isBiometricAvailable: Boolean = true,
-    isPasskeyAvailable: Boolean = false,
-    isDarkMode: Boolean = false,
-    currentLang: AppLanguage = AppLanguage.ARABIC,
-    modifier: Modifier = Modifier
-) {
-    BiometricLockScreen(
-        onUnlockSuccess = {
-            onBiometricUnlock?.invoke() ?: onVerifyPin("")
-        },
-        isDarkMode = isDarkMode,
-        currentLang = currentLang,
-        modifier = modifier
-    )
-}

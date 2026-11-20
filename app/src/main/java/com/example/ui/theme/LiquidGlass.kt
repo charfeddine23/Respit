@@ -503,34 +503,6 @@ fun Modifier.liquidGlass(
 }
 
 @Composable
-fun Modifier.glassCard(
-    shape: Shape = LiquidGlassDefaults.CardShape,
-    elevation: Dp = 4.dp,
-    isDark: Boolean = false,
-    isNeumorphic: Boolean = false
-): Modifier = this.liquidGlass(
-    shape = shape,
-    elevation = elevation,
-    borderAlpha = 0.85f,
-    isDark = isDark,
-    isNeumorphic = isNeumorphic
-)
-
-@Composable
-fun Modifier.liquidGlassPill(
-    isDark: Boolean = false,
-    elevation: Dp = 2.dp,
-    isNeumorphic: Boolean = false
-): Modifier = this.liquidGlass(
-    shape = LiquidGlassDefaults.PillShape,
-    elevation = elevation,
-    borderAlpha = 0.85f,
-    isDark = isDark,
-    isNeumorphic = isNeumorphic,
-    cornerRadius = 50.dp
-)
-
-@Composable
 fun Modifier.liquidGlassInteractive(
     shape: Shape = LiquidGlassDefaults.SmallShape,
     isDark: Boolean = false,
@@ -752,20 +724,20 @@ fun Modifier.liquidGlassDialogShell(
         .drawBehind {
             val radiusPx = cornerRadius.toPx()
             val cr = CornerRadius(radiusPx, radiusPx)
-            // 1. Frosted translucent glass medium
+            // 1. Frosted translucent glass medium (5% transparency / 95% opacity)
             drawRoundRect(
                 brush = Brush.verticalGradient(
                     colors = if (effectiveDark) {
                         listOf(
-                            Color(0xFF1E293B).copy(alpha = 0.76f),
-                            Color(0xFF0F172A).copy(alpha = 0.68f),
-                            Color(0xFF1E293B).copy(alpha = 0.74f)
+                            Color(0xFF1E293B).copy(alpha = 0.96f),
+                            Color(0xFF0F172A).copy(alpha = 0.94f),
+                            Color(0xFF1E293B).copy(alpha = 0.95f)
                         )
                     } else {
                         listOf(
-                            Color.White.copy(alpha = 0.78f),
-                            Color(0xFFF1F5F9).copy(alpha = 0.66f),
-                            Color.White.copy(alpha = 0.74f)
+                            Color.White.copy(alpha = 0.96f),
+                            Color(0xFFF1F5F9).copy(alpha = 0.94f),
+                            Color.White.copy(alpha = 0.95f)
                         )
                     }
                 ),
@@ -888,14 +860,14 @@ fun Modifier.liquidGlassPanel(
                 )
                 effectiveDark -> Brush.verticalGradient(
                     listOf(
-                        Color(0xFF1E293B).copy(alpha = 0.56f),
-                        Color(0xFF0F172A).copy(alpha = 0.42f)
+                        Color(0xFF1E293B).copy(alpha = 0.80f),
+                        Color(0xFF0F172A).copy(alpha = 0.72f)
                     )
                 )
                 else -> Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.62f),
-                        Color(0xFFF8FAFC).copy(alpha = 0.40f)
+                        Color.White.copy(alpha = 0.84f),
+                        Color(0xFFF8FAFC).copy(alpha = 0.74f)
                     )
                 )
             }

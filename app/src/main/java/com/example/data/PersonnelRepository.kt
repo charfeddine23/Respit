@@ -51,10 +51,6 @@ class PersonnelRepository(
         personnelDao.confirmReturnToDuty(id)
     }
 
-    suspend fun grantNewLeave(id: Long, startMillis: Long, returnMillis: Long) {
-        personnelDao.grantNewLeave(id, startMillis, returnMillis)
-    }
-
     suspend fun setPinned(id: Long, pinned: Boolean, pinnedAt: Long) {
         personnelDao.setPinned(id, pinned, pinnedAt)
     }
