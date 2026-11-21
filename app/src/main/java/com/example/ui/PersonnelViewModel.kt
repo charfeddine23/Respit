@@ -782,28 +782,33 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 isDeleted = previous?.isDeleted ?: false,
                 deletedAtMillis = previous?.deletedAtMillis ?: 0L
             )
+            val hasValidLeaveDates = entity.startDateMillis > 0L && entity.returnDateMillis > 0L
             if (id == 0L) {
                 val newId = repository.insert(entity)
                 val insertedEntity = entity.copy(id = newId)
                 lastUndoAction.value = UndoAction.Added(newId)
-                if (!insertedEntity.isReturnedToDuty) {
-                    autoRecordLeaveIfNeeded(insertedEntity)
-                } else {
-                    markLeaveRecordCompleted(insertedEntity)
+                if (hasValidLeaveDates) {
+                    if (!insertedEntity.isReturnedToDuty) {
+                        autoRecordLeaveIfNeeded(insertedEntity)
+                    } else {
+                        markLeaveRecordCompleted(insertedEntity)
+                    }
+                    LeaveNotificationHelper.notifyLeaveApproved(
+                        getApplication(),
+                        insertedEntity,
+                        currentLanguage.value.code
+                    )
                 }
-                LeaveNotificationHelper.notifyLeaveApproved(
-                    getApplication(),
-                    insertedEntity,
-                    currentLanguage.value.code
-                )
             } else {
                 repository.update(entity)
                 syncLeaveRecordForEditedPersonnel(previous, entity)
-                LeaveNotificationHelper.notifyLeaveApproved(
-                    getApplication(),
-                    entity,
-                    currentLanguage.value.code
-                )
+                if (hasValidLeaveDates) {
+                    LeaveNotificationHelper.notifyLeaveApproved(
+                        getApplication(),
+                        entity,
+                        currentLanguage.value.code
+                    )
+                }
             }
         }
     }
@@ -1317,6 +1322,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
 
+        if (entity.startDateMillis <= 0L || entity.returnDateMillis <= 0L) {
+            return
+        }
         if (!entity.isReturnedToDuty) {
             autoRecordLeaveIfNeeded(entity)
         } else {

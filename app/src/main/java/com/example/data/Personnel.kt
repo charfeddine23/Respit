@@ -191,7 +191,11 @@ data class Personnel(
 
     // إجمالي مدة الإجازة بالأيام (عدّ شامل لتاريخ البداية وتاريخ النهاية)
     val totalLeaveDays: Long
-        get() = inclusiveLeaveDays(startDateMillis, returnDateMillis)
+        get() = if (startDateMillis > 0L && returnDateMillis > 0L) {
+            inclusiveLeaveDays(startDateMillis, returnDateMillis)
+        } else {
+            0L
+        }
 
     // الأيام المتبقية على الدخول (شحال بقالو فدار ويدخل)
     val daysRemainingToReturn: Long
@@ -221,7 +225,14 @@ data class Personnel(
     val daysSinceDutyReturn: Long
         get() {
             val today = toStartOfDay(System.currentTimeMillis())
-            val returnDay = toStartOfDay(returnDateMillis)
+            val effectiveRef = if (returnDateMillis > 0L) {
+                returnDateMillis
+            } else if (addedAtMillis > 0L) {
+                addedAtMillis
+            } else {
+                today
+            }
+            val returnDay = toStartOfDay(effectiveRef)
             val rawDays = signedDaysBetween(returnDay, today)
             return if (isReturnedToDuty) rawDays.coerceAtLeast(0L) else rawDays
         }
@@ -244,7 +255,7 @@ data class Personnel(
     // الوضعية الحالية
     val status: LeaveStatus
         get() {
-            if (isReturnedToDuty) return LeaveStatus.ON_DUTY
+            if (isReturnedToDuty || startDateMillis <= 0L || returnDateMillis <= 0L) return LeaveStatus.ON_DUTY
 
             val today = toStartOfDay(System.currentTimeMillis())
             val start = toStartOfDay(startDateMillis)
@@ -364,12 +375,14 @@ data class Personnel(
 
     val formattedStartDate: String
         get() {
+            if (startDateMillis <= 0L) return "-"
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(startDateMillis))}\u200E"
         }
 
     val formattedReturnDate: String
         get() {
+            if (returnDateMillis <= 0L) return "-"
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(returnDateMillis))}\u200E"
         }
@@ -377,6 +390,7 @@ data class Personnel(
     // نسبة تقدم الإجازة من 0.0 إلى 1.0
     val leaveProgressFraction: Float
         get() {
+            if (startDateMillis <= 0L || returnDateMillis <= 0L) return 0f
             val today = toStartOfDay(System.currentTimeMillis())
             val start = toStartOfDay(startDateMillis)
             val end = toStartOfDay(returnDateMillis)

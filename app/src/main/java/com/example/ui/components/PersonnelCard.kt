@@ -998,8 +998,13 @@ fun PersonnelCard(
                             fadeOut(tween(130)) + scaleOut(targetScale = 0.94f)
                         } else ExitTransition.None
                     ) {
+                        val collapsedScheduleText = if (personnel.returnDateMillis > 0L) {
+                            "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}"
+                        } else {
+                            AppStrings.get("no_leave_recorded_short", currentLang)
+                        }
                         Text(
-                            text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
+                            text = collapsedScheduleText,
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
@@ -1045,70 +1050,85 @@ fun PersonnelCard(
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Leave Type & Duration Summary
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                        if (personnel.startDateMillis > 0L && personnel.returnDateMillis > 0L) {
+                            // Leave Type & Duration Summary
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                                ) {
+                                    Text(
+                                        text = localizedLeaveType,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
+
                                 Text(
-                                    text = localizedLeaveType,
+                                    text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
                                     fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
                                 )
                             }
 
-                            Text(
-                                text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
-                            )
-                        }
-
-                        // Dates Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                            // Dates Row
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = if (isDarkMode) CyanGlow else VibrantCyan,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = if (isDarkMode) CyanGlow else VibrantCyan,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
+                                        fontSize = 11.sp,
+                                        color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
                                 Text(
-                                    text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
+                                    text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
                                     fontSize = 11.sp,
-                                    color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color.White else SlateTextPrimary),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            Text(
-                                text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color.White else SlateTextPrimary),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isDarkMode) Color(0x2838BDF8) else Color(0xFFE0F7FA)
+                            ) {
+                                Text(
+                                    text = AppStrings.get("no_leave_recorded_short", currentLang),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkMode) Color(0xFF7DD3FC) else Color(0xFF00838F),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
                         }
 
                         // Progress Bar & Localized Countdown Text

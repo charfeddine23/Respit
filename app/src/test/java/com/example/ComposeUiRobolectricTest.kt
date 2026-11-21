@@ -138,13 +138,15 @@ class ComposeUiRobolectricTest {
 
     composeTestRule.waitForIdle()
 
-    // Scroll the form down to expose the schedule & quick duration section inside the Dialog
-    composeTestRule.onNodeWithTag("dialog_form_scroll", useUnmergedTree = true).performTouchInput {
-      swipeUp(startY = 550f, endY = 50f)
-    }
+    // Scroll to the optional leave button ("إضافة إجازة / عطلة") and open the dedicated leave window
+    composeTestRule.onNodeWithTag("open_optional_leave_dialog_btn")
+      .performScrollTo()
+      .performClick()
     composeTestRule.waitForIdle()
 
-    // Verify all 5 quick duration labels render cleanly and are displayed
+    composeTestRule.onNodeWithTag("optional_leave_editor_dialog").assertIsDisplayed()
+
+    // Verify all 5 quick duration labels render cleanly inside the secondary leave window
     listOf(
       2 to "48 ساعة",
       3 to "72 ساعة",
@@ -153,24 +155,28 @@ class ComposeUiRobolectricTest {
       10 to "10 أيام"
     ).forEach { (days, label) ->
       composeTestRule.onNodeWithTag("quick_duration_chip_$days")
+        .performScrollTo()
         .assertIsDisplayed()
         .assert(hasText(label))
     }
 
     // Select 48 ساعة -> +2 days
-    composeTestRule.onNodeWithTag("quick_duration_chip_2").performClick()
+    composeTestRule.onNodeWithTag("quick_duration_chip_2").performScrollTo().performClick()
     composeTestRule.waitForIdle()
-    composeTestRule.onNodeWithText("2 يوم").assertIsDisplayed()
+    composeTestRule.onNodeWithText("2 يوم").performScrollTo().assertIsDisplayed()
 
     // Select 72 ساعة -> +3 days
-    composeTestRule.onNodeWithTag("quick_duration_chip_3").performClick()
+    composeTestRule.onNodeWithTag("quick_duration_chip_3").performScrollTo().performClick()
     composeTestRule.waitForIdle()
-    composeTestRule.onNodeWithText("3 يوم").assertIsDisplayed()
+    composeTestRule.onNodeWithText("3 يوم").performScrollTo().assertIsDisplayed()
 
-    // Select 8 أيام -> +8 days and save
-    composeTestRule.onNodeWithTag("quick_duration_chip_8").performClick()
+    // Select 8 أيام -> +8 days, confirm leave dialog, and save personnel
+    composeTestRule.onNodeWithTag("quick_duration_chip_8").performScrollTo().performClick()
     composeTestRule.waitForIdle()
-    composeTestRule.onNodeWithText("8 يوم").assertIsDisplayed()
+    composeTestRule.onNodeWithText("8 يوم").performScrollTo().assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag("confirm_optional_leave_btn").performClick()
+    composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithTag("save_personnel_button").performClick()
     composeTestRule.waitForIdle()
@@ -651,5 +657,88 @@ class ComposeUiRobolectricTest {
     val dutyInfo = personAfter!!.computeDutyReferenceInfo(leaves)
     assertEquals(annualReturn, dutyInfo.lastLeaveReturnMillis)
     assertEquals(45L, dutyInfo.daysSinceReference)
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `AddEditPersonnelDialog allows saving new personnel without optional leave details`() {
+    var savedStart = -1L
+    var savedReturn = -1L
+    var savedReturned = false
+    var savedLeaveType = "UNSET"
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.AddEditPersonnelDialog(
+          personnelToEdit = null,
+          onDismiss = {},
+          onSave = { _, _, _, _, _, startMillis, returnMillis, isReturned, leaveType, _, _ ->
+            savedStart = startMillis
+            savedReturn = returnMillis
+            savedReturned = isReturned
+            savedLeaveType = leaveType
+          },
+          currentLang = AppLanguage.ARABIC,
+          animationsEnabled = false
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("full_name_input").performTextInput("سمير بلقاسم")
+    composeTestRule.onNodeWithTag("reg_number_input").performTextInput("DZ-778899")
+    composeTestRule.waitForIdle()
+
+    // Inline quick duration chips should no longer be visible until user opens optional leave dialog
+    composeTestRule.onNodeWithTag("quick_duration_chip_8").assertDoesNotExist()
+    composeTestRule.onNodeWithTag("open_optional_leave_dialog_btn").performScrollTo().assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag("save_personnel_button").performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(0L, savedStart)
+    assertEquals(0L, savedReturn)
+    assertEquals(true, savedReturned)
+    assertEquals("", savedLeaveType)
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `AddEditPersonnelDialog luxury wilaya picker filters by number and Arabic name`() {
+    var savedWilaya = ""
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.AddEditPersonnelDialog(
+          personnelToEdit = null,
+          onDismiss = {},
+          onSave = { _, _, _, _, _, _, _, _, _, wilaya, _ ->
+            savedWilaya = wilaya
+          },
+          currentLang = AppLanguage.ARABIC,
+          animationsEnabled = false
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("full_name_input").performTextInput("عادل زروقي")
+    composeTestRule.onNodeWithTag("reg_number_input").performTextInput("DZ-310031")
+
+    composeTestRule.onNodeWithTag("wilaya_selector_button").performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("luxury_wilaya_picker_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("wilaya_dropdown_search_input").performTextInput("وهران")
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("wilaya_item_31").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("luxury_wilaya_picker_dialog").assertDoesNotExist()
+    composeTestRule.onNodeWithTag("save_personnel_button").performClick()
+    composeTestRule.waitForIdle()
+
+    assertTrue(savedWilaya.startsWith("31 - "))
   }
 }
