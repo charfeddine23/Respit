@@ -168,6 +168,7 @@ import com.example.ui.components.LiquidGlassFloatingCapsule
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.components.StatisticsSection
+import com.example.ui.components.TopBarFadeToBlurOverlay
 import com.example.ui.components.TrashBinDialog
 import com.example.ui.screens.AnalyticsDashboardScreen
 import com.example.ui.screens.NotificationScreen
@@ -582,16 +583,29 @@ fun LeaveTrackerMainApp(
                         with(localDensity) { effectiveTopPx.toDp() }
                     }
 
-                    // Transparent outer wrapper — full-bleed content passes right behind the floating Top Bar capsule
+                    // Progressive Fade-to-Blur curtain above & behind the floating Top Bar capsule
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color.Transparent)
-                            .padding(top = preservedStatusBarTopDp)
-                            .padding(horizontal = 20.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.Center
                     ) {
-                        LiquidGlassFloatingCapsule(
+                        TopBarFadeToBlurOverlay(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .testTag("top_bar_fade_to_blur"),
+                            isDarkMode = effectiveTopDark,
+                            backdropLayer = backdropLayer,
+                            backdropOffsetInRoot = backdropOffsetInRoot
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = preservedStatusBarTopDp)
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            LiquidGlassFloatingCapsule(
                             modifier = Modifier
                                 .widthIn(max = 560.dp)
                                 .fillMaxWidth()
@@ -752,6 +766,7 @@ fun LeaveTrackerMainApp(
                                     )
                                 }
                             }
+                        }
                         }
                     }
                 }

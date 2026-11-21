@@ -1,6 +1,12 @@
 package com.example
 
 import android.content.Context
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
@@ -12,9 +18,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.Personnel
 import com.example.ui.components.PersonnelCard
+import com.example.ui.components.TopBarFadeToBlurOverlay
 import com.example.ui.theme.MyApplicationTheme
 import com.example.util.AppLanguage
 import kotlinx.coroutines.flow.first
@@ -740,5 +748,38 @@ class ComposeUiRobolectricTest {
     composeTestRule.waitForIdle()
 
     assertTrue(savedWilaya.startsWith("31 - "))
+  }
+
+  @Test
+  fun `TopBarFadeToBlurOverlay renders cleanly above floating top bar capsule in light and dark modes`() {
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        val layer = rememberGraphicsLayer()
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(112.dp)
+        ) {
+          TopBarFadeToBlurOverlay(
+            modifier = Modifier
+              .matchParentSize()
+              .testTag("test_top_fade_blur_light"),
+            isDarkMode = false,
+            backdropLayer = layer
+          )
+          TopBarFadeToBlurOverlay(
+            modifier = Modifier
+              .matchParentSize()
+              .testTag("test_top_fade_blur_dark"),
+            isDarkMode = true,
+            backdropLayer = layer
+          )
+        }
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("test_top_fade_blur_light").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("test_top_fade_blur_dark").assertIsDisplayed()
   }
 }

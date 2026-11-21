@@ -51,6 +51,37 @@ data class DutyReferenceInfo(
     val lastLeaveReturnMillis: Long? = null
 )
 
+data class LastShortLeaveInfo(
+    val record: LeaveRecord,
+    val daysCounter: Long,
+    val isCurrentlyOnShortLeave: Boolean,
+    val isReturningToday: Boolean
+) {
+    fun getCounterStatusText(lang: AppLanguage): String = when {
+        isCurrentlyOnShortLeave -> {
+            val remaining = (-daysCounter).coerceAtLeast(1L)
+            when (lang) {
+                AppLanguage.ARABIC -> "باقي $remaining يوم على العودة"
+                AppLanguage.FRENCH -> "Reste $remaining j avant reprise"
+                AppLanguage.TAMAZIGHT -> "Yeqqim $remaining n wussan uqbel tuɣalin"
+                else -> "$remaining day(s) remaining until return"
+            }
+        }
+        isReturningToday -> when (lang) {
+            AppLanguage.ARABIC -> "تاريخ العودة هو اليوم"
+            AppLanguage.FRENCH -> "Reprise prévue aujourd'hui"
+            AppLanguage.TAMAZIGHT -> "Tuɣalin ass-a"
+            else -> "Returning to duty today"
+        }
+        else -> when (lang) {
+            AppLanguage.ARABIC -> "مرت $daysCounter يوم منذ آخر إجازة قصيرة"
+            AppLanguage.FRENCH -> "$daysCounter j depuis la dernière permission"
+            AppLanguage.TAMAZIGHT -> "$daysCounter n wussan seg turagt taneggarut"
+            else -> "$daysCounter day(s) since last short leave"
+        }
+    }
+}
+
 @Entity(tableName = "personnel")
 data class Personnel(
     @PrimaryKey(autoGenerate = true)
@@ -178,6 +209,29 @@ data class Personnel(
                 lastLeaveReturnMillis = null
             )
         }
+    }
+
+    fun computeLastShortLeaveInfo(
+        allLeaves: List<LeaveRecord>,
+        todayMillis: Long = System.currentTimeMillis()
+    ): LastShortLeaveInfo? {
+        val lastShort = findLeavesForPersonnel(this, allLeaves)
+            .filter { isShortLeaveType(it.leaveType) }
+            .maxWithOrNull(
+                compareBy<LeaveRecord> { it.returnDateMillis }
+                    .thenBy { it.createdAtMillis }
+            ) ?: return null
+
+        val todayStart = toStartOfDay(todayMillis)
+        val startDay = toStartOfDay(lastShort.startDateMillis)
+        val returnDay = toStartOfDay(lastShort.returnDateMillis)
+        val signedDays = signedDaysBetween(returnDay, todayStart)
+        return LastShortLeaveInfo(
+            record = lastShort,
+            daysCounter = signedDays,
+            isCurrentlyOnShortLeave = todayStart in startDay until returnDay,
+            isReturningToday = todayStart == returnDay
+        )
     }
 
     fun isEligibleForLeave(

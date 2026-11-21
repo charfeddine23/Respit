@@ -10,6 +10,7 @@ import com.example.data.AppNotification
 import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
 import com.example.data.DutyReferenceInfo
+import com.example.data.LastShortLeaveInfo
 import com.example.data.LeaveAnalyticsCalculator
 import com.example.data.LeaveAnalyticsReport
 import com.example.data.LeaveRecord
@@ -250,6 +251,21 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         val now = System.currentTimeMillis()
         personnelList.associate { p ->
             p.id to p.computeDutyReferenceInfo(leavesList, now)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val lastShortLeaveMap: StateFlow<Map<Long, LastShortLeaveInfo>> = combine(
+        allPersonnel,
+        allLeaves,
+        dayRefreshTrigger
+    ) { personnelList, leavesList, _ ->
+        val now = System.currentTimeMillis()
+        buildMap {
+            personnelList.forEach { p ->
+                p.computeLastShortLeaveInfo(leavesList, now)?.let { info ->
+                    put(p.id, info)
+                }
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 

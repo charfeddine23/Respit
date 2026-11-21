@@ -56,13 +56,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
@@ -85,6 +89,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.AuroraCyanTop
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
@@ -467,6 +472,111 @@ fun LiquidGlassFloatingCapsule(
         )
 
         content()
+    }
+}
+
+/**
+ * Progressive Fade-to-Blur atmospheric curtain rendered above and behind the floating Top Bar:
+ * - Above the top bar (status bar / top margin), scrolling content smoothly fades into a 24.dp frosted blur.
+ * - Moving downward behind the floating capsule, the blur and mist feather cleanly down to 0% opacity with no hard edge.
+ */
+@Composable
+fun TopBarFadeToBlurOverlay(
+    modifier: Modifier = Modifier,
+    isDarkMode: Boolean,
+    backdropLayer: GraphicsLayer? = null,
+    backdropOffsetInRoot: Offset = Offset.Zero
+) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val mistColor = preset?.backgroundTop ?: if (effectiveDark) Color(0xFF090D1A) else AuroraCyanTop
+
+    var overlayPositionInRoot by remember { mutableStateOf(Offset.Zero) }
+    val supportsHardwareBlur = remember {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !Build.FINGERPRINT.equals("robolectric", ignoreCase = true)
+    }
+
+    val blurFadeMask = remember {
+        Brush.verticalGradient(
+            0.00f to Color.Black,
+            0.38f to Color.Black.copy(alpha = 0.96f),
+            0.68f to Color.Black.copy(alpha = 0.56f),
+            0.88f to Color.Black.copy(alpha = 0.16f),
+            1.00f to Color.Transparent
+        )
+    }
+
+    val atmosphericVeil = remember(mistColor, effectiveDark, supportsHardwareBlur) {
+        val topAlpha = if (supportsHardwareBlur) {
+            if (effectiveDark) 0.40f else 0.34f
+        } else {
+            if (effectiveDark) 0.78f else 0.72f
+        }
+        val midAlpha = if (supportsHardwareBlur) {
+            if (effectiveDark) 0.22f else 0.18f
+        } else {
+            if (effectiveDark) 0.48f else 0.42f
+        }
+        val tailAlpha = if (supportsHardwareBlur) {
+            if (effectiveDark) 0.06f else 0.04f
+        } else {
+            if (effectiveDark) 0.14f else 0.10f
+        }
+        Brush.verticalGradient(
+            0.00f to mistColor.copy(alpha = topAlpha),
+            0.38f to mistColor.copy(alpha = midAlpha),
+            0.78f to mistColor.copy(alpha = tailAlpha),
+            1.00f to Color.Transparent
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .clipToBounds()
+            .onGloballyPositioned { coords ->
+                overlayPositionInRoot = coords.positionInRoot()
+            }
+    ) {
+        if (backdropLayer != null && supportsHardwareBlur) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = blurFadeMask,
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
+            ) {
+                Canvas(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .blur(radius = 24.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                ) {
+                    val layerSize = backdropLayer.size
+                    if (layerSize.width > 0 && layerSize.height > 0) {
+                        val dx = backdropOffsetInRoot.x - overlayPositionInRoot.x
+                        val dy = backdropOffsetInRoot.y - overlayPositionInRoot.y
+                        withTransform({
+                            translate(left = dx, top = dy)
+                        }) {
+                            drawLayer(backdropLayer)
+                        }
+                    }
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(atmosphericVeil)
+        )
     }
 }
 

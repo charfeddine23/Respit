@@ -112,6 +112,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.example.data.LastShortLeaveInfo
 import com.example.data.LeaveStatus
 import com.example.data.Personnel
 import com.example.data.formatLeaveType
@@ -213,6 +214,7 @@ fun PersonnelCard(
     animationsEnabled: Boolean = true,
     currentLang: AppLanguage = AppLanguage.ARABIC,
     effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn,
+    lastShortLeaveInfo: LastShortLeaveInfo? = null,
     onTogglePin: () -> Unit = {},
     onSwipeDelete: () -> Unit = onDelete,
     onViewHistory: () -> Unit = {}
