@@ -729,7 +729,11 @@ fun AddEditPersonnelDialog(
                                                 regNumber = it
                                                 errorMessage = null
                                             },
-                                            placeholder = { Text("DZ-123456") },
+                                            placeholder = {
+                                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                                    Text("1.2026.00000")
+                                                }
+                                            },
                                             leadingIcon = {
                                                 Icon(
                                                     imageVector = Icons.Default.Badge,

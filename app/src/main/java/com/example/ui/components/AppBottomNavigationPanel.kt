@@ -90,6 +90,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AuroraCyanTop
+import com.example.ui.theme.AuroraPurpleBottom
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
@@ -177,16 +178,29 @@ fun AppBottomNavigationPanel(
     val glideDelta = if (targetBounds != null) abs(lensX - targetBounds.first) else 0f
     val stretchFactor = (1f + (glideDelta / 380f).coerceIn(0f, 0.14f))
 
-    // Outer container is 100% transparent — zero scrim, zero opaque bar, full-bleed content passes right behind it
+    // Outer wrapper keeps exact dock spacing while layering Fade-to-Blur smoothly behind & below the dock
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.Transparent)
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
     ) {
-        LiquidGlassFloatingCapsule(
+        BottomDockFadeToBlurOverlay(
+            modifier = Modifier
+                .matchParentSize()
+                .testTag("bottom_dock_fade_to_blur"),
+            isDarkMode = effectiveDark,
+            backdropLayer = backdropLayer,
+            backdropOffsetInRoot = backdropOffsetInRoot
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            LiquidGlassFloatingCapsule(
             modifier = Modifier
                 .widthIn(max = 520.dp)
                 .fillMaxWidth()
@@ -314,6 +328,7 @@ fun AppBottomNavigationPanel(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -475,6 +490,11 @@ fun LiquidGlassFloatingCapsule(
     }
 }
 
+private enum class FadeBlurEdge {
+    TOP,
+    BOTTOM
+}
+
 /**
  * Progressive Fade-to-Blur atmospheric curtain rendered above and behind the floating Top Bar:
  * - Above the top bar (status bar / top margin), scrolling content smoothly fades into a 24.dp frosted blur.
@@ -487,9 +507,50 @@ fun TopBarFadeToBlurOverlay(
     backdropLayer: GraphicsLayer? = null,
     backdropOffsetInRoot: Offset = Offset.Zero
 ) {
+    EdgeFadeToBlurOverlay(
+        edge = FadeBlurEdge.TOP,
+        modifier = modifier,
+        isDarkMode = isDarkMode,
+        backdropLayer = backdropLayer,
+        backdropOffsetInRoot = backdropOffsetInRoot
+    )
+}
+
+/**
+ * Progressive Fade-to-Blur atmospheric curtain rendered behind and below the floating Bottom Dock:
+ * - Below the bottom dock (navigation / gesture bar zone), scrolling content smoothly fades into a 24.dp frosted blur.
+ * - Moving upward behind and above the floating dock capsule, the blur and mist feather cleanly to 0% opacity.
+ */
+@Composable
+fun BottomDockFadeToBlurOverlay(
+    modifier: Modifier = Modifier,
+    isDarkMode: Boolean,
+    backdropLayer: GraphicsLayer? = null,
+    backdropOffsetInRoot: Offset = Offset.Zero
+) {
+    EdgeFadeToBlurOverlay(
+        edge = FadeBlurEdge.BOTTOM,
+        modifier = modifier,
+        isDarkMode = isDarkMode,
+        backdropLayer = backdropLayer,
+        backdropOffsetInRoot = backdropOffsetInRoot
+    )
+}
+
+@Composable
+private fun EdgeFadeToBlurOverlay(
+    edge: FadeBlurEdge,
+    modifier: Modifier = Modifier,
+    isDarkMode: Boolean,
+    backdropLayer: GraphicsLayer? = null,
+    backdropOffsetInRoot: Offset = Offset.Zero
+) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
-    val mistColor = preset?.backgroundTop ?: if (effectiveDark) Color(0xFF090D1A) else AuroraCyanTop
+    val mistColor = when (edge) {
+        FadeBlurEdge.TOP -> preset?.backgroundTop ?: if (effectiveDark) Color(0xFF090D1A) else AuroraCyanTop
+        FadeBlurEdge.BOTTOM -> preset?.backgroundBottom ?: if (effectiveDark) Color(0xFF1E293B) else AuroraPurpleBottom
+    }
 
     var overlayPositionInRoot by remember { mutableStateOf(Offset.Zero) }
     val supportsHardwareBlur = remember {
@@ -497,18 +558,28 @@ fun TopBarFadeToBlurOverlay(
             !Build.FINGERPRINT.equals("robolectric", ignoreCase = true)
     }
 
-    val blurFadeMask = remember {
-        Brush.verticalGradient(
-            0.00f to Color.Black,
-            0.38f to Color.Black.copy(alpha = 0.96f),
-            0.68f to Color.Black.copy(alpha = 0.56f),
-            0.88f to Color.Black.copy(alpha = 0.16f),
-            1.00f to Color.Transparent
-        )
+    val blurFadeMask = remember(edge) {
+        if (edge == FadeBlurEdge.TOP) {
+            Brush.verticalGradient(
+                0.00f to Color.Black,
+                0.38f to Color.Black.copy(alpha = 0.96f),
+                0.68f to Color.Black.copy(alpha = 0.56f),
+                0.88f to Color.Black.copy(alpha = 0.16f),
+                1.00f to Color.Transparent
+            )
+        } else {
+            Brush.verticalGradient(
+                0.00f to Color.Transparent,
+                0.12f to Color.Black.copy(alpha = 0.16f),
+                0.32f to Color.Black.copy(alpha = 0.56f),
+                0.62f to Color.Black.copy(alpha = 0.96f),
+                1.00f to Color.Black
+            )
+        }
     }
 
-    val atmosphericVeil = remember(mistColor, effectiveDark, supportsHardwareBlur) {
-        val topAlpha = if (supportsHardwareBlur) {
+    val atmosphericVeil = remember(edge, mistColor, effectiveDark, supportsHardwareBlur) {
+        val peakAlpha = if (supportsHardwareBlur) {
             if (effectiveDark) 0.40f else 0.34f
         } else {
             if (effectiveDark) 0.78f else 0.72f
@@ -523,12 +594,21 @@ fun TopBarFadeToBlurOverlay(
         } else {
             if (effectiveDark) 0.14f else 0.10f
         }
-        Brush.verticalGradient(
-            0.00f to mistColor.copy(alpha = topAlpha),
-            0.38f to mistColor.copy(alpha = midAlpha),
-            0.78f to mistColor.copy(alpha = tailAlpha),
-            1.00f to Color.Transparent
-        )
+        if (edge == FadeBlurEdge.TOP) {
+            Brush.verticalGradient(
+                0.00f to mistColor.copy(alpha = peakAlpha),
+                0.38f to mistColor.copy(alpha = midAlpha),
+                0.78f to mistColor.copy(alpha = tailAlpha),
+                1.00f to Color.Transparent
+            )
+        } else {
+            Brush.verticalGradient(
+                0.00f to Color.Transparent,
+                0.22f to mistColor.copy(alpha = tailAlpha),
+                0.62f to mistColor.copy(alpha = midAlpha),
+                1.00f to mistColor.copy(alpha = peakAlpha)
+            )
+        }
     }
 
     Box(

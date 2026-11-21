@@ -21,6 +21,7 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.Personnel
+import com.example.ui.components.BottomDockFadeToBlurOverlay
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.TopBarFadeToBlurOverlay
 import com.example.ui.theme.MyApplicationTheme
@@ -774,6 +775,20 @@ class ComposeUiRobolectricTest {
             isDarkMode = true,
             backdropLayer = layer
           )
+          BottomDockFadeToBlurOverlay(
+            modifier = Modifier
+              .matchParentSize()
+              .testTag("test_bottom_fade_blur_light"),
+            isDarkMode = false,
+            backdropLayer = layer
+          )
+          BottomDockFadeToBlurOverlay(
+            modifier = Modifier
+              .matchParentSize()
+              .testTag("test_bottom_fade_blur_dark"),
+            isDarkMode = true,
+            backdropLayer = layer
+          )
         }
       }
     }
@@ -781,5 +796,7 @@ class ComposeUiRobolectricTest {
     composeTestRule.waitForIdle()
     composeTestRule.onNodeWithTag("test_top_fade_blur_light").assertIsDisplayed()
     composeTestRule.onNodeWithTag("test_top_fade_blur_dark").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("test_bottom_fade_blur_light").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("test_bottom_fade_blur_dark").assertIsDisplayed()
   }
 }
