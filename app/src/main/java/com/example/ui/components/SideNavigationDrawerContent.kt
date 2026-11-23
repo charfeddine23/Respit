@@ -122,12 +122,20 @@ import com.example.data.AppThemeMode
 import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
-import com.example.ui.theme.KufiArabicBrandFontFamily
+import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CoralRedAccent
+import com.example.ui.theme.CyanGlow
+import com.example.ui.theme.EmeraldSuccess
+import com.example.ui.theme.KufiArabicBrandFontFamily
 import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
+import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.ThemeEngine
-import com.example.ui.theme.liquidGlassInteractive
+import com.example.ui.theme.VibrantCyan
+import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import java.text.SimpleDateFormat
@@ -261,22 +269,22 @@ fun SideNavigationDrawerContent(
                     if (isFullScreenPage && topBarClearance > 0.dp) {
                         Spacer(modifier = Modifier.height(topBarClearance))
                     }
-                    // SECTION 1: App Identity Header Card (Logo + App Title + Subtitle cleanly without nested language prompt)
-                    Surface(
-                        shape = RoundedCornerShape(22.dp),
-                        color = activeThemePreset?.surfacePrimary
-                            ?: if (isDarkMode) Color(0xFF1E293B) else Color.White,
-                        border = BorderStroke(
-                            1.2.dp,
-                            Brush.linearGradient(
-                                if (isDarkMode) listOf(Color(0x40FFFFFF), accentCyan.copy(alpha = 0.45f))
-                                else listOf(Color.White, accentCyan.copy(alpha = 0.55f))
-                            )
-                        ),
-                        shadowElevation = 4.dp,
+                    // SECTION 1: App Identity Header Card
+                    val effectiveDark = activeThemePreset?.isDark ?: isDarkMode
+                    val headerPrimary = activeThemePreset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+                    val textPrimary = activeThemePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .defaultMinSize(minHeight = 78.dp)
+                            .defaultMinSize(minHeight = 82.dp)
+                            .liquidGlass(
+                                shape = RoundedCornerShape(24.dp),
+                                elevation = 6.dp,
+                                borderAlpha = 0.92f,
+                                isDark = effectiveDark,
+                                cornerRadius = 24.dp
+                            )
                             .testTag("drawer_header_language_card")
                     ) {
                         Row(
@@ -285,15 +293,30 @@ fun SideNavigationDrawerContent(
                                 .fillMaxWidth()
                                 .padding(14.dp)
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.app_logo),
-                                contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                                contentScale = ContentScale.Fit,
-                                colorFilter = ColorFilter.tint(
-                                    if (isDarkMode) Color.White else MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier.size(width = 66.dp, height = 52.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(16.dp),
+                                        cornerRadius = 16.dp,
+                                        isDark = effectiveDark,
+                                        accent = headerPrimary,
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.app_logo),
+                                    contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                    contentScale = ContentScale.Fit,
+                                    colorFilter = ColorFilter.tint(
+                                        if (effectiveDark) Color.White else MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.size(width = 44.dp, height = 38.dp)
+                                )
+                            }
 
                             Spacer(modifier = Modifier.width(12.dp))
 
@@ -307,12 +330,12 @@ fun SideNavigationDrawerContent(
                                         lineHeight = if (isArabicTitle) 26.sp else 22.sp
                                     ),
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                    color = textPrimary
                                 )
                                 Text(
                                     text = AppStrings.get("app_subtitle", currentLang),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = headerPrimary,
                                     fontSize = 11.sp,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
@@ -320,43 +343,6 @@ fun SideNavigationDrawerContent(
                             }
                         }
                     }
-
-                    // Dedicated Language Button directly beneath the App Container
-                    DrawerNavigationItem(
-                        icon = Icons.Default.Language,
-                        iconTint = accentCyan,
-                        title = AppStrings.get("settings_cat_language", currentLang),
-                        subtitle = currentLang.displayName,
-                        isDarkMode = isDarkMode,
-                        haptic = haptic,
-                        onClick = { currentRoute = SettingsRoute.LANGUAGE },
-                        trailingContent = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(50.dp),
-                                    color = accentCyan.copy(alpha = if (isDarkMode) 0.20f else 0.12f)
-                                ) {
-                                    Text(
-                                        text = currentLang.name.take(2),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = accentCyan,
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        },
-                        testTag = "settings_nav_language"
-                    )
 
                     // Conditional Undo pill only when an undo action exists
                     AnimatedVisibility(
@@ -378,7 +364,7 @@ fun SideNavigationDrawerContent(
                     ) {
                         DrawerNavigationItem(
                             icon = Icons.AutoMirrored.Filled.Undo,
-                            iconTint = Color(0xFFD97706),
+                            iconTint = AmberWarning,
                             title = AppStrings.get("undo_btn", currentLang),
                             subtitle = lastUndo?.getDescription(currentLang),
                             isDarkMode = isDarkMode,
@@ -388,7 +374,57 @@ fun SideNavigationDrawerContent(
                         )
                     }
 
-                    // SECTION 2: Appearance
+                    // SECTION 2: Appearance & Language
+                    LiquidGlassSectionHighlight(
+                        title = AppStrings.get("settings_sec_appearance", currentLang),
+                        icon = Icons.Default.Palette,
+                        accent = Color(0xFF8B5CF6),
+                        isDark = effectiveDark
+                    )
+
+                    DrawerNavigationItem(
+                        icon = Icons.Default.Language,
+                        iconTint = accentCyan,
+                        title = AppStrings.get("settings_cat_language", currentLang),
+                        subtitle = currentLang.displayName,
+                        isDarkMode = isDarkMode,
+                        haptic = haptic,
+                        onClick = { currentRoute = SettingsRoute.LANGUAGE },
+                        trailingContent = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(50.dp),
+                                        cornerRadius = 50.dp,
+                                        isDark = effectiveDark,
+                                        accent = accentCyan,
+                                        secondaryAccent = accentCyan,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
+                                ) {
+                                    Text(
+                                        text = currentLang.name.take(2),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = accentCyan,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        testTag = "settings_nav_language"
+                    )
+
                     DrawerNavigationItem(
                         icon = Icons.Default.Palette,
                         iconTint = Color(0xFF8B5CF6),
@@ -401,17 +437,24 @@ fun SideNavigationDrawerContent(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                 modifier = Modifier.size(20.dp)
                             )
                         },
                         testTag = "settings_nav_appearance"
                     )
 
-                    // SECTION 3: Security
+                    // SECTION 3: Security, Alerts & Data Management
+                    LiquidGlassSectionHighlight(
+                        title = AppStrings.get("settings_sec_security", currentLang),
+                        icon = Icons.Default.Shield,
+                        accent = EmeraldSuccess,
+                        isDark = effectiveDark
+                    )
+
                     DrawerNavigationItem(
                         icon = Icons.Default.Shield,
-                        iconTint = Color(0xFF10B981),
+                        iconTint = EmeraldSuccess,
                         title = AppStrings.get("settings_cat_security", currentLang),
                         subtitle = AppStrings.get("settings_cat_security_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -427,13 +470,13 @@ fun SideNavigationDrawerContent(
                                         modifier = Modifier
                                             .size(8.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFF10B981))
+                                            .background(EmeraldSuccess)
                                     )
                                 }
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
-                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -441,7 +484,6 @@ fun SideNavigationDrawerContent(
                         testTag = "settings_nav_security"
                     )
 
-                    // SECTION 4: Notifications & Leave Eligibility Threshold (Days)
                     DrawerNavigationItem(
                         icon = Icons.Default.NotificationsActive,
                         iconTint = Color(0xFF0284C7),
@@ -455,22 +497,29 @@ fun SideNavigationDrawerContent(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(50.dp),
-                                    color = Color(0xFF0284C7).copy(alpha = if (isDarkMode) 0.20f else 0.12f)
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(50.dp),
+                                        cornerRadius = 50.dp,
+                                        isDark = effectiveDark,
+                                        accent = Color(0xFF0284C7),
+                                        secondaryAccent = Color(0xFF0284C7),
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
                                 ) {
                                     Text(
                                         text = "$dutyThreshold ${AppStrings.get("days", currentLang)}",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF0284C7),
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                        color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF0284C7),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
                                 }
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
-                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -478,7 +527,6 @@ fun SideNavigationDrawerContent(
                         testTag = "settings_nav_notifications"
                     )
 
-                    // SECTION 5: Trash Bin
                     DrawerNavigationItem(
                         icon = Icons.Default.DeleteSweep,
                         iconTint = CoralRedAccent,
@@ -509,7 +557,7 @@ fun SideNavigationDrawerContent(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
-                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -517,10 +565,9 @@ fun SideNavigationDrawerContent(
                         testTag = "settings_nav_trash_bin"
                     )
 
-                    // SECTION 6: Backup, Restore & Tools
                     DrawerNavigationItem(
                         icon = Icons.Default.CloudSync,
-                        iconTint = Color(0xFF4285F4),
+                        iconTint = RoyalBlueAccent,
                         title = AppStrings.get("settings_cat_backup", currentLang),
                         subtitle = AppStrings.get("settings_cat_backup_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -530,14 +577,21 @@ fun SideNavigationDrawerContent(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                 modifier = Modifier.size(20.dp)
                             )
                         },
                         testTag = "settings_nav_backup_restore"
                     )
 
-                    // App Update (directly below Backup & Restore on Settings root)
+                    // SECTION 4: Updates & About
+                    LiquidGlassSectionHighlight(
+                        title = AppStrings.get("settings_sec_about", currentLang),
+                        icon = Icons.Default.Info,
+                        accent = accentCyan,
+                        isDark = effectiveDark
+                    )
+
                     DrawerNavigationItem(
                         icon = Icons.Default.RocketLaunch,
                         iconTint = accentCyan,
@@ -560,13 +614,13 @@ fun SideNavigationDrawerContent(
                                         modifier = Modifier
                                             .size(8.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFF10B981))
+                                            .background(EmeraldSuccess)
                                     )
                                 }
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
-                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -574,10 +628,9 @@ fun SideNavigationDrawerContent(
                         testTag = "drawer_update_item"
                     )
 
-                    // Developer Info (below App Update on Settings root)
                     DrawerNavigationItem(
                         icon = Icons.Default.Info,
-                        iconTint = Color(0xFF0284C7),
+                        iconTint = RoyalBlueAccent,
                         title = AppStrings.get("developer_info", currentLang),
                         subtitle = "Developed by Charfeddine Ka",
                         isDarkMode = isDarkMode,
@@ -587,32 +640,41 @@ fun SideNavigationDrawerContent(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                tint = if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                 modifier = Modifier.size(20.dp)
                             )
                         },
                         testTag = "drawer_developer_item"
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    HorizontalDivider(color = dividerColor)
-
-                    // Compact Unit Overview Strip
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Compact Liquid Glass Unit Overview Card
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .liquidGlass(
+                                shape = RoundedCornerShape(20.dp),
+                                elevation = 4.dp,
+                                isDark = effectiveDark,
+                                cornerRadius = 20.dp
+                            )
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
                             text = AppStrings.get("drawer_quick_stats", currentLang),
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            fontWeight = FontWeight.ExtraBold,
+                            color = activeThemePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            SidebarStatBadge(AppStrings.get("stat_total", currentLang), "${stats.total}", MaterialTheme.colorScheme.primary, isDarkMode, Modifier.weight(1f))
+                            SidebarStatBadge(AppStrings.get("stat_total", currentLang), "${stats.total}", headerPrimary, isDarkMode, Modifier.weight(1f))
                             SidebarStatBadge(AppStrings.get("stat_on_leave", currentLang), "${stats.atHome}", Color(0xFF0284C7), isDarkMode, Modifier.weight(1f))
-                            SidebarStatBadge(AppStrings.get("stat_returning_today", currentLang), "${stats.returningToday}", Color(0xFFD97706), isDarkMode, Modifier.weight(1f))
+                            SidebarStatBadge(AppStrings.get("stat_returning_today", currentLang), "${stats.returningToday}", AmberWarning, isDarkMode, Modifier.weight(1f))
                             SidebarStatBadge(AppStrings.get("stat_overdue", currentLang), "${stats.overdue}", Color(0xFFDC2626), isDarkMode, Modifier.weight(1f))
                         }
                     }
@@ -684,37 +746,39 @@ fun SideNavigationDrawerContent(
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onSelectLanguage(lang)
                             },
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) {
-                                accentCyan.copy(alpha = if (isDarkMode) 0.20f else 0.12f)
-                            } else {
-                                activeThemePreset?.surfacePrimary
-                                    ?: if (isDarkMode) Color(0xFF1E293B) else Color.White
-                            },
-                            border = BorderStroke(
-                                if (isSelected) 1.6.dp else 1.dp,
-                                if (isSelected) accentCyan
-                                else if (isDarkMode) Color(0x33475569) else Color(0x38CBD5E1)
-                            ),
-                            shadowElevation = if (isSelected) 3.dp else 1.dp,
+                            shape = RoundedCornerShape(18.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .defaultMinSize(minHeight = 56.dp)
+                                .defaultMinSize(minHeight = 60.dp)
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(18.dp),
+                                    cornerRadius = 18.dp,
+                                    isDark = activeThemePreset?.isDark ?: isDarkMode,
+                                    accent = accentCyan,
+                                    secondaryAccent = RoyalBlueAccent,
+                                    isSelected = isSelected,
+                                    softTintWhenSelected = true
+                                )
                                 .testTag("lang_option_${lang.code}")
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    .padding(horizontal = 14.dp, vertical = 11.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(
-                                            if (isSelected) accentCyan
-                                            else accentCyan.copy(alpha = if (isDarkMode) 0.16f else 0.10f)
+                                        .size(42.dp)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(13.dp),
+                                            cornerRadius = 13.dp,
+                                            isDark = activeThemePreset?.isDark ?: isDarkMode,
+                                            accent = accentCyan,
+                                            secondaryAccent = RoyalBlueAccent,
+                                            isSelected = isSelected,
+                                            softTintWhenSelected = !isSelected
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -733,12 +797,12 @@ fun SideNavigationDrawerContent(
                                         text = title,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                        color = activeThemePreset?.textPrimary ?: if (isDarkMode) Color.White else SlateTextPrimary
                                     )
                                     Text(
                                         text = subtitle,
                                         fontSize = 11.sp,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        color = activeThemePreset?.textSecondary ?: if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -903,17 +967,8 @@ fun SideNavigationDrawerContent(
                                 showThemeEngineDialog = true
                             },
                             interactionSource = engineInteraction,
-                            shape = RoundedCornerShape(14.dp),
-                            color = engineAccent.copy(alpha = if (isDarkMode) 0.14f else 0.08f),
-                            border = BorderStroke(
-                                1.1.dp,
-                                Brush.linearGradient(
-                                    listOf(
-                                        engineAccent.copy(alpha = 0.55f),
-                                        (activeThemePreset?.secondary ?: Color(0xFF8B5CF6)).copy(alpha = 0.45f)
-                                    )
-                                )
-                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .defaultMinSize(minHeight = 56.dp)
@@ -921,6 +976,15 @@ fun SideNavigationDrawerContent(
                                     scaleX = engineScale
                                     scaleY = engineScale
                                 }
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(16.dp),
+                                    cornerRadius = 16.dp,
+                                    isDark = isDarkMode,
+                                    accent = engineAccent,
+                                    secondaryAccent = activeThemePreset?.secondary ?: Color(0xFF8B5CF6),
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
                                 .testTag("drawer_theme_engine_button")
                         ) {
                             Row(
@@ -932,21 +996,21 @@ fun SideNavigationDrawerContent(
                                 Box(
                                     modifier = Modifier
                                         .size(38.dp)
-                                        .clip(RoundedCornerShape(11.dp))
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    engineAccent.copy(alpha = 0.28f),
-                                                    (activeThemePreset?.secondary ?: Color(0xFF8B5CF6)).copy(alpha = 0.24f)
-                                                )
-                                            )
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(11.dp),
+                                            cornerRadius = 11.dp,
+                                            isDark = isDarkMode,
+                                            accent = engineAccent,
+                                            secondaryAccent = activeThemePreset?.secondary ?: Color(0xFF8B5CF6),
+                                            isSelected = true,
+                                            softTintWhenSelected = false
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
-                                        tint = engineAccent,
+                                        tint = Color.White,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -963,9 +1027,16 @@ fun SideNavigationDrawerContent(
                                             color = activeThemePreset?.textPrimary
                                                 ?: if (isDarkMode) Color.White else Color(0xFF0F172A)
                                         )
-                                        Surface(
-                                            shape = RoundedCornerShape(50.dp),
-                                            color = engineAccent.copy(alpha = 0.20f)
+                                        Box(
+                                            modifier = Modifier.liquidGlassPanel(
+                                                shape = RoundedCornerShape(50.dp),
+                                                cornerRadius = 50.dp,
+                                                isDark = isDarkMode,
+                                                accent = engineAccent,
+                                                secondaryAccent = engineAccent,
+                                                isSelected = true,
+                                                softTintWhenSelected = true
+                                            )
                                         ) {
                                             Text(
                                                 text = "${ThemeEngine.allThemes.size}",
@@ -1576,57 +1647,75 @@ private fun SettingsSubPageHeader(
     onBack: () -> Unit
 ) {
     val activeThemePreset = LocalThemePreset.current
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = activeThemePreset?.surfacePrimary ?: if (isDarkMode) Color(0xFF1E293B) else Color.White,
-        border = BorderStroke(
-            1.dp,
-            Brush.linearGradient(
-                if (isDarkMode) listOf(Color(0x38FFFFFF), accentColor.copy(alpha = 0.45f))
-                else listOf(Color.White, accentColor.copy(alpha = 0.45f))
+    val effectiveDark = activeThemePreset?.isDark ?: isDarkMode
+    val textPrimary = activeThemePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = activeThemePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(22.dp),
+                elevation = 5.dp,
+                isDark = effectiveDark,
+                cornerRadius = 22.dp
             )
-        ),
-        shadowElevation = 3.dp,
-        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 10.dp),
+                .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
+            Surface(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onBack()
                 },
+                shape = CircleShape,
+                color = Color.Transparent,
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
+                    .liquidGlassPanel(
+                        shape = CircleShape,
+                        cornerRadius = 24.dp,
+                        isDark = effectiveDark,
+                        accent = accentColor,
+                        secondaryAccent = RoyalBlueAccent
+                    )
                     .testTag("settings_subpage_back_button")
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = backContentDesc,
-                    tint = accentColor,
-                    modifier = Modifier.size(22.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = backContentDesc,
+                        tint = accentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.14f)),
+                    .size(40.dp)
+                    .liquidGlassPanel(
+                        shape = RoundedCornerShape(13.dp),
+                        cornerRadius = 13.dp,
+                        isDark = effectiveDark,
+                        accent = accentColor,
+                        secondaryAccent = RoyalBlueAccent,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accentColor,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
@@ -1637,14 +1726,14 @@ private fun SettingsSubPageHeader(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                    color = textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    color = textSecondary,
                     fontSize = 11.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -1660,19 +1749,18 @@ private fun CleanSettingsCard(
     content: @Composable () -> Unit
 ) {
     val activeThemePreset = LocalThemePreset.current
+    val effectiveDark = activeThemePreset?.isDark ?: isDarkMode
     val isLivingLuxury = LocalLivingLuxuryMode.current
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = activeThemePreset?.surfacePrimary ?: if (isDarkMode) Color(0xFF1E293B) else Color.White,
-        border = BorderStroke(
-            if (isLivingLuxury) 1.3.dp else 1.dp,
-            activeThemePreset?.borderAccent?.copy(alpha = if (isLivingLuxury) 0.7f else 0.45f)
-                ?: if (isLivingLuxury) Color(0x6638BDF8)
-                else if (isDarkMode) Color(0x33475569)
-                else Color(0x38CBD5E1)
-        ),
-        shadowElevation = if (isLivingLuxury) 5.dp else if (isDarkMode) 2.dp else 1.dp,
-        modifier = Modifier.fillMaxWidth()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(20.dp),
+                elevation = if (isLivingLuxury) 6.dp else 4.dp,
+                borderAlpha = if (isLivingLuxury) 0.95f else 0.85f,
+                isDark = effectiveDark,
+                cornerRadius = 20.dp
+            )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             content()
@@ -1691,28 +1779,14 @@ private fun TactileSegmentedOption(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.96f else 1f,
         animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
         label = "segmentScale"
-    )
-    val bgColor by animateColorAsState(
-        targetValue = when {
-            selected && isDarkMode -> accentColor.copy(alpha = 0.22f)
-            selected && !isDarkMode -> accentColor.copy(alpha = 0.13f)
-            isPressed -> accentColor.copy(alpha = 0.08f)
-            isDarkMode -> Color(0x280F172A)
-            else -> Color(0xFFF8FAFC)
-        },
-        animationSpec = tween(180),
-        label = "segmentBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) accentColor else if (isDarkMode) Color(0x38475569) else Color(0x45CBD5E1),
-        animationSpec = tween(180),
-        label = "segmentBorder"
     )
 
     Surface(
@@ -1721,15 +1795,23 @@ private fun TactileSegmentedOption(
             onClick()
         },
         interactionSource = interactionSource,
-        shape = RoundedCornerShape(12.dp),
-        color = bgColor,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.Transparent,
         modifier = modifier
             .height(48.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(14.dp),
+                cornerRadius = 14.dp,
+                isDark = effectiveDark,
+                accent = accentColor,
+                secondaryAccent = accentColor,
+                isSelected = selected,
+                softTintWhenSelected = true
+            )
     ) {
         Row(
             modifier = Modifier
@@ -1741,19 +1823,15 @@ private fun TactileSegmentedOption(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) accentColor else if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                tint = if (selected) accentColor else if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
                 fontSize = 11.5.sp,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) {
-                    if (isDarkMode) accentColor else accentColor.copy(alpha = 0.95f)
-                } else {
-                    if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF1E293B)
-                },
+                fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                color = if (selected) accentColor else (preset?.textPrimary ?: if (effectiveDark) Color(0xFFCBD5E1) else SlateTextPrimary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1776,6 +1854,8 @@ private fun TactileSwitchSettingRow(
     switchTag: String? = null,
     onToggle: (Boolean) -> Unit
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -1790,12 +1870,8 @@ private fun TactileSwitchSettingRow(
             onToggle(!checked)
         },
         interactionSource = interactionSource,
-        shape = RoundedCornerShape(12.dp),
-        color = if (isPressed) {
-            iconTint.copy(alpha = if (isDarkMode) 0.12f else 0.08f)
-        } else {
-            Color.Transparent
-        },
+        shape = RoundedCornerShape(14.dp),
+        color = if (isPressed) iconTint.copy(alpha = if (effectiveDark) 0.14f else 0.09f) else Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp)
@@ -1818,9 +1894,16 @@ private fun TactileSwitchSettingRow(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(iconTint.copy(alpha = 0.14f)),
+                        .size(36.dp)
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(11.dp),
+                            cornerRadius = 11.dp,
+                            isDark = effectiveDark,
+                            accent = iconTint,
+                            secondaryAccent = iconTint,
+                            isSelected = true,
+                            softTintWhenSelected = true
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1836,12 +1919,12 @@ private fun TactileSwitchSettingRow(
                         text = title,
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                        color = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
                     )
                     Text(
                         text = subtitle,
                         fontSize = 10.5.sp,
-                        color = subtitleColor ?: if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        color = subtitleColor ?: preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
                     )
                 }
             }
@@ -1872,6 +1955,8 @@ private fun TactileActionPillButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -1879,65 +1964,50 @@ private fun TactileActionPillButton(
         animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
         label = "actionPillScale"
     )
+    val labelColor = when {
+        isFilled -> Color.White
+        effectiveDark && accentColor == Color(0xFF4285F4) -> Color(0xFF8AB4F8)
+        else -> accentColor
+    }
 
-    if (isFilled) {
-        Button(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick()
-            },
-            interactionSource = interactionSource,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = accentColor,
-                contentColor = Color.White
-            ),
-            contentPadding = PaddingValues(horizontal = 10.dp),
-            modifier = modifier
-                .height(48.dp)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-        ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = text,
-                fontSize = 11.5.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+    Surface(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(14.dp),
+        color = Color.Transparent,
+        modifier = modifier
+            .height(48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(14.dp),
+                cornerRadius = 14.dp,
+                isDark = effectiveDark,
+                accent = accentColor,
+                secondaryAccent = accentColor,
+                isSelected = true,
+                softTintWhenSelected = !isFilled
             )
-        }
-    } else {
-        OutlinedButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick()
-            },
-            interactionSource = interactionSource,
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.65f)),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = accentColor.copy(alpha = if (isDarkMode) 0.10f else 0.06f),
-                contentColor = accentColor
-            ),
-            contentPadding = PaddingValues(horizontal = 10.dp),
-            modifier = modifier
-                .height(48.dp)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = labelColor, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkMode && accentColor == Color(0xFF4285F4)) Color(0xFF8AB4F8) else accentColor,
+                color = labelColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1958,31 +2028,13 @@ private fun DrawerNavigationItem(
     testTag: String
 ) {
     val activeThemePreset = LocalThemePreset.current
+    val effectiveDark = activeThemePreset?.isDark ?: isDarkMode
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
         label = "drawerItemScale"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (isPressed) {
-            iconTint.copy(alpha = 0.75f)
-        } else {
-            if (isDarkMode) Color(0x33475569) else Color(0x3338BDF8)
-        },
-        animationSpec = tween(150),
-        label = "drawerItemBorder"
-    )
-    val bgColor by animateColorAsState(
-        targetValue = if (isPressed) {
-            if (isDarkMode) Color(0xFF263449) else iconTint.copy(alpha = 0.08f)
-        } else {
-            activeThemePreset?.surfacePrimary
-                ?: if (isDarkMode) Color(0xFF1E293B) else Color.White.copy(alpha = 0.92f)
-        },
-        animationSpec = tween(150),
-        label = "drawerItemBg"
     )
 
     Surface(
@@ -1991,9 +2043,8 @@ private fun DrawerNavigationItem(
             onClick()
         },
         interactionSource = interactionSource,
-        shape = RoundedCornerShape(16.dp),
-        color = bgColor,
-        border = BorderStroke(if (isPressed) 1.4.dp else 1.dp, borderColor),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 56.dp)
@@ -2001,6 +2052,15 @@ private fun DrawerNavigationItem(
                 scaleX = scale
                 scaleY = scale
             }
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(18.dp),
+                cornerRadius = 18.dp,
+                isDark = effectiveDark,
+                accent = iconTint,
+                secondaryAccent = RoyalBlueAccent,
+                isSelected = isPressed,
+                softTintWhenSelected = true
+            )
             .testTag(testTag)
     ) {
         Row(
@@ -2011,9 +2071,16 @@ private fun DrawerNavigationItem(
         ) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(iconTint.copy(alpha = 0.15f)),
+                    .size(40.dp)
+                    .liquidGlassPanel(
+                        shape = RoundedCornerShape(12.dp),
+                        cornerRadius = 12.dp,
+                        isDark = effectiveDark,
+                        accent = iconTint,
+                        secondaryAccent = iconTint,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -2031,13 +2098,13 @@ private fun DrawerNavigationItem(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                    color = activeThemePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
                 )
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
+                        color = activeThemePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary,
                         fontSize = 11.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -2061,22 +2128,30 @@ private fun SidebarStatBadge(
     isDarkMode: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        color = color.copy(alpha = if (isDarkMode) 0.18f else 0.12f),
-        shape = RoundedCornerShape(10.dp),
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    Box(
         modifier = modifier
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(14.dp),
+                cornerRadius = 14.dp,
+                isDark = effectiveDark,
+                accent = color,
+                secondaryAccent = color,
+                isSelected = true,
+                softTintWhenSelected = true
+            )
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black, color = color)
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkMode) color else Color(0xFF0F172A),
+                color = preset?.textPrimary ?: if (effectiveDark) Color(0xFFE2E8F0) else SlateTextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

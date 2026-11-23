@@ -124,6 +124,20 @@ import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
 import com.example.ui.PersonnelViewModel
+import com.example.ui.components.LiquidGlassActionButton
+import com.example.ui.theme.CyanGlow
+import com.example.ui.theme.EmeraldSuccess
+import com.example.ui.theme.LiquidGlassDefaults
+import com.example.ui.theme.LocalThemePreset
+import com.example.ui.theme.RedDanger
+import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.SyncDialogLiquidGlassWindow
+import com.example.ui.theme.VibrantCyan
+import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.liquidGlassDialogShell
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.BiometricAuthHelper
@@ -139,15 +153,21 @@ import kotlinx.coroutines.withContext
 fun RoomDatabaseScreen(
     viewModel: PersonnelViewModel,
     onBack: () -> Unit,
-    topBarClearance: Dp = 0.dp
+    topBarClearance: Dp = 0.dp,
+    bottomDockClearance: Dp = 0.dp
 ) {
     BackHandler { onBack() }
 
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val themeStyle by viewModel.currentThemeStyle.collectAsState()
-    val isNeumorphic = themeStyle == AppThemeStyle.NEUMORPHISM
+    val activePreset = LocalThemePreset.current
+    val effectiveDark = activePreset?.isDark ?: isDarkMode
+    val primaryAccent = activePreset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
+    val secondaryAccent = activePreset?.secondary ?: VibrantCyan
+    val isNeumorphic = (themeStyle == AppThemeStyle.NEUMORPHISM) && (activePreset?.isLiquidGlass != true)
 
     val personnelList by viewModel.allPersonnel.collectAsState()
     val leavesList by viewModel.allLeaves.collectAsState()
@@ -158,10 +178,8 @@ fun RoomDatabaseScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
 
-    val bgColor = if (isDarkMode) Color(0xFF131926) else if (isNeumorphic) Color(0xFFE6EEF8) else Color(0xFFF1F5F9)
-    val cardBg = if (isDarkMode) Color(0xFF161F30) else if (isNeumorphic) Color(0xFFE6EEF8) else Color.White
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val textPrimary = activePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = activePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
     val isNoScreenshotEnabled by viewModel.isNoScreenshotEnabled.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -205,85 +223,137 @@ fun RoomDatabaseScreen(
     ) {
         Box(modifier = Modifier.fillMaxSize().testTag("room_database_screen")) {
             Column(modifier = Modifier.fillMaxSize().padding(top = topBarClearance)) {
-                Surface(
-                    color = if (isDarkMode) Color(0xCC0F172A) else Color(0xDAE2E8F0),
-                    tonalElevation = 0.dp,
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Storage,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = AppStrings.get("nav_database", currentLang),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textPrimary
-                                )
-                            }
-                            Text(
-                                text = AppStrings.get("room_db_sub", currentLang),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = textSecondary
+                            .widthIn(max = 720.dp)
+                            .liquidGlass(
+                                shape = RoundedCornerShape(24.dp),
+                                elevation = if (isNeumorphic) 7.dp else 5.dp,
+                                borderAlpha = 0.9f,
+                                isDark = effectiveDark,
+                                isNeumorphic = isNeumorphic,
+                                cornerRadius = 24.dp
                             )
-                        }
-
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.15f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(14.dp),
+                                            cornerRadius = 14.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryAccent,
+                                            secondaryAccent = secondaryAccent,
+                                            isSelected = true,
+                                            softTintWhenSelected = false
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF10B981))
+                                    Icon(
+                                        imageVector = Icons.Default.Storage,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(5.dp))
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Room 2.7.0",
+                                        text = AppStrings.get("nav_database", currentLang),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = AppStrings.get("room_db_sub", currentLang),
                                         style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF10B981),
-                                        fontWeight = FontWeight.Bold
+                                        color = textSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
 
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.14f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.25f)),
-                                modifier = Modifier.testTag("room_ksp_badge")
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(
-                                    text = AppStrings.get("room_ksp_active", currentLang),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF10B981),
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                )
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(50.dp),
+                                        cornerRadius = 50.dp,
+                                        isDark = effectiveDark,
+                                        accent = EmeraldSuccess,
+                                        secondaryAccent = EmeraldSuccess,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(EmeraldSuccess)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "Room 2.7.0",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 11.sp,
+                                            color = EmeraldSuccess,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(50.dp),
+                                            cornerRadius = 50.dp,
+                                            isDark = effectiveDark,
+                                            accent = EmeraldSuccess,
+                                            secondaryAccent = VibrantCyan,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
+                                        .testTag("room_ksp_badge")
+                                ) {
+                                    Text(
+                                        text = AppStrings.get("room_ksp_active", currentLang),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        color = EmeraldSuccess,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -333,12 +403,15 @@ fun RoomDatabaseScreen(
                     LazyColumn(
                         modifier = contentModifier.padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(top = 12.dp, bottom = 116.dp)
+                        contentPadding = PaddingValues(
+                            top = 8.dp,
+                            bottom = maxOf(bottomDockClearance + 24.dp, 116.dp)
+                        )
                     ) {
                         // 1. Room Header Info Card
                         item {
                             RoomDatabaseHeaderCard(
-                                isDarkMode = isDarkMode,
+                                isDarkMode = effectiveDark,
                                 isNeumorphic = isNeumorphic,
                                 currentLang = currentLang,
                                 personnelCount = personnelCount,
@@ -352,69 +425,81 @@ fun RoomDatabaseScreen(
                             )
                         }
 
-                        // 2. Tab Navigation Row
+                        // 2. Liquid Glass 3-Pill Segmented Navigation Selector
                         item {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = cardBg,
-                                shadowElevation = if (isNeumorphic) 2.dp else 1.dp,
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(20.dp),
+                                        cornerRadius = 20.dp,
+                                        isDark = effectiveDark,
+                                        accent = primaryAccent,
+                                        secondaryAccent = secondaryAccent
+                                    )
+                                    .padding(5.dp)
                             ) {
-                                TabRow(
-                                    selectedTabIndex = selectedTab,
-                                    containerColor = Color.Transparent,
-                                    contentColor = MaterialTheme.colorScheme.primary,
-                                    indicator = { tabPositions ->
-                                        TabRowDefaults.SecondaryIndicator(
-                                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                            color = MaterialTheme.colorScheme.primary,
-                                            height = 3.dp
-                                        )
-                                    }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Tab(
-                                        selected = selectedTab == 0,
-                                        onClick = { selectedTab = 0 },
-                                        text = {
-                                            Text(
-                                                text = "${AppStrings.get("room_tab_personnel", currentLang)} ($personnelCount)",
-                                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 13.sp,
-                                                color = if (selectedTab == 0) MaterialTheme.colorScheme.primary else textSecondary
-                                            )
-                                        },
-                                        modifier = Modifier.testTag("room_tab_personnel")
+                                    val tabs = listOf(
+                                        Triple(
+                                            0,
+                                            "${AppStrings.get("room_tab_personnel", currentLang)} ($personnelCount)",
+                                            "room_tab_personnel"
+                                        ),
+                                        Triple(
+                                            1,
+                                            "${AppStrings.get("room_tab_leaves", currentLang)} ($leavesCount)",
+                                            "room_tab_leaves"
+                                        ),
+                                        Triple(
+                                            2,
+                                            AppStrings.get("room_tab_diagnostics", currentLang),
+                                            "room_tab_diagnostics"
+                                        )
                                     )
-                                    Tab(
-                                        selected = selectedTab == 1,
-                                        onClick = { selectedTab = 1 },
-                                        text = {
-                                            Text(
-                                                text = "${AppStrings.get("room_tab_leaves", currentLang)} ($leavesCount)",
-                                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 13.sp,
-                                                color = if (selectedTab == 1) MaterialTheme.colorScheme.primary else textSecondary
-                                            )
-                                        },
-                                        modifier = Modifier.testTag("room_tab_leaves")
-                                    )
-                                    Tab(
-                                        selected = selectedTab == 2,
-                                        onClick = { selectedTab = 2 },
-                                        text = {
-                                            Text(
-                                                text = AppStrings.get("room_tab_diagnostics", currentLang),
-                                                fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 13.sp,
-                                                color = if (selectedTab == 2) MaterialTheme.colorScheme.primary else textSecondary
-                                            )
-                                        },
-                                        modifier = Modifier.testTag("room_tab_diagnostics")
-                                    )
+                                    tabs.forEach { (index, label, tag) ->
+                                        val selected = selectedTab == index
+                                        Surface(
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                selectedTab = index
+                                            },
+                                            shape = RoundedCornerShape(15.dp),
+                                            color = Color.Transparent,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .defaultMinSize(minHeight = 48.dp)
+                                                .liquidGlassPanel(
+                                                    shape = RoundedCornerShape(15.dp),
+                                                    cornerRadius = 15.dp,
+                                                    isDark = effectiveDark,
+                                                    accent = primaryAccent,
+                                                    secondaryAccent = secondaryAccent,
+                                                    isSelected = selected,
+                                                    softTintWhenSelected = false
+                                                )
+                                                .testTag(tag)
+                                        ) {
+                                            Box(
+                                                contentAlignment = Alignment.Center,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp)
+                                            ) {
+                                                Text(
+                                                    text = label,
+                                                    fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                    fontSize = 12.sp,
+                                                    color = if (selected) Color.White else textSecondary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -422,13 +507,12 @@ fun RoomDatabaseScreen(
                         // 3. Tab Contents
                         when (selectedTab) {
                             0 -> {
-                                // Personnel Table Content
                                 item {
                                     SearchBox(
                                         query = searchQuery,
                                         onQueryChange = { searchQuery = it },
                                         placeholder = AppStrings.get("search_placeholder", currentLang),
-                                        isDarkMode = isDarkMode,
+                                        isDarkMode = effectiveDark,
                                         clearDesc = AppStrings.get("clear_icon_desc", currentLang)
                                     )
                                 }
@@ -436,7 +520,8 @@ fun RoomDatabaseScreen(
                                 if (filteredPersonnel.isEmpty()) {
                                     item {
                                         EmptyDatabaseState(
-                                            isDarkMode = isDarkMode,
+                                            isDarkMode = effectiveDark,
+                                            isNeumorphic = isNeumorphic,
                                             title = AppStrings.get("no_results", currentLang),
                                             description = AppStrings.get("no_results_desc", currentLang)
                                         )
@@ -445,7 +530,8 @@ fun RoomDatabaseScreen(
                                     items(filteredPersonnel, key = { it.id }) { person ->
                                         RoomPersonnelRowCard(
                                             personnel = person,
-                                            isDarkMode = isDarkMode,
+                                            isDarkMode = effectiveDark,
+                                            isNeumorphic = isNeumorphic,
                                             currentLang = currentLang,
                                             onDelete = {
                                                 viewModel.deletePersonnelFromRoom(person)
@@ -456,13 +542,12 @@ fun RoomDatabaseScreen(
                                 }
                             }
                             1 -> {
-                                // Leave Records Table Content (Full-width sleek search, no manual add button)
                                 item {
                                     SearchBox(
                                         query = searchQuery,
                                         onQueryChange = { searchQuery = it },
                                         placeholder = AppStrings.get("room_search_leaves", currentLang),
-                                        isDarkMode = isDarkMode,
+                                        isDarkMode = effectiveDark,
                                         clearDesc = AppStrings.get("clear_icon_desc", currentLang)
                                     )
                                 }
@@ -470,7 +555,8 @@ fun RoomDatabaseScreen(
                                 if (filteredLeaves.isEmpty()) {
                                     item {
                                         EmptyDatabaseState(
-                                            isDarkMode = isDarkMode,
+                                            isDarkMode = effectiveDark,
+                                            isNeumorphic = isNeumorphic,
                                             title = AppStrings.get("room_no_leaves", currentLang),
                                             description = AppStrings.get("room_no_leaves_desc", currentLang)
                                         )
@@ -479,17 +565,18 @@ fun RoomDatabaseScreen(
                                     items(filteredLeaves, key = { it.id }) { leave ->
                                         RoomLeaveRecordRowCard(
                                             leave = leave,
-                                            isDarkMode = isDarkMode,
+                                            isDarkMode = effectiveDark,
+                                            isNeumorphic = isNeumorphic,
                                             currentLang = currentLang
                                         )
                                     }
                                 }
                             }
                             2 -> {
-                                // Engine Diagnostics & Specs
                                 item {
                                     RoomDiagnosticsCard(
-                                        isDarkMode = isDarkMode,
+                                        isDarkMode = effectiveDark,
+                                        isNeumorphic = isNeumorphic,
                                         currentLang = currentLang,
                                         personnelCount = personnelCount,
                                         leavesCount = leavesCount
@@ -535,7 +622,8 @@ private fun RoomDatabaseHeaderCard(
     onExportExcel: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
     val clearInteraction = remember { MutableInteractionSource() }
     val isClearPressed by clearInteraction.collectIsPressedAsState()
     val clearScale by animateFloatAsState(
@@ -552,18 +640,20 @@ private fun RoomDatabaseHeaderCard(
     )
     val contentLayoutDir = if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
-    Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = cardBg,
-        shadowElevation = if (isNeumorphic) 4.dp else 3.dp,
-        border = BorderStroke(
-            1.dp,
-            if (isDarkMode) Color(0x33475569) else Color(0x3338BDF8)
-        ),
-        modifier = Modifier.fillMaxWidth().testTag("room_header_card")
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(24.dp),
+                elevation = if (isNeumorphic) 5.dp else 4.dp,
+                borderAlpha = 0.88f,
+                isDark = effectiveDark,
+                isNeumorphic = isNeumorphic,
+                cornerRadius = 24.dp
+            )
+            .testTag("room_header_card")
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Stat counters
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -571,31 +661,25 @@ private fun RoomDatabaseHeaderCard(
                 RoomStatBox(
                     label = AppStrings.get("room_total_personnel_count", currentLang),
                     value = "$personnelCount",
-                    color = MaterialTheme.colorScheme.primary,
-                    isDarkMode = isDarkMode,
+                    color = preset?.primary ?: MaterialTheme.colorScheme.primary,
+                    isDarkMode = effectiveDark,
                     modifier = Modifier.weight(1f)
                 )
                 RoomStatBox(
                     label = AppStrings.get("room_total_leaves_count", currentLang),
                     value = "$leavesCount",
                     color = Color(0xFF7C3AED),
-                    isDarkMode = isDarkMode,
+                    isDarkMode = effectiveDark,
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Dual Action Row: Physical LEFT = Clear Personnel Table | Physical RIGHT = Export Excel (.xlsx) A4 Landscape
-            val themePrimary = MaterialTheme.colorScheme.primary
-            val themeSecondary = MaterialTheme.colorScheme.secondary
+            val themePrimary = preset?.primary ?: MaterialTheme.colorScheme.primary
+            val themeSecondary = preset?.secondary ?: MaterialTheme.colorScheme.secondary
             val buttonShape = if (isNeumorphic) RoundedCornerShape(50.dp) else RoundedCornerShape(16.dp)
-            val borderGradient = Brush.linearGradient(
-                colors = listOf(
-                    themePrimary.copy(alpha = if (isDarkMode) 0.72f else 0.62f),
-                    themeSecondary.copy(alpha = if (isDarkMode) 0.56f else 0.48f)
-                )
-            )
+            val buttonRadius = if (isNeumorphic) 50.dp else 16.dp
 
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Row(
@@ -603,31 +687,35 @@ private fun RoomDatabaseHeaderCard(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // LEFT: Clear Personnel Table Button (Clean theme-matched OutlinedButton, zero label highlights)
-                    OutlinedButton(
+                    Surface(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onClearData()
                         },
                         interactionSource = clearInteraction,
                         shape = buttonShape,
-                        border = BorderStroke(1.25.dp, borderGradient),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = themePrimary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+                        color = Color.Transparent,
                         modifier = Modifier
                             .weight(1f)
+                            .defaultMinSize(minHeight = 48.dp)
                             .graphicsLayer {
                                 scaleX = clearScale
                                 scaleY = clearScale
                             }
-                            .defaultMinSize(minHeight = 48.dp)
+                            .liquidGlassPanel(
+                                shape = buttonShape,
+                                cornerRadius = buttonRadius,
+                                isDark = effectiveDark,
+                                accent = themePrimary,
+                                secondaryAccent = themeSecondary,
+                                isSelected = true,
+                                softTintWhenSelected = true
+                            )
                             .testTag("room_clear_tables_btn")
                     ) {
                         CompositionLocalProvider(LocalLayoutDirection provides contentLayoutDir) {
                             Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
@@ -659,38 +747,35 @@ private fun RoomDatabaseHeaderCard(
                         }
                     }
 
-                    // RIGHT: Export Database to Excel (.xlsx) A4 Landscape Button
-                    Button(
+                    Surface(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onExportExcel()
                         },
                         interactionSource = exportInteraction,
                         shape = buttonShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = Color.White
-                        ),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
-                        contentPadding = PaddingValues(0.dp),
+                        color = Color.Transparent,
                         modifier = Modifier
                             .weight(1f)
+                            .defaultMinSize(minHeight = 48.dp)
                             .graphicsLayer {
                                 scaleX = exportScale
                                 scaleY = exportScale
                             }
-                            .defaultMinSize(minHeight = 48.dp)
-                            .clip(buttonShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(themePrimary, Color(0xFF0D9488))
-                                )
+                            .liquidGlassPanel(
+                                shape = buttonShape,
+                                cornerRadius = buttonRadius,
+                                isDark = effectiveDark,
+                                accent = themePrimary,
+                                secondaryAccent = Color(0xFF0D9488),
+                                isSelected = true,
+                                softTintWhenSelected = false
                             )
                             .testTag("room_export_xlsx_btn")
                     ) {
                         CompositionLocalProvider(LocalLayoutDirection provides contentLayoutDir) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
@@ -727,13 +812,24 @@ private fun RoomStatBox(
     isDarkMode: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = if (isDarkMode) 0.12f else 0.08f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.25f)),
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+
+    Box(
         modifier = modifier
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(16.dp),
+                cornerRadius = 16.dp,
+                isDark = effectiveDark,
+                accent = color,
+                secondaryAccent = color,
+                isSelected = true,
+                softTintWhenSelected = true
+            )
+            .padding(12.dp)
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
+        Column {
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
@@ -743,7 +839,7 @@ private fun RoomStatBox(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                color = textSecondary,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -761,50 +857,28 @@ private fun SearchBox(
     clearDesc: String = "Clear",
     modifier: Modifier = Modifier
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
     val haptic = LocalHapticFeedback.current
     var isFocused by remember { mutableStateOf(false) }
 
-    val containerBg = if (isDarkMode) {
-        Brush.horizontalGradient(
-            listOf(Color(0xFF172033), Color(0xFF1E293B), Color(0xFF172033))
-        )
-    } else {
-        Brush.horizontalGradient(
-            listOf(Color(0xFFFFFFFF), Color(0xFFF8FAFC), Color(0xFFFFFFFF))
-        )
-    }
-
-    val borderBrush = if (isFocused) {
-        Brush.horizontalGradient(
-            listOf(Color(0xFF00BCD4), Color(0xFF38BDF8), Color(0xFF7C3AED))
-        )
-    } else {
-        Brush.horizontalGradient(
-            if (isDarkMode) {
-                listOf(Color(0x4438BDF8), Color(0x337C3AED), Color(0x4438BDF8))
-            } else {
-                listOf(Color(0x5538BDF8), Color(0x447C3AED), Color(0x5538BDF8))
-            }
-        )
-    }
-
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val hintColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-    val shape = RoundedCornerShape(16.dp)
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val hintColor = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+    val shape = RoundedCornerShape(18.dp)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = if (isFocused) 10.dp else 4.dp,
+            .liquidGlassPanel(
                 shape = shape,
-                ambientColor = Color(0xFF00BCD4).copy(alpha = 0.25f),
-                spotColor = Color(0xFF7C3AED).copy(alpha = 0.25f)
+                cornerRadius = 18.dp,
+                isDark = effectiveDark,
+                accent = VibrantCyan,
+                secondaryAccent = Color(0xFF7C3AED),
+                isSelected = isFocused,
+                softTintWhenSelected = true
             )
-            .clip(shape)
-            .background(containerBg)
-            .border(width = if (isFocused) 1.5.dp else 1.dp, brush = borderBrush, shape = shape)
-            .height(46.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -814,23 +888,23 @@ private fun SearchBox(
         ) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Color(0xFF00BCD4).copy(alpha = if (isFocused) 0.26f else 0.16f),
-                                Color(0xFF7C3AED).copy(alpha = if (isFocused) 0.24f else 0.14f)
-                            )
-                        )
+                    .size(30.dp)
+                    .liquidGlassPanel(
+                        shape = CircleShape,
+                        cornerRadius = 15.dp,
+                        isDark = effectiveDark,
+                        accent = VibrantCyan,
+                        secondaryAccent = RoyalBlueAccent,
+                        isSelected = true,
+                        softTintWhenSelected = true
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = if (isFocused) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                    modifier = Modifier.size(15.dp)
+                    tint = if (isFocused) CyanGlow else VibrantCyan,
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
@@ -859,7 +933,7 @@ private fun SearchBox(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     ),
-                    cursorBrush = SolidColor(Color(0xFF38BDF8)),
+                    cursorBrush = SolidColor(CyanGlow),
                     modifier = Modifier
                         .fillMaxWidth()
                         .onFocusChanged { isFocused = it.isFocused }
@@ -877,11 +951,11 @@ private fun SearchBox(
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onQueryChange("")
                     },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(22.dp)
+                            .size(24.dp)
                             .clip(CircleShape)
                             .background(hintColor.copy(alpha = 0.18f)),
                         contentAlignment = Alignment.Center
@@ -890,7 +964,7 @@ private fun SearchBox(
                             imageVector = Icons.Default.Close,
                             contentDescription = clearDesc,
                             tint = hintColor,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                     }
                 }
@@ -903,22 +977,28 @@ private fun SearchBox(
 private fun RoomPersonnelRowCard(
     personnel: Personnel,
     isDarkMode: Boolean,
+    isNeumorphic: Boolean,
     currentLang: AppLanguage,
     onDelete: () -> Unit
 ) {
-    val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+    val statusColor = Color(personnel.status.hexColor)
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = cardBg,
-        shadowElevation = 2.dp,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isDarkMode) Color(0x33475569) else Color(0x2638BDF8)
-        ),
-        modifier = Modifier.fillMaxWidth().testTag("room_personnel_item_${personnel.id}")
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(18.dp),
+                elevation = 3.dp,
+                borderAlpha = 0.85f,
+                isDark = effectiveDark,
+                isNeumorphic = isNeumorphic,
+                cornerRadius = 18.dp
+            )
+            .testTag("room_personnel_item_${personnel.id}")
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -926,15 +1006,22 @@ private fun RoomPersonnelRowCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(Color(personnel.status.hexColor).copy(alpha = 0.15f)),
+                    .size(44.dp)
+                    .liquidGlassPanel(
+                        shape = CircleShape,
+                        cornerRadius = 22.dp,
+                        isDark = effectiveDark,
+                        accent = statusColor,
+                        secondaryAccent = statusColor,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    tint = Color(personnel.status.hexColor),
+                    tint = statusColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -950,17 +1037,24 @@ private fun RoomPersonnelRowCard(
                         color = textPrimary
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(personnel.status.bgHexColor)
+                    Box(
+                        modifier = Modifier.liquidGlassPanel(
+                            shape = RoundedCornerShape(8.dp),
+                            cornerRadius = 8.dp,
+                            isDark = effectiveDark,
+                            accent = statusColor,
+                            secondaryAccent = statusColor,
+                            isSelected = true,
+                            softTintWhenSelected = true
+                        )
                     ) {
                         Text(
                             text = personnel.status.getCompactBadgeLabel(currentLang),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(personnel.status.hexColor),
+                            color = statusColor,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -977,7 +1071,7 @@ private fun RoomPersonnelRowCard(
                     Text(
                         text = "ID: #${personnel.id}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF0284C7),
+                        color = VibrantCyan,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -992,13 +1086,30 @@ private fun RoomPersonnelRowCard(
                 )
             }
 
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = AppStrings.get("delete", currentLang),
-                    tint = Color(0xFFEF4444).copy(alpha = 0.8f),
-                    modifier = Modifier.size(20.dp)
-                )
+            Surface(
+                onClick = onDelete,
+                shape = CircleShape,
+                color = Color.Transparent,
+                modifier = Modifier
+                    .size(48.dp)
+                    .liquidGlassPanel(
+                        shape = CircleShape,
+                        cornerRadius = 24.dp,
+                        isDark = effectiveDark,
+                        accent = RedDanger,
+                        secondaryAccent = RedDanger,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    )
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = AppStrings.get("delete", currentLang),
+                        tint = RedDanger,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -1008,21 +1119,27 @@ private fun RoomPersonnelRowCard(
 private fun RoomLeaveRecordRowCard(
     leave: LeaveRecord,
     isDarkMode: Boolean,
+    isNeumorphic: Boolean,
     currentLang: AppLanguage
 ) {
-    val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+    val leaveAccent = Color(0xFF7C3AED)
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = cardBg,
-        shadowElevation = 2.dp,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isDarkMode) Color(0x33475569) else Color(0x2638BDF8)
-        ),
-        modifier = Modifier.fillMaxWidth().testTag("room_leave_item_${leave.id}")
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(18.dp),
+                elevation = 3.dp,
+                borderAlpha = 0.85f,
+                isDark = effectiveDark,
+                isNeumorphic = isNeumorphic,
+                cornerRadius = 18.dp
+            )
+            .testTag("room_leave_item_${leave.id}")
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -1030,16 +1147,23 @@ private fun RoomLeaveRecordRowCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF7C3AED).copy(alpha = 0.15f)),
+                    .size(44.dp)
+                    .liquidGlassPanel(
+                        shape = CircleShape,
+                        cornerRadius = 22.dp,
+                        isDark = effectiveDark,
+                        accent = leaveAccent,
+                        secondaryAccent = RoyalBlueAccent,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.FlightTakeoff,
                     contentDescription = null,
-                    tint = Color(0xFF7C3AED),
-                    modifier = Modifier.size(22.dp)
+                    tint = leaveAccent,
+                    modifier = Modifier.size(21.dp)
                 )
             }
 
@@ -1054,17 +1178,24 @@ private fun RoomLeaveRecordRowCard(
                         color = textPrimary
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF7C3AED).copy(alpha = 0.15f)
+                    Box(
+                        modifier = Modifier.liquidGlassPanel(
+                            shape = RoundedCornerShape(8.dp),
+                            cornerRadius = 8.dp,
+                            isDark = effectiveDark,
+                            accent = leaveAccent,
+                            secondaryAccent = leaveAccent,
+                            isSelected = true,
+                            softTintWhenSelected = true
+                        )
                     ) {
                         Text(
                             text = formatLeaveType(leave.leaveType, currentLang),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF7C3AED),
+                            color = leaveAccent,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -1100,23 +1231,28 @@ private fun RoomLeaveRecordRowCard(
                     Text(
                         text = "${AppStrings.get("room_destination_prefix", currentLang)} ${formatWilaya(leave.destinationWilaya, currentLang, includeCode = false)}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF0284C7),
+                        color = VibrantCyan,
                         fontSize = 11.sp
                     )
                 }
             }
 
-            // Immutable leave record badge (cannot be deleted)
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color(0xFF10B981).copy(alpha = 0.12f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.25f))
+            Box(
+                modifier = Modifier.liquidGlassPanel(
+                    shape = RoundedCornerShape(10.dp),
+                    cornerRadius = 10.dp,
+                    isDark = effectiveDark,
+                    accent = EmeraldSuccess,
+                    secondaryAccent = EmeraldSuccess,
+                    isSelected = true,
+                    softTintWhenSelected = true
+                )
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = AppStrings.get("room_immutable_badge", currentLang),
-                    tint = Color(0xFF10B981),
-                    modifier = Modifier.padding(7.dp).size(15.dp)
+                    tint = EmeraldSuccess,
+                    modifier = Modifier.padding(8.dp).size(16.dp)
                 )
             }
         }
@@ -1126,38 +1262,59 @@ private fun RoomLeaveRecordRowCard(
 @Composable
 private fun RoomDiagnosticsCard(
     isDarkMode: Boolean,
+    isNeumorphic: Boolean,
     currentLang: AppLanguage,
     personnelCount: Int,
     leavesCount: Int
 ) {
-    val cardBg = if (isDarkMode) Color(0xFF1E293B) else Color.White
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+    val accent = preset?.primary ?: MaterialTheme.colorScheme.primary
     val recUnit = AppStrings.get("room_diag_records_unit", currentLang)
 
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = cardBg,
-        shadowElevation = 2.dp,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
-        ),
-        modifier = Modifier.fillMaxWidth().testTag("room_diagnostics_card")
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(22.dp),
+                elevation = 4.dp,
+                borderAlpha = 0.88f,
+                isDark = effectiveDark,
+                isNeumorphic = isNeumorphic,
+                cornerRadius = 22.dp
+            )
+            .testTag("room_diagnostics_card")
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(10.dp),
+                            cornerRadius = 10.dp,
+                            isDark = effectiveDark,
+                            accent = accent,
+                            secondaryAccent = VibrantCyan,
+                            isSelected = true,
+                            softTintWhenSelected = true
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = AppStrings.get("room_diag_title", currentLang),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = textPrimary
                 )
             }
@@ -1170,10 +1327,10 @@ private fun RoomDiagnosticsCard(
             DiagnosticRow(AppStrings.get("room_diag_concurrency", currentLang), "Coroutines & Flow (IO)", textPrimary, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_pattern", currentLang), "Repository Pattern", textPrimary, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_tables", currentLang), "personnel, leave_records", textPrimary, textSecondary)
-            DiagnosticRow(AppStrings.get("room_diag_personnel_rows", currentLang), "$personnelCount $recUnit", Color(0xFF10B981), textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_personnel_rows", currentLang), "$personnelCount $recUnit", EmeraldSuccess, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_leaves_rows", currentLang), "$leavesCount $recUnit", Color(0xFF7C3AED), textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_sandbox", currentLang), AppStrings.get("room_diag_sandbox_val", currentLang), textPrimary, textSecondary)
-            DiagnosticRow(AppStrings.get("room_diag_cloud", currentLang), AppStrings.get("room_diag_local_only", currentLang), Color(0xFF0284C7), textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_cloud", currentLang), AppStrings.get("room_diag_local_only", currentLang), VibrantCyan, textSecondary)
         }
     }
 }
@@ -1198,45 +1355,68 @@ private fun DiagnosticRow(
 @Composable
 private fun EmptyDatabaseState(
     isDarkMode: Boolean,
+    isNeumorphic: Boolean,
     title: String,
     description: String
 ) {
-    Column(
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .liquidGlass(
+                shape = RoundedCornerShape(22.dp),
+                elevation = 4.dp,
+                isDark = effectiveDark,
+                isNeumorphic = isNeumorphic,
+                cornerRadius = 22.dp
+            )
+            .padding(vertical = 32.dp, horizontal = 24.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(if (isDarkMode) Color(0xFF1E293B) else Color(0xFFE2E8F0)),
-            contentAlignment = Alignment.Center
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Storage,
-                contentDescription = null,
-                tint = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8),
-                modifier = Modifier.size(32.dp)
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .liquidGlassPanel(
+                        shape = CircleShape,
+                        cornerRadius = 32.dp,
+                        isDark = effectiveDark,
+                        accent = VibrantCyan,
+                        secondaryAccent = RoyalBlueAccent,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Storage,
+                    contentDescription = null,
+                    tint = VibrantCyan,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = textPrimary
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = textSecondary,
+                textAlign = TextAlign.Center
             )
         }
-        Spacer(modifier = Modifier.height(14.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF64748B),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
     }
 }
 
@@ -1308,27 +1488,22 @@ private fun ClearPersonnelConfirmationDialog(
         )
     }
 
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
     val cardShape = RoundedCornerShape(28.dp)
-    val surfaceColor = if (isDarkMode) Color(0xFF101827) else Color(0xFFFFFFFF)
-    val textPrimary = if (isDarkMode) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-    val gradientColors = listOf(
-        Color(0xFFEF4444),
-        Color(0xFFF43F5E),
-        Color(0xFFF59E0B),
-        Color(0xFF7C3AED),
-        Color(0xFFEF4444)
-    )
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         SyncDialogSecureWindow(isNoScreenshotEnabled)
+        SyncDialogLiquidGlassWindow()
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
             contentAlignment = Alignment.Center
         ) {
             AnimatedVisibility(
@@ -1338,266 +1513,216 @@ private fun ClearPersonnelConfirmationDialog(
                     animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)
                 )
             ) {
-                Box(
+                Surface(
+                    shape = cardShape,
+                    color = Color.Transparent,
+                    shadowElevation = 0.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
-                        .drawBehind {
-                            val cornerRadius = 30.dp.toPx()
-                            val auraBrush = Brush.linearGradient(
-                                colors = gradientColors.map { it.copy(alpha = 0.24f * auraAlpha) },
-                                start = Offset.Zero,
-                                end = Offset(size.width, size.height)
-                            )
-                            drawRoundRect(
-                                brush = auraBrush,
-                                topLeft = Offset(-6.dp.toPx(), -6.dp.toPx()),
-                                size = Size(size.width + 12.dp.toPx(), size.height + 12.dp.toPx()),
-                                cornerRadius = CornerRadius(cornerRadius + 6.dp.toPx(), cornerRadius + 6.dp.toPx()),
-                                style = Stroke(width = 10.dp.toPx())
-                            )
-                            drawRoundRect(
-                                brush = auraBrush,
-                                topLeft = Offset(-2.dp.toPx(), -2.dp.toPx()),
-                                size = Size(size.width + 4.dp.toPx(), size.height + 4.dp.toPx()),
-                                cornerRadius = CornerRadius(cornerRadius + 2.dp.toPx(), cornerRadius + 2.dp.toPx()),
-                                style = Stroke(width = 4.dp.toPx())
-                            )
-                        }
+                        .liquidGlassDialogShell(
+                            shape = cardShape,
+                            cornerRadius = 28.dp,
+                            isDark = effectiveDark,
+                            primaryAccent = RedDanger,
+                            secondaryAccent = Color(0xFF7C3AED)
+                        )
+                        .testTag("room_clear_confirm_dialog")
                 ) {
-                    Surface(
-                        shape = cardShape,
-                        color = surfaceColor,
-                        shadowElevation = 18.dp,
-                        border = BorderStroke(
-                            1.5.dp,
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFFEF4444).copy(alpha = 0.75f),
-                                    Color(0xFFF59E0B).copy(alpha = 0.45f),
-                                    Color(0xFF7C3AED).copy(alpha = 0.65f)
-                                )
-                            )
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("room_clear_confirm_dialog")
+                    Column(
+                        modifier = Modifier.padding(22.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(22.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .graphicsLayer {
+                                    scaleX = pulseScale
+                                    scaleY = pulseScale
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            // Top Glowing Biometric + Warning Shield Emblem
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .graphicsLayer {
-                                        scaleX = pulseScale
-                                        scaleY = pulseScale
-                                    },
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.radialGradient(
+                                            listOf(
+                                                RedDanger.copy(alpha = 0.28f),
+                                                Color(0xFF7C3AED).copy(alpha = 0.12f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .liquidGlassPanel(
+                                        shape = CircleShape,
+                                        cornerRadius = 28.dp,
+                                        isDark = effectiveDark,
+                                        accent = RedDanger,
+                                        secondaryAccent = Color(0xFFF43F5E),
+                                        isSelected = true,
+                                        softTintWhenSelected = false
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(72.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            Brush.radialGradient(
-                                                listOf(
-                                                    Color(0xFFEF4444).copy(alpha = 0.28f),
-                                                    Color(0xFF7C3AED).copy(alpha = 0.12f),
-                                                    Color.Transparent
-                                                )
-                                            )
-                                        )
+                                Icon(
+                                    imageVector = Icons.Default.Fingerprint,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(30.dp)
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(Color(0xFFDC2626), Color(0xFFF43F5E))
-                                            )
-                                        )
-                                        .border(2.dp, Color.White.copy(alpha = 0.35f), CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Fingerprint,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(30.dp)
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .size(22.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isDarkMode) Color(0xFF101827) else Color.White)
-                                        .padding(2.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFF59E0B)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
                             }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            // Biometric Security Tag
-                            Surface(
-                                shape = RoundedCornerShape(999.dp),
-                                color = Color(0xFFEF4444).copy(alpha = if (isDarkMode) 0.16f else 0.10f),
-                                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.30f))
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(if (effectiveDark) Color(0xFF101827) else Color.White)
+                                    .padding(2.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFF59E0B)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Box(
+                            modifier = Modifier.liquidGlassPanel(
+                                shape = RoundedCornerShape(999.dp),
+                                cornerRadius = 50.dp,
+                                isDark = effectiveDark,
+                                accent = RedDanger,
+                                secondaryAccent = RedDanger,
+                                isSelected = true,
+                                softTintWhenSelected = true
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = null,
+                                    tint = RedDanger,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = AppStrings.get("room_clear_biometric_badge", currentLang),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (effectiveDark) Color(0xFFFCA5A5) else Color(0xFFB91C1C)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Text(
+                            text = AppStrings.get("room_clear_confirm_title", currentLang),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = textPrimary,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(16.dp),
+                                    cornerRadius = 16.dp,
+                                    isDark = effectiveDark,
+                                    accent = RedDanger,
+                                    secondaryAccent = Color(0xFF7C3AED)
+                                )
+                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = AppStrings.get("room_clear_confirm_desc", currentLang),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textSecondary,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 19.sp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        AnimatedVisibility(visible = authError != null) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(12.dp),
+                                            cornerRadius = 12.dp,
+                                            isDark = effectiveDark,
+                                            accent = RedDanger,
+                                            secondaryAccent = RedDanger,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
+                                        .padding(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Shield,
-                                        contentDescription = null,
-                                        tint = Color(0xFFEF4444),
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = AppStrings.get("room_clear_biometric_badge", currentLang),
+                                        text = authError.orEmpty(),
                                         style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color(0xFFFCA5A5) else Color(0xFFB91C1C)
+                                        color = if (effectiveDark) Color(0xFFFCA5A5) else Color(0xFFB91C1C),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
+                        }
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
-                            Text(
-                                text = AppStrings.get("room_clear_confirm_title", currentLang),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = textPrimary,
-                                textAlign = TextAlign.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            LiquidGlassActionButton(
+                                text = AppStrings.get("cancel", currentLang),
+                                onClick = onDismiss,
+                                isDark = effectiveDark,
+                                primaryAccent = if (effectiveDark) CyanGlow else VibrantCyan,
+                                secondaryAccent = RoyalBlueAccent,
+                                isPrimary = false,
+                                modifier = Modifier
+                                    .weight(0.9f)
+                                    .testTag("room_clear_cancel_btn")
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (isDarkMode) Color(0xFF1E293B).copy(alpha = 0.7f) else Color(0xFFF8FAFC),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isDarkMode) Color(0x33475569) else Color(0xFFE2E8F0)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = AppStrings.get("room_clear_confirm_desc", currentLang),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = textSecondary,
-                                    textAlign = TextAlign.Center,
-                                    lineHeight = 19.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
-                                )
-                            }
-
-                            AnimatedVisibility(visible = authError != null) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFFDC2626).copy(alpha = 0.14f),
-                                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f)),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = authError.orEmpty(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (isDarkMode) Color(0xFFFCA5A5) else Color(0xFFB91C1C),
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onDismiss()
-                                    },
-                                    shape = RoundedCornerShape(14.dp),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (isDarkMode) Color(0x4494A3B8) else Color(0xFFCBD5E1)
-                                    ),
-                                    modifier = Modifier
-                                        .weight(0.9f)
-                                        .defaultMinSize(minHeight = 48.dp)
-                                        .testTag("room_clear_cancel_btn")
-                                ) {
-                                    Text(
-                                        text = AppStrings.get("cancel", currentLang),
-                                        fontWeight = FontWeight.Bold,
-                                        color = textPrimary,
-                                        fontSize = 13.sp
-                                    )
-                                }
-
-                                Button(
-                                    onClick = { launchBiometricVerification() },
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                                    contentPadding = PaddingValues(0.dp),
-                                    modifier = Modifier
-                                        .weight(1.35f)
-                                        .defaultMinSize(minHeight = 48.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(Color(0xFFDC2626), Color(0xFFF43F5E))
-                                            )
-                                        )
-                                        .testTag("room_clear_biometric_confirm_btn")
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Fingerprint,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = AppStrings.get("room_clear_verify_btn", currentLang),
-                                            color = Color.White,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 12.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-                            }
+                            LiquidGlassActionButton(
+                                text = AppStrings.get("room_clear_verify_btn", currentLang),
+                                onClick = { launchBiometricVerification() },
+                                isDark = effectiveDark,
+                                primaryAccent = Color(0xFFDC2626),
+                                secondaryAccent = Color(0xFFF43F5E),
+                                icon = Icons.Default.Fingerprint,
+                                isPrimary = true,
+                                modifier = Modifier
+                                    .weight(1.35f)
+                                    .testTag("room_clear_biometric_confirm_btn")
+                            )
                         }
                     }
                 }

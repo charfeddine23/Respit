@@ -111,14 +111,18 @@ import com.example.data.ReferenceDateSource
 import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.ui.PersonnelViewModel
+import com.example.ui.components.LiquidGlassSectionHighlight
 import com.example.ui.theme.AmberWarning
+import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
 import com.example.ui.theme.LiquidGlassDefaults
+import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import java.util.Locale
@@ -157,9 +161,13 @@ fun AnalyticsDashboardScreen(
 
     val haptic = LocalHapticFeedback.current
     val currentLang by viewModel.currentLanguage.collectAsState()
-    val isDarkMode by viewModel.isDarkMode.collectAsState()
+    val isDarkModeState by viewModel.isDarkMode.collectAsState()
     val themeStyle by viewModel.currentThemeStyle.collectAsState()
-    val isNeumorphic = themeStyle == AppThemeStyle.NEUMORPHISM
+    val activePreset = LocalThemePreset.current
+    val isDarkMode = activePreset?.isDark ?: isDarkModeState
+    val primaryAccent = activePreset?.primary ?: if (isDarkMode) CyanGlow else RoyalBlueAccent
+    val secondaryAccent = activePreset?.secondary ?: VibrantCyan
+    val isNeumorphic = (themeStyle == AppThemeStyle.NEUMORPHISM) && (activePreset?.isLiquidGlass != true)
     val animationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
     val report by viewModel.analyticsReport.collectAsState()
@@ -215,8 +223,8 @@ fun AnalyticsDashboardScreen(
         }
     }
 
-    val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+    val textPrimary = activePreset?.textPrimary ?: if (isDarkMode) Color.White else SlateTextPrimary
+    val textSecondary = activePreset?.textSecondary ?: if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
@@ -304,22 +312,34 @@ fun AnalyticsDashboardScreen(
                                     }
                                 }
 
-                                IconButton(
+                                Surface(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onBack()
                                     },
+                                    shape = CircleShape,
+                                    color = Color.Transparent,
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .clip(CircleShape)
+                                        .liquidGlassPanel(
+                                            shape = CircleShape,
+                                            cornerRadius = 24.dp,
+                                            isDark = isDarkMode,
+                                            accent = primaryAccent,
+                                            secondaryAccent = secondaryAccent,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
                                         .testTag("analytics_back_button")
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = AppStrings.get("back", currentLang),
-                                        tint = if (isDarkMode) Color(0xFF00E5FF) else RoyalBlueAccent,
-                                        modifier = Modifier.size(22.dp)
-                                    )
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                            contentDescription = AppStrings.get("back", currentLang),
+                                            tint = primaryAccent,
+                                            modifier = Modifier.size(21.dp)
+                                        )
+                                    }
                                 }
                             }
 
@@ -345,23 +365,23 @@ fun AnalyticsDashboardScreen(
                                             viewModel.setAnalyticsYear(year)
                                         },
                                         shape = RoundedCornerShape(50.dp),
-                                        color = if (selected) {
-                                            if (isDarkMode) Color(0xFF00BCD4) else RoyalBlueAccent
-                                        } else {
-                                            if (isDarkMode) Color(0x331E293B) else Color(0x99FFFFFF)
-                                        },
-                                        border = BorderStroke(
-                                            1.dp,
-                                            if (selected) Color.Transparent
-                                            else if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1)
-                                        ),
+                                        color = Color.Transparent,
                                         modifier = Modifier
-                                            .defaultMinSize(minHeight = 40.dp)
+                                            .defaultMinSize(minHeight = 42.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(50.dp),
+                                                cornerRadius = 50.dp,
+                                                isDark = isDarkMode,
+                                                accent = primaryAccent,
+                                                secondaryAccent = secondaryAccent,
+                                                isSelected = selected,
+                                                softTintWhenSelected = false
+                                            )
                                             .testTag("analytics_year_chip_$year")
                                     ) {
                                         Box(
                                             contentAlignment = Alignment.Center,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
                                         ) {
                                             Text(
                                                 text = "$year",
@@ -548,51 +568,20 @@ fun AnalyticsDashboardScreen(
                             )
                             .padding(16.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = AppStrings.get("analytics_personnel_annual_title", currentLang),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Black,
-                                            color = textPrimary
-                                        )
-                                        Text(
-                                            text = AppStrings.get("analytics_personnel_annual_sub", currentLang),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = textSecondary
-                                        )
-                                    }
-                                }
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            LiquidGlassSectionHighlight(
+                                title = AppStrings.get("analytics_personnel_annual_title", currentLang),
+                                icon = Icons.Default.Person,
+                                accent = primaryAccent,
+                                isDark = isDarkMode,
+                                badgeText = "${filteredPersonnelStats.size}"
+                            )
 
-                                Surface(
-                                    shape = RoundedCornerShape(50.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkMode) 0.2f else 0.12f)
-                                ) {
-                                    Text(
-                                        text = "${filteredPersonnelStats.size}",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
+                            Text(
+                                text = AppStrings.get("analytics_personnel_annual_sub", currentLang),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = textSecondary
+                            )
 
                             OutlinedTextField(
                                 value = personnelSearchQuery,
@@ -616,7 +605,10 @@ fun AnalyticsDashboardScreen(
                                 },
                                 trailingIcon = {
                                     if (personnelSearchQuery.isNotEmpty()) {
-                                        IconButton(onClick = { personnelSearchQuery = "" }) {
+                                        IconButton(
+                                            onClick = { personnelSearchQuery = "" },
+                                            modifier = Modifier.size(48.dp)
+                                        ) {
                                             Icon(
                                                 imageVector = Icons.Default.Clear,
                                                 contentDescription = AppStrings.get("clear_search", currentLang),
@@ -633,7 +625,7 @@ fun AnalyticsDashboardScreen(
                                     focusedContainerColor = if (isDarkMode) Color(0x331E293B) else Color(0xF5FFFFFF),
                                     unfocusedContainerColor = if (isDarkMode) Color(0x221E293B) else Color(0xD9FFFFFF),
                                     unfocusedBorderColor = if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1),
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary
+                                    focusedBorderColor = primaryAccent
                                 )
                             )
 
@@ -655,27 +647,28 @@ fun AnalyticsDashboardScreen(
                                             personnelSort = sortKey
                                         },
                                         shape = RoundedCornerShape(50.dp),
-                                        color = if (isSelected) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkMode) 0.28f else 0.15f)
-                                        } else {
-                                            if (isDarkMode) Color(0x281E293B) else Color(0x99FFFFFF)
-                                        },
-                                        border = BorderStroke(
-                                            1.dp,
-                                            if (isSelected) MaterialTheme.colorScheme.primary
-                                            else if (isDarkMode) Color(0x33475569) else Color(0x40CBD5E1)
-                                        ),
-                                        modifier = Modifier.defaultMinSize(minHeight = 40.dp)
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .defaultMinSize(minHeight = 42.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(50.dp),
+                                                cornerRadius = 50.dp,
+                                                isDark = isDarkMode,
+                                                accent = primaryAccent,
+                                                secondaryAccent = secondaryAccent,
+                                                isSelected = isSelected,
+                                                softTintWhenSelected = true
+                                            )
                                     ) {
                                         Box(
                                             contentAlignment = Alignment.Center,
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
                                         ) {
                                             Text(
                                                 text = AppStrings.get(labelKey, currentLang),
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary
+                                                color = if (isSelected) primaryAccent else textSecondary
                                             )
                                         }
                                     }
@@ -884,12 +877,19 @@ private fun MonthlyLeavesChartCard(
                     }
                 }
 
-                // Count vs Days toggle
-                Surface(
-                    shape = RoundedCornerShape(50.dp),
-                    color = if (isDarkMode) Color(0x331E293B) else Color(0xFFE2E8F0)
+                // Count vs Days Liquid Glass Toggle
+                Box(
+                    modifier = Modifier
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(50.dp),
+                            cornerRadius = 50.dp,
+                            isDark = isDarkMode,
+                            accent = VibrantCyan,
+                            secondaryAccent = RoyalBlueAccent
+                        )
+                        .padding(3.dp)
                 ) {
-                    Row(modifier = Modifier.padding(3.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         listOf(
                             MonthlyChartMetric.COUNT to "analytics_metric_count",
                             MonthlyChartMetric.DAYS to "analytics_metric_days"
@@ -898,17 +898,27 @@ private fun MonthlyLeavesChartCard(
                             Surface(
                                 onClick = { onSelectMetric(m) },
                                 shape = RoundedCornerShape(50.dp),
-                                color = if (active) VibrantCyan else Color.Transparent,
-                                modifier = Modifier.defaultMinSize(minHeight = 36.dp)
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .defaultMinSize(minHeight = 38.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(50.dp),
+                                        cornerRadius = 50.dp,
+                                        isDark = isDarkMode,
+                                        accent = VibrantCyan,
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = active,
+                                        softTintWhenSelected = false
+                                    )
                             ) {
                                 Box(
                                     contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                                 ) {
                                     Text(
                                         text = AppStrings.get(labelKey, currentLang),
                                         fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        fontWeight = if (active) FontWeight.ExtraBold else FontWeight.Bold,
                                         color = if (active) Color.White else textSecondary
                                     )
                                 }
@@ -1100,11 +1110,18 @@ private fun MonthlyLeavesChartCard(
                         } else {
                             if (totalDaysInYear > 0L) (selectedStat.totalDays * 100f / totalDaysInYear).roundToInt() else 0
                         }
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (isDarkMode) Color(0x28F59E0B) else Color(0xFFFEF3C7),
-                            border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.45f)),
-                            modifier = Modifier.fillMaxWidth()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(16.dp),
+                                    cornerRadius = 16.dp,
+                                    isDark = isDarkMode,
+                                    accent = AmberWarning,
+                                    secondaryAccent = Color(0xFFEA580C),
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -1129,9 +1146,14 @@ private fun MonthlyLeavesChartCard(
                                     }
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = if (isDarkMode) Color(0x330F172A) else Color.White
+                                    Box(
+                                        modifier = Modifier.liquidGlassPanel(
+                                            shape = RoundedCornerShape(10.dp),
+                                            cornerRadius = 10.dp,
+                                            isDark = isDarkMode,
+                                            accent = AmberWarning,
+                                            secondaryAccent = AmberWarning
+                                        )
                                     ) {
                                         Text(
                                             text = "${selectedStat.leaveCount} ${AppStrings.get("analytics_leaves_unit", currentLang)} • ${selectedStat.totalDays} ${AppStrings.get("days", currentLang)} ($sharePct%)",
@@ -1345,16 +1367,18 @@ private fun RankDistributionChartCard(
                             Surface(
                                 onClick = { onSelectRank(idx) },
                                 shape = RoundedCornerShape(14.dp),
-                                color = if (isSel) {
-                                    color.copy(alpha = if (isDarkMode) 0.22f else 0.12f)
-                                } else {
-                                    if (isDarkMode) Color(0x1E1E293B) else Color(0x88F8FAFC)
-                                },
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isSel) color else Color.Transparent
-                                ),
-                                modifier = Modifier.fillMaxWidth()
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(14.dp),
+                                        cornerRadius = 14.dp,
+                                        isDark = isDarkMode,
+                                        accent = color,
+                                        secondaryAccent = color,
+                                        isSelected = isSel,
+                                        softTintWhenSelected = true
+                                    )
                             ) {
                                 Column(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -1515,10 +1539,16 @@ private fun DecisionInsightsCard(
                 ) {
                     report.leaveTypeStats.forEachIndexed { idx, lt ->
                         val color = analyticsPalette[(idx + 2) % analyticsPalette.size]
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = color.copy(alpha = if (isDarkMode) 0.18f else 0.12f),
-                            border = BorderStroke(1.dp, color.copy(alpha = 0.4f))
+                        Box(
+                            modifier = Modifier.liquidGlassPanel(
+                                shape = RoundedCornerShape(12.dp),
+                                cornerRadius = 12.dp,
+                                isDark = isDarkMode,
+                                accent = color,
+                                secondaryAccent = color,
+                                isSelected = true,
+                                softTintWhenSelected = true
+                            )
                         ) {
                             Text(
                                 text = "${formatLeaveType(lt.leaveTypeRaw, currentLang)}: ${lt.leaveCount} (${lt.totalDays} ${AppStrings.get("days", currentLang)})",
@@ -1543,11 +1573,16 @@ private fun InsightMiniTile(
     isDarkMode: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = if (isDarkMode) Color(0x281E293B) else Color(0xCCF8FAFC),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.35f)),
-        modifier = modifier
+    Box(
+        modifier = modifier.liquidGlassPanel(
+            shape = RoundedCornerShape(14.dp),
+            cornerRadius = 14.dp,
+            isDark = isDarkMode,
+            accent = accent,
+            secondaryAccent = accent,
+            isSelected = true,
+            softTintWhenSelected = true
+        )
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -1655,9 +1690,16 @@ private fun PersonnelAnnualStatCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA)
+                        Box(
+                            modifier = Modifier.liquidGlassPanel(
+                                shape = RoundedCornerShape(8.dp),
+                                cornerRadius = 8.dp,
+                                isDark = isDarkMode,
+                                accent = VibrantCyan,
+                                secondaryAccent = RoyalBlueAccent,
+                                isSelected = true,
+                                softTintWhenSelected = true
+                            )
                         ) {
                             Text(
                                 text = formatRank(stat.rankRaw, currentLang),
@@ -1667,9 +1709,14 @@ private fun PersonnelAnnualStatCard(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isDarkMode) Color(0x221E293B) else Color(0x1A64748B)
+                        Box(
+                            modifier = Modifier.liquidGlassPanel(
+                                shape = RoundedCornerShape(8.dp),
+                                cornerRadius = 8.dp,
+                                isDark = isDarkMode,
+                                accent = VibrantCyan,
+                                secondaryAccent = RoyalBlueAccent
+                            )
                         ) {
                             Text(
                                 text = stat.registrationNumber,
@@ -1686,17 +1733,15 @@ private fun PersonnelAnnualStatCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Annual Utilization Summary Badge
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (stat.leavesCountInYear > 0) {
-                        RoyalBlueAccent.copy(alpha = if (isDarkMode) 0.24f else 0.12f)
-                    } else {
-                        if (isDarkMode) Color(0x28334155) else Color(0xFFF1F5F9)
-                    },
-                    border = BorderStroke(
-                        1.dp,
-                        if (stat.leavesCountInYear > 0) RoyalBlueAccent.copy(alpha = 0.45f)
-                        else Color.Transparent
+                Box(
+                    modifier = Modifier.liquidGlassPanel(
+                        shape = RoundedCornerShape(14.dp),
+                        cornerRadius = 14.dp,
+                        isDark = isDarkMode,
+                        accent = RoyalBlueAccent,
+                        secondaryAccent = VibrantCyan,
+                        isSelected = stat.leavesCountInYear > 0,
+                        softTintWhenSelected = true
                     )
                 ) {
                     Column(
@@ -1722,11 +1767,18 @@ private fun PersonnelAnnualStatCard(
             }
 
             // Duty Reference Date Strip (Last Leave Return Date vs Personnel Added Date)
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = if (isDarkMode) Color(0x261E293B) else Color(0xB8F8FAFC),
-                border = BorderStroke(1.dp, refColor.copy(alpha = 0.35f)),
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .liquidGlassPanel(
+                        shape = RoundedCornerShape(14.dp),
+                        cornerRadius = 14.dp,
+                        isDark = isDarkMode,
+                        accent = refColor,
+                        secondaryAccent = refColor,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    )
             ) {
                 Row(
                     modifier = Modifier
@@ -1766,9 +1818,16 @@ private fun PersonnelAnnualStatCard(
                         }
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = (if (stat.isEligible) AmberWarning else refColor).copy(alpha = if (isDarkMode) 0.2f else 0.12f)
+                    Box(
+                        modifier = Modifier.liquidGlassPanel(
+                            shape = RoundedCornerShape(10.dp),
+                            cornerRadius = 10.dp,
+                            isDark = isDarkMode,
+                            accent = if (stat.isEligible) AmberWarning else refColor,
+                            secondaryAccent = refColor,
+                            isSelected = true,
+                            softTintWhenSelected = true
+                        )
                     ) {
                         val formattedRefDays = if (stat.daysSinceReference < 0L) {
                             "\u200E${stat.daysSinceReference}\u200E"
@@ -1794,9 +1853,16 @@ private fun PersonnelAnnualStatCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     stat.leavesByType.forEach { (typeRaw, count) ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                        Box(
+                            modifier = Modifier.liquidGlassPanel(
+                                shape = RoundedCornerShape(8.dp),
+                                cornerRadius = 8.dp,
+                                isDark = isDarkMode,
+                                accent = Color(0xFF7C3AED),
+                                secondaryAccent = RoyalBlueAccent,
+                                isSelected = true,
+                                softTintWhenSelected = true
+                            )
                         ) {
                             Text(
                                 text = "${formatLeaveType(typeRaw, currentLang)}: $count",

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
@@ -798,5 +800,227 @@ class ComposeUiRobolectricTest {
     composeTestRule.onNodeWithTag("test_top_fade_blur_dark").assertIsDisplayed()
     composeTestRule.onNodeWithTag("test_bottom_fade_blur_light").assertIsDisplayed()
     composeTestRule.onNodeWithTag("test_bottom_fade_blur_dark").assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `RoomDatabaseScreen switches Liquid Glass segmented tabs and opens clear confirmation dialog`() {
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val dbFile = context.getDatabasePath("personnel_leaves_db")
+    if (dbFile.exists()) dbFile.delete()
+
+    val viewModel = com.example.ui.PersonnelViewModel(context)
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.screens.RoomDatabaseScreen(
+          viewModel = viewModel,
+          onBack = {},
+          topBarClearance = 16.dp,
+          bottomDockClearance = 80.dp
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("room_database_screen").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("room_header_card").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("room_tab_personnel").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("room_tab_leaves").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("room_tab_diagnostics").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("room_diagnostics_card").assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag("room_tab_personnel").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("room_clear_tables_btn").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("room_clear_confirm_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("room_clear_cancel_btn").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("room_clear_confirm_dialog").assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `NotificationScreen displays Liquid Glass shell and opens notification detail popup`() {
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val dbFile = context.getDatabasePath("personnel_leaves_db")
+    if (dbFile.exists()) dbFile.delete()
+
+    val db = com.example.data.AppDatabase.getDatabase(
+      context,
+      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+    )
+    val overduePerson = Personnel(
+      fullName = "رشيد بلحاج",
+      fullNameLatin = "Rachid Belhadj",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "1.2026.00001",
+      startDateMillis = getOffsetDateMillis(-15),
+      returnDateMillis = getOffsetDateMillis(-3),
+      isReturnedToDuty = false
+    )
+    runBlocking { db.personnelDao().insert(overduePerson) }
+
+    val viewModel = com.example.ui.PersonnelViewModel(context)
+    repeat(20) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      if (viewModel.notifications.value.isNotEmpty()) return@repeat
+      Thread.sleep(50)
+    }
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.screens.NotificationScreen(
+          viewModel = viewModel,
+          onBack = {},
+          topBarClearance = 16.dp,
+          bottomDockClearance = 80.dp
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("notifications_scaffold").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("notifications_back_button").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("notifications_refresh_button").assertIsDisplayed()
+
+    val firstNotif = viewModel.notifications.value.firstOrNull()
+    assertTrue("Expected overdue notification to be generated", firstNotif != null)
+    composeTestRule.onNodeWithTag("notification_card_${firstNotif!!.id}").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("notification_detail_popup").assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `redesigned Liquid Glass dialogs and BiometricLockScreen render cleanly in RTL Dark Mode`() {
+    val trashedPerson = Personnel(
+      id = 55L,
+      fullName = "محمد الورثيلاني",
+      fullNameLatin = "Mohamed El Ouertilani",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "1.2026.00000",
+      startDateMillis = getOffsetDateMillis(-10),
+      returnDateMillis = getOffsetDateMillis(-2),
+      isReturnedToDuty = true,
+      isDeleted = true,
+      deletedAtMillis = System.currentTimeMillis()
+    )
+
+    val showExport = androidx.compose.runtime.mutableStateOf(true)
+    val showTrash = androidx.compose.runtime.mutableStateOf(false)
+    val showDev = androidx.compose.runtime.mutableStateOf(false)
+    val showThemePicker = androidx.compose.runtime.mutableStateOf(false)
+    val showConfirm = androidx.compose.runtime.mutableStateOf(false)
+    val showBiometric = androidx.compose.runtime.mutableStateOf(false)
+
+    composeTestRule.setContent {
+      MyApplicationTheme(darkTheme = true) {
+        if (showExport.value) {
+          com.example.ui.components.ExportDialog(
+            csvContent = "id,name",
+            jsonContent = "[]",
+            onExportPdf = {},
+            onImportJson = { _, _ -> true to "OK" },
+            onDismiss = { showExport.value = false },
+            currentLang = AppLanguage.ARABIC,
+            isDarkMode = true,
+            animationsEnabled = false
+          )
+        }
+        if (showTrash.value) {
+          com.example.ui.components.TrashBinDialog(
+            trashedPersonnel = listOf(trashedPerson),
+            isDarkMode = true,
+            currentLang = AppLanguage.ARABIC,
+            onRestore = {},
+            onRestoreAll = {},
+            onDeleteForever = {},
+            onEmptyTrash = {},
+            onDismiss = { showTrash.value = false },
+            animationsEnabled = false
+          )
+        }
+        if (showDev.value) {
+          com.example.ui.components.DeveloperInfoDialog(
+            currentLang = AppLanguage.ARABIC,
+            onDismiss = { showDev.value = false },
+            isDarkMode = true,
+            animationsEnabled = false
+          )
+        }
+        if (showThemePicker.value) {
+          com.example.ui.components.ThemeEnginePickerDialog(
+            selectedThemeId = com.example.ui.theme.ThemeEngine.allThemes.first().id,
+            isDarkMode = true,
+            currentLang = AppLanguage.ARABIC,
+            onSelectTheme = {},
+            onResetDefault = {},
+            onDismiss = { showThemePicker.value = false },
+            animationsEnabled = false
+          )
+        }
+        if (showConfirm.value) {
+          com.example.ui.components.LiquidGlassConfirmDialog(
+            title = "تأكيد",
+            message = "هل تريد المتابعة؟",
+            confirmText = "نعم",
+            cancelText = "إلغاء",
+            icon = Icons.Default.Warning,
+            isDarkMode = true,
+            currentLang = AppLanguage.ARABIC,
+            animationsEnabled = false,
+            dialogTestTag = "confirm_test_dialog",
+            confirmTestTag = "confirm_test_ok",
+            cancelTestTag = "confirm_test_cancel",
+            onConfirm = { showConfirm.value = false },
+            onDismiss = { showConfirm.value = false }
+          )
+        }
+        if (showBiometric.value) {
+          com.example.ui.components.BiometricLockScreen(
+            onUnlockSuccess = {},
+            isDarkMode = true,
+            currentLang = AppLanguage.ARABIC,
+            animationsEnabled = false
+          )
+        }
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("export_import_dialog").assertIsDisplayed()
+    showExport.value = false
+    showTrash.value = true
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("trash_bin_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("trash_item_55").assertIsDisplayed()
+
+    showTrash.value = false
+    showDev.value = true
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("developer_info_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("developer_whatsapp_button").assertIsDisplayed()
+
+    showDev.value = false
+    showThemePicker.value = true
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("theme_engine_picker_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("theme_engine_search_input").assertIsDisplayed()
+
+    showThemePicker.value = false
+    showConfirm.value = true
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("confirm_test_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("confirm_test_ok").assertIsDisplayed().performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("confirm_test_dialog").assertDoesNotExist()
+
+    showBiometric.value = true
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("biometric_lock_screen").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("biometric_unlock_button").assertIsDisplayed()
   }
 }

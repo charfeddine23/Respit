@@ -115,15 +115,31 @@ import com.example.data.Personnel
 import com.example.data.formatRank
 import com.example.data.formatWilaya
 import com.example.ui.PersonnelViewModel
+import com.example.ui.theme.AmberWarning
+import com.example.ui.theme.CyanGlow
+import com.example.ui.theme.EmeraldSuccess
+import com.example.ui.theme.LiquidGlassDefaults
+import com.example.ui.theme.LocalThemePreset
+import com.example.ui.theme.RedDanger
+import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.SlateTextPrimary
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.SyncDialogLiquidGlassWindow
+import com.example.ui.theme.VibrantCyan
+import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.liquidGlassDialogShell
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
+import com.example.util.SyncDialogSecureWindow
 
 @Composable
 fun NotificationScreen(
     viewModel: PersonnelViewModel,
     onBack: () -> Unit,
     onSelectPersonnel: ((Long) -> Unit)? = null,
-    topBarClearance: Dp = 0.dp
+    topBarClearance: Dp = 0.dp,
+    bottomDockClearance: Dp = 0.dp
 ) {
     BackHandler { onBack() }
 
@@ -132,11 +148,18 @@ fun NotificationScreen(
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val themeStyle by viewModel.currentThemeStyle.collectAsState()
-    val isNeumorphic = themeStyle == AppThemeStyle.NEUMORPHISM
+    val activePreset = LocalThemePreset.current
+    val effectiveDark = activePreset?.isDark ?: isDarkMode
+    val primaryAccent = activePreset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
+    val secondaryAccent = activePreset?.secondary ?: VibrantCyan
+    val textPrimary = activePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = activePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+    val isNeumorphic = (themeStyle == AppThemeStyle.NEUMORPHISM) && (activePreset?.isLiquidGlass != true)
     val notifications by viewModel.notifications.collectAsState()
     val allPersonnel by viewModel.allPersonnel.collectAsState()
     val dismissedIds by viewModel.dismissedNotificationIds.collectAsState()
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
+    val isNoScreenshotEnabled by viewModel.isNoScreenshotEnabled.collectAsState()
 
     var selectedFilter by remember { mutableStateOf("ALL") }
     var showClearAllConfirmDialog by remember { mutableStateOf(false) }
@@ -178,125 +201,125 @@ fun NotificationScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                        Surface(
-                            shape = RoundedCornerShape(22.dp),
-                            color = if (isDarkMode) Color(0xE8131D33) else Color(0xFAFFFFFF),
-                            border = BorderStroke(
-                                1.2.dp,
-                                Brush.linearGradient(
-                                    if (isDarkMode) listOf(Color(0x5538BDF8), Color(0x33A855F7), Color(0x4510B981))
-                                    else listOf(Color(0x6600BCD4), Color(0x443B82F6), Color(0x5510B981))
-                                )
-                            ),
-                            shadowElevation = if (isNeumorphic) 8.dp else 6.dp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 840.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                TactileCircleActionButton(
-                                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = AppStrings.get("back", currentLang),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    isDark = isDarkMode,
-                                    haptic = haptic,
-                                    onClick = onBack,
-                                    modifier = Modifier.testTag("notifications_back_button")
-                                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 840.dp)
+                        .liquidGlass(
+                            shape = RoundedCornerShape(24.dp),
+                            elevation = if (isNeumorphic) 7.dp else 5.dp,
+                            borderAlpha = 0.9f,
+                            isDark = effectiveDark,
+                            isNeumorphic = isNeumorphic,
+                            cornerRadius = 24.dp
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TactileCircleActionButton(
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = AppStrings.get("back", currentLang),
+                            tint = primaryAccent,
+                            isDark = effectiveDark,
+                            haptic = haptic,
+                            onClick = onBack,
+                            modifier = Modifier.testTag("notifications_back_button")
+                        )
 
-                                Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(9.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    if (urgentCount > 0) Color(0xFFEF4444) else Color(0xFF00BCD4)
-                                                )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(9.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (urgentCount > 0) RedDanger else VibrantCyan
                                         )
-                                        Spacer(modifier = Modifier.width(7.dp))
-                                        Text(
-                                            text = AppStrings.get("notifications_page_title", currentLang),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Black,
-                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        if (notifications.isNotEmpty()) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Surface(
-                                                shape = RoundedCornerShape(50.dp),
-                                                color = (if (urgentCount > 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary)
-                                                    .copy(alpha = if (isDarkMode) 0.24f else 0.14f),
-                                                border = BorderStroke(
-                                                    1.dp,
-                                                    (if (urgentCount > 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary)
-                                                        .copy(alpha = 0.55f)
-                                                )
-                                            ) {
-                                                Text(
-                                                    text = "${notifications.size}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = if (urgentCount > 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = AppStrings.get("notifications_subtitle", currentLang),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 11.sp,
-                                        color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                TactileCircleActionButton(
-                                    icon = Icons.Default.Refresh,
-                                    contentDescription = AppStrings.get("refresh", currentLang),
-                                    tint = Color(0xFF00BCD4),
-                                    isDark = isDarkMode,
-                                    haptic = haptic,
-                                    onClick = {
-                                        val count = viewModel.checkUpcomingNotifications()
-                                        Toast.makeText(
-                                            context,
-                                            "${AppStrings.get("notifications_checked", currentLang)} ($count)",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    },
-                                    modifier = Modifier.testTag("notifications_refresh_button")
                                 )
-
+                                Spacer(modifier = Modifier.width(7.dp))
+                                Text(
+                                    text = AppStrings.get("notifications_page_title", currentLang),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = textPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                                 if (notifications.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    TactileCircleActionButton(
-                                        icon = Icons.Default.ClearAll,
-                                        contentDescription = AppStrings.get("clear_all", currentLang),
-                                        tint = Color(0xFFEF4444),
-                                        isDark = isDarkMode,
-                                        haptic = haptic,
-                                        onClick = { showClearAllConfirmDialog = true },
-                                        modifier = Modifier.testTag("notifications_clear_all_button")
-                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    val badgeTint = if (urgentCount > 0) RedDanger else primaryAccent
+                                    Box(
+                                        modifier = Modifier.liquidGlassPanel(
+                                            shape = RoundedCornerShape(50.dp),
+                                            cornerRadius = 50.dp,
+                                            isDark = effectiveDark,
+                                            accent = badgeTint,
+                                            secondaryAccent = badgeTint,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "${notifications.size}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = badgeTint,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        )
+                                    }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = AppStrings.get("notifications_subtitle", currentLang),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 11.sp,
+                                color = textSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        TactileCircleActionButton(
+                            icon = Icons.Default.Refresh,
+                            contentDescription = AppStrings.get("refresh", currentLang),
+                            tint = VibrantCyan,
+                            isDark = effectiveDark,
+                            haptic = haptic,
+                            onClick = {
+                                val count = viewModel.checkUpcomingNotifications()
+                                Toast.makeText(
+                                    context,
+                                    "${AppStrings.get("notifications_checked", currentLang)} ($count)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            modifier = Modifier.testTag("notifications_refresh_button")
+                        )
+
+                        if (notifications.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            TactileCircleActionButton(
+                                icon = Icons.Default.ClearAll,
+                                contentDescription = AppStrings.get("clear_all", currentLang),
+                                tint = RedDanger,
+                                isDark = effectiveDark,
+                                haptic = haptic,
+                                onClick = { showClearAllConfirmDialog = true },
+                                modifier = Modifier.testTag("notifications_clear_all_button")
+                            )
                         }
                     }
+                }
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -318,9 +341,9 @@ fun NotificationScreen(
                             AlertKpiTile(
                                 label = AppStrings.get("notif_summary_urgent", currentLang),
                                 count = urgentCount,
-                                accent = Color(0xFFEF4444),
+                                accent = RedDanger,
                                 isSelected = selectedFilter == "URGENT",
-                                isDark = isDarkMode,
+                                isDark = effectiveDark,
                                 haptic = haptic,
                                 onClick = {
                                     selectedFilter = if (selectedFilter == "URGENT") "ALL" else "URGENT"
@@ -330,9 +353,9 @@ fun NotificationScreen(
                             AlertKpiTile(
                                 label = AppStrings.get("notif_summary_upcoming", currentLang),
                                 count = approachingCount,
-                                accent = Color(0xFFF59E0B),
+                                accent = AmberWarning,
                                 isSelected = selectedFilter == "APPROACHING",
-                                isDark = isDarkMode,
+                                isDark = effectiveDark,
                                 haptic = haptic,
                                 onClick = {
                                     selectedFilter = if (selectedFilter == "APPROACHING") "ALL" else "APPROACHING"
@@ -344,7 +367,7 @@ fun NotificationScreen(
                                 count = eligibleCount,
                                 accent = Color(0xFF8B5CF6),
                                 isSelected = selectedFilter == "ELIGIBLE",
-                                isDark = isDarkMode,
+                                isDark = effectiveDark,
                                 haptic = haptic,
                                 onClick = {
                                     selectedFilter = if (selectedFilter == "ELIGIBLE") "ALL" else "ELIGIBLE"
@@ -354,9 +377,9 @@ fun NotificationScreen(
                             AlertKpiTile(
                                 label = AppStrings.get("notif_summary_total", currentLang),
                                 count = notifications.size,
-                                accent = Color(0xFF00BCD4),
+                                accent = VibrantCyan,
                                 isSelected = selectedFilter == "ALL",
-                                isDark = isDarkMode,
+                                isDark = effectiveDark,
                                 haptic = haptic,
                                 onClick = { selectedFilter = "ALL" },
                                 modifier = Modifier.weight(1f)
@@ -378,7 +401,8 @@ fun NotificationScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     selectedFilter = "ALL"
                                 },
-                                isDark = isDarkMode
+                                isDark = effectiveDark,
+                                accentColor = primaryAccent
                             )
                             if (pinnedCount > 0) {
                                 NotificationFilterChip(
@@ -388,8 +412,8 @@ fun NotificationScreen(
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         selectedFilter = "PINNED"
                                     },
-                                    isDark = isDarkMode,
-                                    accentColor = Color(0xFFF59E0B)
+                                    isDark = effectiveDark,
+                                    accentColor = AmberWarning
                                 )
                             }
                             NotificationFilterChip(
@@ -399,8 +423,8 @@ fun NotificationScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     selectedFilter = "RETURNING_TODAY"
                                 },
-                                isDark = isDarkMode,
-                                accentColor = Color(0xFF00BCD4)
+                                isDark = effectiveDark,
+                                accentColor = VibrantCyan
                             )
                             NotificationFilterChip(
                                 label = "${AppStrings.get("filter_overdue", currentLang)} ($overdueCount)",
@@ -409,8 +433,8 @@ fun NotificationScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     selectedFilter = "OVERDUE"
                                 },
-                                isDark = isDarkMode,
-                                accentColor = Color(0xFFEF4444)
+                                isDark = effectiveDark,
+                                accentColor = RedDanger
                             )
                             NotificationFilterChip(
                                 label = "${AppStrings.get("filter_approaching", currentLang)} ($approachingCount)",
@@ -419,8 +443,8 @@ fun NotificationScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     selectedFilter = "APPROACHING"
                                 },
-                                isDark = isDarkMode,
-                                accentColor = Color(0xFF10B981)
+                                isDark = effectiveDark,
+                                accentColor = EmeraldSuccess
                             )
                             NotificationFilterChip(
                                 label = "${AppStrings.get("filter_eligible", currentLang)} ($eligibleCount)",
@@ -429,7 +453,7 @@ fun NotificationScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     selectedFilter = "ELIGIBLE"
                                 },
-                                isDark = isDarkMode,
+                                isDark = effectiveDark,
                                 accentColor = Color(0xFF8B5CF6)
                             )
                         }
@@ -438,23 +462,21 @@ fun NotificationScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(24.dp),
+                                    .padding(horizontal = 24.dp, vertical = 20.dp)
+                                    .padding(bottom = bottomDockClearance),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(26.dp),
-                                    color = if (isDarkMode) Color(0xE8131D33) else Color(0xFAFFFFFF),
-                                    border = BorderStroke(
-                                        1.2.dp,
-                                        Brush.linearGradient(
-                                            listOf(
-                                                Color(0xFF10B981).copy(alpha = 0.55f),
-                                                Color(0xFF00BCD4).copy(alpha = 0.45f)
-                                            )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .liquidGlass(
+                                            shape = RoundedCornerShape(26.dp),
+                                            elevation = 6.dp,
+                                            borderAlpha = 0.9f,
+                                            isDark = effectiveDark,
+                                            isNeumorphic = isNeumorphic,
+                                            cornerRadius = 26.dp
                                         )
-                                    ),
-                                    shadowElevation = 8.dp,
-                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -464,22 +486,21 @@ fun NotificationScreen(
                                         Box(
                                             modifier = Modifier
                                                 .size(72.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    Brush.radialGradient(
-                                                        listOf(
-                                                            Color(0xFF10B981).copy(alpha = 0.25f),
-                                                            Color(0xFF10B981).copy(alpha = 0.08f)
-                                                        )
-                                                    )
-                                                )
-                                                .border(1.5.dp, Color(0xFF10B981).copy(alpha = 0.5f), CircleShape),
+                                                .liquidGlassPanel(
+                                                    shape = CircleShape,
+                                                    cornerRadius = 36.dp,
+                                                    isDark = effectiveDark,
+                                                    accent = EmeraldSuccess,
+                                                    secondaryAccent = VibrantCyan,
+                                                    isSelected = true,
+                                                    softTintWhenSelected = true
+                                                ),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.CheckCircle,
                                                 contentDescription = null,
-                                                tint = Color(0xFF10B981),
+                                                tint = EmeraldSuccess,
                                                 modifier = Modifier.size(38.dp)
                                             )
                                         }
@@ -488,22 +509,22 @@ fun NotificationScreen(
                                             text = AppStrings.get("notifications_empty_title", currentLang),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                            color = textPrimary,
                                             textAlign = TextAlign.Center
                                         )
 
                                         Text(
                                             text = AppStrings.get("notifications_empty_sub", currentLang),
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                            color = textSecondary,
                                             textAlign = TextAlign.Center
                                         )
 
                                         if (dismissedIds.isNotEmpty()) {
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            OutlinedButton(
+                                            com.example.ui.components.LiquidGlassActionButton(
+                                                text = "${AppStrings.get("restore_dismissed_btn", currentLang)} (${dismissedIds.size})",
                                                 onClick = {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                     viewModel.restoreDismissedNotifications()
                                                     Toast.makeText(
                                                         context,
@@ -511,25 +532,13 @@ fun NotificationScreen(
                                                         Toast.LENGTH_SHORT
                                                     ).show()
                                                 },
-                                                shape = RoundedCornerShape(50.dp),
-                                                border = BorderStroke(1.dp, Color(0xFF00BCD4).copy(alpha = 0.6f)),
-                                                modifier = Modifier
-                                                    .height(48.dp)
-                                                    .testTag("restore_dismissed_button")
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Refresh,
-                                                    contentDescription = null,
-                                                    tint = Color(0xFF00BCD4),
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "${AppStrings.get("restore_dismissed_btn", currentLang)} (${dismissedIds.size})",
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF00BCD4)
-                                                )
-                                            }
+                                                isDark = effectiveDark,
+                                                primaryAccent = VibrantCyan,
+                                                secondaryAccent = RoyalBlueAccent,
+                                                icon = Icons.Default.Refresh,
+                                                isPrimary = false,
+                                                modifier = Modifier.testTag("restore_dismissed_button")
+                                            )
                                         }
                                     }
                                 }
@@ -539,13 +548,18 @@ fun NotificationScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .testTag("notifications_list"),
-                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 116.dp),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 10.dp,
+                                    bottom = maxOf(bottomDockClearance + 24.dp, 116.dp)
+                                ),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(filteredList, key = { it.id }) { notification ->
                                     NotificationCard(
                                         notification = notification,
-                                        isDark = isDarkMode,
+                                        isDark = effectiveDark,
                                         isNeumorphic = isNeumorphic,
                                         currentLang = currentLang,
                                         haptic = haptic,
@@ -587,7 +601,9 @@ fun NotificationScreen(
         NotificationDetailPopup(
             notification = activePopupNotification,
             personnel = linkedPersonnel,
-            isDarkMode = isDarkMode,
+            isDarkMode = effectiveDark,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled,
             currentLang = currentLang,
             haptic = haptic,
             onTogglePin = {
@@ -616,12 +632,20 @@ fun NotificationScreen(
         )
     }
 
-    // Custom Floating Gradient-Halo Clear-All Confirmation Popup
+    // 5%-Transparency Liquid Glass Clear-All Confirmation Dialog
     if (showClearAllConfirmDialog) {
-        ClearAllNotificationsPopup(
-            isDarkMode = isDarkMode,
+        com.example.ui.components.LiquidGlassConfirmDialog(
+            title = AppStrings.get("clear_all_dialog_title", currentLang),
+            message = AppStrings.get("clear_all_dialog_desc", currentLang),
+            confirmText = AppStrings.get("clear_all_confirm", currentLang),
+            cancelText = AppStrings.get("cancel", currentLang),
+            icon = Icons.Default.ClearAll,
+            accentColor = RedDanger,
+            secondaryColor = Color(0xFFF97316),
+            isDarkMode = effectiveDark,
             currentLang = currentLang,
-            haptic = haptic,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled,
             onConfirm = {
                 viewModel.clearAllNotifications()
                 showClearAllConfirmDialog = false
@@ -646,6 +670,8 @@ private fun TactileCircleActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -660,17 +686,25 @@ private fun TactileCircleActionButton(
         },
         interactionSource = interactionSource,
         shape = RoundedCornerShape(14.dp),
-        color = tint.copy(alpha = if (isDark) 0.16f else 0.10f),
-        border = BorderStroke(1.dp, tint.copy(alpha = 0.35f)),
+        color = Color.Transparent,
         modifier = modifier
-            .size(44.dp)
-            .defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
+            .size(48.dp)
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(14.dp),
+                cornerRadius = 14.dp,
+                isDark = effectiveDark,
+                accent = tint,
+                secondaryAccent = tint,
+                isSelected = true,
+                softTintWhenSelected = true
+            )
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
@@ -692,22 +726,15 @@ private fun AlertKpiTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF334155)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.95f else 1f,
         animationSpec = spring(dampingRatio = 0.70f, stiffness = Spring.StiffnessMedium),
         label = "kpiTileScale"
-    )
-    val bgColor by animateColorAsState(
-        targetValue = when {
-            isSelected && isDark -> accent.copy(alpha = 0.24f)
-            isSelected -> accent.copy(alpha = 0.14f)
-            isDark -> Color(0xCC131D33)
-            else -> Color(0xF5FFFFFF)
-        },
-        animationSpec = tween(180),
-        label = "kpiTileBg"
     )
 
     Surface(
@@ -717,15 +744,22 @@ private fun AlertKpiTile(
         },
         interactionSource = interactionSource,
         shape = RoundedCornerShape(16.dp),
-        color = bgColor,
-        border = BorderStroke(
-            if (isSelected) 1.5.dp else 1.dp,
-            if (isSelected) accent else (if (isDark) Color(0x33475569) else Color(0x38CBD5E1))
-        ),
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
+        color = Color.Transparent,
+        modifier = modifier
+            .defaultMinSize(minHeight = 52.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(16.dp),
+                cornerRadius = 16.dp,
+                isDark = effectiveDark,
+                accent = accent,
+                secondaryAccent = accent,
+                isSelected = isSelected,
+                softTintWhenSelected = true
+            )
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 9.dp),
@@ -743,7 +777,7 @@ private fun AlertKpiTile(
                 text = label,
                 fontSize = 10.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
+                color = textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -759,30 +793,40 @@ private fun NotificationFilterChip(
     isDark: Boolean,
     accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val textColor = when {
+        isSelected && effectiveDark -> Color.White
+        isSelected -> accentColor
+        else -> preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+    }
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(50.dp),
-        color = if (isSelected) {
-            accentColor.copy(alpha = if (isDark) 0.28f else 0.16f)
-        } else {
-            if (isDark) Color(0xAA1E293B) else Color(0xE6FFFFFF)
-        },
-        border = BorderStroke(
-            width = if (isSelected) 1.4.dp else 1.dp,
-            color = if (isSelected) accentColor else (if (isDark) Color(0x33475569) else Color(0x38CBD5E1))
-        )
+        color = Color.Transparent,
+        modifier = Modifier
+            .defaultMinSize(minHeight = 40.dp)
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(50.dp),
+                cornerRadius = 50.dp,
+                isDark = effectiveDark,
+                accent = accentColor,
+                secondaryAccent = accentColor,
+                isSelected = isSelected,
+                softTintWhenSelected = true
+            )
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-            color = if (isSelected) {
-                if (isDark) Color.White else accentColor
-            } else {
-                if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
-            },
-            modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp)
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                color = textColor
+            )
+        }
     }
 }
 
@@ -854,6 +898,10 @@ private fun NotificationCard(
     onSelectPersonnel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDark
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
     val visual = rememberNotificationVisualSpec(notification.type, currentLang)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -863,33 +911,27 @@ private fun NotificationCard(
         label = "notifCardScale"
     )
 
-    Surface(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onCardClick()
-        },
-        interactionSource = interactionSource,
-        shape = RoundedCornerShape(22.dp),
-        color = if (isDark) Color(0xEA131D33) else Color(0xFAFFFFFF),
-        border = BorderStroke(
-            width = if (notification.isPinned) 1.6.dp else 1.1.dp,
-            brush = if (notification.isPinned) {
-                Brush.linearGradient(listOf(Color(0xFFF59E0B), Color(0xFFFBBF24), Color(0xFFF59E0B)))
-            } else {
-                Brush.linearGradient(
-                    listOf(
-                        visual.primaryColor.copy(alpha = if (isDark) 0.55f else 0.40f),
-                        visual.secondaryColor.copy(alpha = if (isDark) 0.25f else 0.16f)
-                    )
-                )
-            }
-        ),
-        shadowElevation = if (notification.isPinned) 8.dp else if (isNeumorphic) 6.dp else 4.dp,
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+            }
+            .liquidGlass(
+                shape = RoundedCornerShape(22.dp),
+                elevation = if (notification.isPinned) 7.dp else if (isNeumorphic) 6.dp else 4.dp,
+                borderAlpha = if (notification.isPinned) 0.95f else 0.85f,
+                isDark = effectiveDark,
+                isNeumorphic = isNeumorphic,
+                cornerRadius = 22.dp
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onCardClick()
             }
             .testTag("notification_card_${notification.id}")
     ) {
@@ -905,7 +947,11 @@ private fun NotificationCard(
                     .fillMaxHeight()
                     .background(
                         Brush.verticalGradient(
-                            listOf(visual.primaryColor, visual.secondaryColor)
+                            if (notification.isPinned) {
+                                listOf(AmberWarning, Color(0xFFFBBF24), visual.primaryColor)
+                            } else {
+                                listOf(visual.primaryColor, visual.secondaryColor)
+                            }
                         )
                     )
             )
@@ -916,7 +962,7 @@ private fun NotificationCard(
                     .padding(horizontal = 14.dp, vertical = 13.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Header Row: Glowing Orb Icon + Type Pill + Pin Badge + Action Icons
+                // Header Row: Glowing Glass Icon + Type Pill + Pin Badge + 48dp Action Icons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -929,20 +975,15 @@ private fun NotificationCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(
-                                            visual.primaryColor.copy(alpha = if (isDark) 0.26f else 0.16f),
-                                            visual.secondaryColor.copy(alpha = if (isDark) 0.14f else 0.08f)
-                                        )
-                                    )
-                                )
-                                .border(
-                                    1.dp,
-                                    visual.primaryColor.copy(alpha = 0.45f),
-                                    RoundedCornerShape(12.dp)
+                                .size(40.dp)
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(12.dp),
+                                    cornerRadius = 12.dp,
+                                    isDark = effectiveDark,
+                                    accent = visual.primaryColor,
+                                    secondaryAccent = visual.secondaryColor,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -959,10 +1000,16 @@ private fun NotificationCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(50.dp),
-                                    color = visual.primaryColor.copy(alpha = if (isDark) 0.20f else 0.12f),
-                                    border = BorderStroke(0.8.dp, visual.primaryColor.copy(alpha = 0.45f))
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(50.dp),
+                                        cornerRadius = 50.dp,
+                                        isDark = effectiveDark,
+                                        accent = visual.primaryColor,
+                                        secondaryAccent = visual.secondaryColor,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
                                 ) {
                                     Text(
                                         text = visual.label,
@@ -975,10 +1022,16 @@ private fun NotificationCard(
                                 }
 
                                 if (notification.isPinned) {
-                                    Surface(
-                                        shape = RoundedCornerShape(50.dp),
-                                        color = Color(0xFFF59E0B).copy(alpha = if (isDark) 0.22f else 0.14f),
-                                        border = BorderStroke(0.8.dp, Color(0xFFF59E0B).copy(alpha = 0.55f))
+                                    Box(
+                                        modifier = Modifier.liquidGlassPanel(
+                                            shape = RoundedCornerShape(50.dp),
+                                            cornerRadius = 50.dp,
+                                            isDark = effectiveDark,
+                                            accent = AmberWarning,
+                                            secondaryAccent = AmberWarning,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -987,7 +1040,7 @@ private fun NotificationCard(
                                             Icon(
                                                 imageVector = Icons.Default.PushPin,
                                                 contentDescription = null,
-                                                tint = Color(0xFFF59E0B),
+                                                tint = AmberWarning,
                                                 modifier = Modifier.size(11.dp)
                                             )
                                             Spacer(modifier = Modifier.width(3.dp))
@@ -995,7 +1048,7 @@ private fun NotificationCard(
                                                 text = AppStrings.get("pinned_badge", currentLang),
                                                 fontSize = 9.5.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFF59E0B)
+                                                color = AmberWarning
                                             )
                                         }
                                     }
@@ -1007,7 +1060,7 @@ private fun NotificationCard(
                                     Icon(
                                         imageVector = Icons.Default.DateRange,
                                         contentDescription = null,
-                                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        tint = textSecondary,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -1015,7 +1068,7 @@ private fun NotificationCard(
                                         text = notification.formattedDate,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontFamily = FontFamily.Monospace,
-                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        color = textSecondary,
                                         fontSize = 10.5.sp
                                     )
                                 }
@@ -1027,52 +1080,64 @@ private fun NotificationCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        IconButton(
+                        Surface(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onTogglePin()
                             },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (notification.isPinned) Color(0xFFF59E0B).copy(alpha = 0.22f)
-                                    else if (isDark) Color(0x33334155) else Color(0xFFF1F5F9)
-                                )
-                                .border(
-                                    1.dp,
-                                    if (notification.isPinned) Color(0xFFF59E0B).copy(alpha = 0.55f)
-                                    else Color.Transparent,
-                                    RoundedCornerShape(10.dp)
+                                .size(48.dp)
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(12.dp),
+                                    cornerRadius = 12.dp,
+                                    isDark = effectiveDark,
+                                    accent = AmberWarning,
+                                    secondaryAccent = AmberWarning,
+                                    isSelected = notification.isPinned,
+                                    softTintWhenSelected = true
                                 )
                                 .testTag("pin_btn_${notification.id}")
                         ) {
-                            Icon(
-                                imageVector = if (notification.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
-                                contentDescription = if (notification.isPinned) AppStrings.get("unpin_action", currentLang) else AppStrings.get("pin_action", currentLang),
-                                tint = if (notification.isPinned) Color(0xFFF59E0B) else if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    imageVector = if (notification.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                                    contentDescription = if (notification.isPinned) AppStrings.get("unpin_action", currentLang) else AppStrings.get("pin_action", currentLang),
+                                    tint = if (notification.isPinned) AmberWarning else textSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
 
-                        IconButton(
+                        Surface(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onDismiss()
                             },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isDark) Color(0x26EF4444) else Color(0x18EF4444))
-                                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.30f), RoundedCornerShape(10.dp))
+                                .size(48.dp)
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(12.dp),
+                                    cornerRadius = 12.dp,
+                                    isDark = effectiveDark,
+                                    accent = RedDanger,
+                                    secondaryAccent = RedDanger,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
                                 .testTag("dismiss_btn_${notification.id}")
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = AppStrings.get("dismiss_action", currentLang),
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = AppStrings.get("dismiss_action", currentLang),
+                                    tint = RedDanger,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -1082,93 +1147,113 @@ private fun NotificationCard(
                     text = notification.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                    color = textPrimary
                 )
 
-                // Inset Message Container
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (isDark) Color(0x450F172A) else Color(0xFFF8FAFC),
-                    border = BorderStroke(
-                        0.8.dp,
-                        if (isDark) Color(0x28475569) else Color(0x33CBD5E1)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                // Inset Liquid Glass Message Container
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(14.dp),
+                            cornerRadius = 14.dp,
+                            isDark = effectiveDark,
+                            accent = visual.primaryColor,
+                            secondaryAccent = visual.secondaryColor
+                        )
+                        .padding(horizontal = 12.dp, vertical = 9.dp)
                 ) {
                     Text(
                         text = notification.message,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
-                        lineHeight = 20.sp,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+                        color = if (effectiveDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
+                        lineHeight = 20.sp
                     )
                 }
 
                 // Footer Quick Actions
                 if (notification.personnelId != null) {
+                    val quickPreviewAccent = visual.primaryColor
+                    val viewRecordAccent = MaterialTheme.colorScheme.primary
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onCardClick()
+                            },
                             shape = RoundedCornerShape(50.dp),
-                            color = visual.primaryColor.copy(alpha = if (isDark) 0.16f else 0.10f),
-                            border = BorderStroke(0.9.dp, visual.primaryColor.copy(alpha = 0.38f)),
+                            color = Color.Transparent,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onCardClick()
-                                }
+                                .defaultMinSize(minHeight = 40.dp)
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(50.dp),
+                                    cornerRadius = 50.dp,
+                                    isDark = effectiveDark,
+                                    accent = quickPreviewAccent,
+                                    secondaryAccent = visual.secondaryColor,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Schedule,
                                     contentDescription = null,
-                                    tint = visual.primaryColor,
-                                    modifier = Modifier.size(14.dp)
+                                    tint = quickPreviewAccent,
+                                    modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
                                     text = AppStrings.get("notif_quick_preview", currentLang),
-                                    fontSize = 11.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = visual.primaryColor
+                                    color = quickPreviewAccent
                                 )
                             }
                         }
 
                         Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSelectPersonnel()
+                            },
                             shape = RoundedCornerShape(50.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.18f else 0.12f),
-                            border = BorderStroke(0.9.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)),
+                            color = Color.Transparent,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onSelectPersonnel()
-                                }
+                                .defaultMinSize(minHeight = 40.dp)
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(50.dp),
+                                    cornerRadius = 50.dp,
+                                    isDark = effectiveDark,
+                                    accent = viewRecordAccent,
+                                    secondaryAccent = RoyalBlueAccent,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
+                                    tint = viewRecordAccent,
+                                    modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
                                     text = AppStrings.get("view_record", currentLang),
-                                    fontSize = 11.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = viewRecordAccent
                                 )
                             }
                         }
@@ -1184,6 +1269,8 @@ private fun NotificationDetailPopup(
     notification: AppNotification,
     personnel: Personnel?,
     isDarkMode: Boolean,
+    animationsEnabled: Boolean = true,
+    isNoScreenshotEnabled: Boolean = false,
     currentLang: AppLanguage,
     haptic: HapticFeedback,
     onTogglePin: () -> Unit,
@@ -1191,62 +1278,53 @@ private fun NotificationDetailPopup(
     onEditRecord: (() -> Unit)?,
     onDismissPopup: () -> Unit
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else SlateTextSecondary
     val visual = rememberNotificationVisualSpec(notification.type, currentLang)
 
     Dialog(
         onDismissRequest = onDismissPopup,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn(tween(200)) + scaleIn(
-                initialScale = 0.90f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
-            ),
-            exit = fadeOut(tween(150))
+        SyncDialogSecureWindow(enabled = isNoScreenshotEnabled)
+        SyncDialogLiquidGlassWindow()
+
+        CompositionLocalProvider(
+            LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 22.dp)
-                    .widthIn(max = 380.dp)
-                    .testTag("notification_detail_popup"),
-                contentAlignment = Alignment.Center
+            AnimatedVisibility(
+                visible = true,
+                enter = if (animationsEnabled) {
+                    fadeIn(tween(200)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 420f)
+                    )
+                } else androidx.compose.animation.EnterTransition.None,
+                exit = fadeOut(tween(150))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp)
-                        .drawBehind {
-                            val auraAlpha = if (isDarkMode) 0.50f else 0.30f
-                            val outerR = 34.dp.toPx()
-                            val expand = 8.dp.toPx()
-                            drawRoundRect(
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        visual.primaryColor.copy(alpha = auraAlpha),
-                                        visual.secondaryColor.copy(alpha = auraAlpha * 0.85f),
-                                        Color(0xFF00BCD4).copy(alpha = auraAlpha * 0.75f)
-                                    )
-                                ),
-                                topLeft = Offset(-expand, -expand),
-                                size = Size(size.width + expand * 2f, size.height + expand * 2f),
-                                cornerRadius = CornerRadius(outerR, outerR),
-                                style = Stroke(width = 14.dp.toPx())
-                            )
-                        }
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Surface(
                         shape = RoundedCornerShape(28.dp),
-                        color = if (isDarkMode) Color(0xFA111827) else Color(0xFCFFFFFF),
-                        border = BorderStroke(
-                            1.5.dp,
-                            Brush.linearGradient(
-                                listOf(visual.primaryColor.copy(alpha = 0.78f), visual.secondaryColor.copy(alpha = 0.65f))
+                        color = Color.Transparent,
+                        shadowElevation = 0.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = 420.dp)
+                            .liquidGlassDialogShell(
+                                shape = RoundedCornerShape(28.dp),
+                                cornerRadius = 28.dp,
+                                isDark = effectiveDark,
+                                primaryAccent = visual.primaryColor,
+                                secondaryAccent = visual.secondaryColor
                             )
-                        ),
-                        shadowElevation = 18.dp,
-                        modifier = Modifier.fillMaxWidth()
+                            .testTag("notification_detail_popup")
                     ) {
                         Column(
                             modifier = Modifier
@@ -1254,19 +1332,27 @@ private fun NotificationDetailPopup(
                                 .padding(18.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Top Bar
+                            // Sticky Frosted Top Bar with 48dp touch targets
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                Brush.linearGradient(listOf(visual.primaryColor, visual.secondaryColor))
+                                            .size(44.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(14.dp),
+                                                cornerRadius = 14.dp,
+                                                isDark = effectiveDark,
+                                                accent = visual.primaryColor,
+                                                secondaryAccent = visual.secondaryColor,
+                                                isSelected = true,
+                                                softTintWhenSelected = false
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -1274,7 +1360,7 @@ private fun NotificationDetailPopup(
                                             imageVector = visual.icon,
                                             contentDescription = null,
                                             tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(21.dp)
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(10.dp))
@@ -1283,7 +1369,7 @@ private fun NotificationDetailPopup(
                                             text = AppStrings.get("notif_detail_title", currentLang),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Black,
-                                            color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                            color = textPrimary
                                         )
                                         Text(
                                             text = visual.label,
@@ -1294,32 +1380,61 @@ private fun NotificationDetailPopup(
                                     }
                                 }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    IconButton(
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Surface(
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             onTogglePin()
                                         },
-                                        modifier = Modifier.size(40.dp)
+                                        shape = CircleShape,
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .liquidGlassPanel(
+                                                shape = CircleShape,
+                                                cornerRadius = 24.dp,
+                                                isDark = effectiveDark,
+                                                accent = AmberWarning,
+                                                secondaryAccent = AmberWarning,
+                                                isSelected = notification.isPinned,
+                                                softTintWhenSelected = true
+                                            )
                                     ) {
-                                        Icon(
-                                            imageVector = if (notification.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
-                                            contentDescription = AppStrings.get(if (notification.isPinned) "unpin_action" else "pin_action", currentLang),
-                                            tint = if (notification.isPinned) Color(0xFFF59E0B) else Color(0xFF94A3B8)
-                                        )
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Icon(
+                                                imageVector = if (notification.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                                                contentDescription = AppStrings.get(if (notification.isPinned) "unpin_action" else "pin_action", currentLang),
+                                                tint = if (notification.isPinned) AmberWarning else textSecondary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
-                                    IconButton(
+
+                                    Surface(
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             onDismissPopup()
                                         },
-                                        modifier = Modifier.size(40.dp)
+                                        shape = CircleShape,
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .liquidGlassPanel(
+                                                shape = CircleShape,
+                                                cornerRadius = 24.dp,
+                                                isDark = effectiveDark,
+                                                accent = visual.primaryColor,
+                                                secondaryAccent = visual.secondaryColor
+                                            )
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = AppStrings.get("close", currentLang),
-                                            tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                        )
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = AppStrings.get("close", currentLang),
+                                                tint = textSecondary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1328,30 +1443,45 @@ private fun NotificationDetailPopup(
                                 text = notification.title,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                color = textPrimary
                             )
 
-                            Text(
-                                text = notification.message,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF334155),
-                                lineHeight = 21.sp
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(16.dp),
+                                        cornerRadius = 16.dp,
+                                        isDark = effectiveDark,
+                                        accent = visual.primaryColor,
+                                        secondaryAccent = visual.secondaryColor
+                                    )
+                                    .padding(horizontal = 13.dp, vertical = 10.dp)
+                            ) {
+                                Text(
+                                    text = notification.message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (effectiveDark) Color(0xFFE2E8F0) else Color(0xFF334155),
+                                    lineHeight = 21.sp
+                                )
+                            }
 
                             if (personnel != null) {
-                                Surface(
-                                    shape = RoundedCornerShape(18.dp),
-                                    color = if (isDarkMode) Color(0x401E293B) else Color(0xFFF1F5F9),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (isDarkMode) Color(0x3838BDF8) else Color(0x380284C7)
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(18.dp),
+                                            cornerRadius = 18.dp,
+                                            isDark = effectiveDark,
+                                            accent = VibrantCyan,
+                                            secondaryAccent = RoyalBlueAccent,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
+                                        .padding(12.dp)
                                 ) {
-                                    Column(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1361,7 +1491,7 @@ private fun NotificationDetailPopup(
                                                 text = "${formatRank(personnel.rank, currentLang)} / ${personnel.getLocalizedName(currentLang)}",
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                color = textPrimary,
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Text(
@@ -1369,12 +1499,12 @@ private fun NotificationDetailPopup(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontFamily = FontFamily.Monospace,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF00BCD4)
+                                                color = VibrantCyan
                                             )
                                         }
 
                                         HorizontalDivider(
-                                            color = if (isDarkMode) Color(0x28475569) else Color(0x2894A3B8)
+                                            color = if (effectiveDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.6f)
                                         )
 
                                         Row(
@@ -1393,214 +1523,51 @@ private fun NotificationDetailPopup(
                                                 Text(
                                                     text = formatWilaya(personnel.wilaya, currentLang, includeCode = false),
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF475569)
+                                                    color = textSecondary
                                                 )
                                             }
                                             Text(
                                                 text = "${personnel.formattedStartDate} → ${personnel.formattedReturnDate}",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontFamily = FontFamily.Monospace,
-                                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                color = textSecondary
                                             )
                                         }
                                     }
                                 }
                             }
 
-                            // Action Buttons Row
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                if (onConfirmDuty != null) {
-                                    Button(
-                                        onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onConfirmDuty()
-                                        },
-                                        shape = RoundedCornerShape(50.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF10B981),
-                                            contentColor = Color.White
-                                        ),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
-                                    ) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(17.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
+                            if (onConfirmDuty != null || onEditRecord != null) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (onConfirmDuty != null) {
+                                        com.example.ui.components.LiquidGlassActionButton(
                                             text = AppStrings.get("confirm_duty_btn", currentLang),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            onClick = onConfirmDuty,
+                                            isDark = effectiveDark,
+                                            primaryAccent = EmeraldSuccess,
+                                            secondaryAccent = Color(0xFF0D9488),
+                                            icon = Icons.Default.CheckCircle,
+                                            isPrimary = true,
+                                            modifier = Modifier.weight(1f)
                                         )
                                     }
-                                }
 
-                                if (onEditRecord != null) {
-                                    OutlinedButton(
-                                        onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onEditRecord()
-                                        },
-                                        shape = RoundedCornerShape(50.dp),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Edit,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
+                                    if (onEditRecord != null) {
+                                        com.example.ui.components.LiquidGlassActionButton(
                                             text = AppStrings.get("edit", currentLang),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            onClick = onEditRecord,
+                                            isDark = effectiveDark,
+                                            primaryAccent = if (effectiveDark) CyanGlow else RoyalBlueAccent,
+                                            secondaryAccent = VibrantCyan,
+                                            icon = Icons.Default.Edit,
+                                            isPrimary = false,
+                                            modifier = Modifier.weight(1f)
                                         )
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ClearAllNotificationsPopup(
-    isDarkMode: Boolean,
-    currentLang: AppLanguage,
-    haptic: HapticFeedback,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .widthIn(max = 360.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp)
-                    .drawBehind {
-                        val expand = 7.dp.toPx()
-                        val corner = 32.dp.toPx()
-                        drawRoundRect(
-                            brush = Brush.linearGradient(
-                                listOf(
-                                    Color(0xFFEF4444).copy(alpha = 0.45f),
-                                    Color(0xFFF97316).copy(alpha = 0.38f)
-                                )
-                            ),
-                            topLeft = Offset(-expand, -expand),
-                            size = Size(size.width + expand * 2f, size.height + expand * 2f),
-                            cornerRadius = CornerRadius(corner, corner),
-                            style = Stroke(width = 12.dp.toPx())
-                        )
-                    }
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(26.dp),
-                    color = if (isDarkMode) Color(0xFA111827) else Color(0xFCFFFFFF),
-                    border = BorderStroke(
-                        1.4.dp,
-                        Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFF97316)))
-                    ),
-                    shadowElevation = 16.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFEF4444).copy(alpha = 0.16f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ClearAll,
-                                contentDescription = null,
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-
-                        Text(
-                            text = AppStrings.get("clear_all_dialog_title", currentLang),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Text(
-                            text = AppStrings.get("clear_all_dialog_desc", currentLang),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF475569),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onDismiss()
-                                },
-                                shape = RoundedCornerShape(50.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                            ) {
-                                Text(
-                                    text = AppStrings.get("cancel", currentLang),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Button(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onConfirm()
-                                },
-                                shape = RoundedCornerShape(50.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFEF4444),
-                                    contentColor = Color.White
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                            ) {
-                                Text(
-                                    text = AppStrings.get("clear_all_confirm", currentLang),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
-                                )
                             }
                         }
                     }

@@ -123,11 +123,14 @@ import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
 import com.example.ui.theme.LocalLivingLuxuryMode
+import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
+import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import kotlin.math.abs
@@ -219,6 +222,12 @@ fun PersonnelCard(
     onSwipeDelete: () -> Unit = onDelete,
     onViewHistory: () -> Unit = {}
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+    val primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+
     val status = personnel.status
     val isEligible = personnel.isReturnedToDuty && effectiveDaysSinceDuty >= dutyThresholdDays
     val progress = personnel.leaveProgressFraction
@@ -240,8 +249,8 @@ fun PersonnelCard(
 
     val visual = when {
         status == LeaveStatus.AT_HOME -> StatusVisual(
-            color = if (isDarkMode) CyanGlow else VibrantCyan,
-            bgTint = if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F2FE),
+            color = if (effectiveDark) CyanGlow else VibrantCyan,
+            bgTint = if (effectiveDark) Color(0x3300BCD4) else Color(0xFFE0F2FE),
             icon = Icons.Default.Home,
             badgeKey = "badge_at_home"
         )
@@ -748,15 +757,15 @@ fun PersonnelCard(
                                 scaleX = badgeBreathScale
                                 scaleY = badgeBreathScale
                             }
-                            .clip(avatarShape)
-                            .background(visual.bgTint)
-                            .border(
-                                if (isLivingLuxury) 1.7.dp else 1.4.dp,
-                                visual.color.copy(
-                                    alpha = if (isLivingLuxury) (0.70f + 0.30f * luxuryPulse)
-                                    else if (isNeumorphic) 0.45f else 0.9f
-                                ),
-                                avatarShape
+                            .liquidGlassPanel(
+                                shape = avatarShape,
+                                cornerRadius = if (isNeumorphic) 18.dp else 24.dp,
+                                isDark = effectiveDark,
+                                accent = visual.color,
+                                secondaryAccent = visual.color,
+                                isSelected = true,
+                                softTintWhenSelected = true,
+                                borderWidth = if (isLivingLuxury) 1.7.dp else 1.4.dp
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -788,7 +797,7 @@ fun PersonnelCard(
                                 text = personnel.getLocalizedName(currentLang),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
-                                color = if (isDarkMode) Color.White else SlateTextPrimary,
+                                color = textPrimary,
                                 fontSize = 15.5.sp,
                                 lineHeight = 20.sp,
                                 maxLines = 2,
@@ -799,9 +808,17 @@ fun PersonnelCard(
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
-                                        .clip(CircleShape)
+                                        .size(28.dp)
+                                        .liquidGlassPanel(
+                                            shape = CircleShape,
+                                            cornerRadius = 14.dp,
+                                            isDark = effectiveDark,
+                                            accent = AmberWarning,
+                                            secondaryAccent = AmberWarning,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
                                         .clickable(onClick = onTogglePin)
-                                        .padding(6.dp)
                                         .testTag("pinned_badge_${personnel.id}")
                                 ) {
                                     Icon(
@@ -809,7 +826,7 @@ fun PersonnelCard(
                                         contentDescription = AppStrings.get("unpin_action", currentLang),
                                         tint = AmberWarning,
                                         modifier = Modifier
-                                            .size(16.dp)
+                                            .size(14.dp)
                                             .rotate(30f)
                                     )
                                 }
@@ -821,16 +838,22 @@ fun PersonnelCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             // Localized Military Rank Pill
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isDarkMode) Color(0x3300BCD4) else Color(0xFFE0F7FA),
-                                border = BorderStroke(1.dp, Color(0xFF00BCD4).copy(alpha = 0.45f))
+                            Box(
+                                modifier = Modifier.liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = primaryAccent,
+                                    secondaryAccent = RoyalBlueAccent,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
                             ) {
                                 Text(
                                     text = localizedRank,
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
+                                    color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF007791),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -838,18 +861,23 @@ fun PersonnelCard(
                             }
 
                             // Registration Number Pill
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isDarkMode) Color(0x221E293B) else Color(0x1A64748B)
+                            Box(
+                                modifier = Modifier.liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = primaryAccent,
+                                    secondaryAccent = RoyalBlueAccent
+                                )
                             ) {
                                 Text(
                                     text = personnel.registrationNumber,
                                     fontSize = 10.5.sp,
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
+                                    color = textSecondary,
                                     maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
                         }
@@ -864,10 +892,16 @@ fun PersonnelCard(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.widthIn(max = 148.dp)
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(50.dp),
-                        color = visual.bgTint,
-                        border = BorderStroke(1.2.dp, visual.color.copy(alpha = 0.8f))
+                    Box(
+                        modifier = Modifier.liquidGlassPanel(
+                            shape = RoundedCornerShape(50.dp),
+                            cornerRadius = 50.dp,
+                            isDark = effectiveDark,
+                            accent = visual.color,
+                            secondaryAccent = visual.color,
+                            isSelected = true,
+                            softTintWhenSelected = true
+                        )
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -893,14 +927,16 @@ fun PersonnelCard(
 
                     // Wilaya Chip (without numeric code) directly below Status Badge
                     if (localizedWilaya.isNotBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isDarkMode) Color(0x28334155) else Color(0x66F1F5F9),
-                            border = BorderStroke(
-                                0.8.dp,
-                                if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
-                            ),
-                            modifier = Modifier.testTag("personnel_wilaya_${personnel.id}")
+                        Box(
+                            modifier = Modifier
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = RoyalBlueAccent,
+                                    secondaryAccent = primaryAccent
+                                )
+                                .testTag("personnel_wilaya_${personnel.id}")
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -910,13 +946,13 @@ fun PersonnelCard(
                                 Icon(
                                     imageVector = Icons.Default.LocationOn,
                                     contentDescription = AppStrings.get("wilaya_label", currentLang),
-                                    tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                                    tint = primaryAccent,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
                                     text = localizedWilaya,
                                     fontSize = 10.5.sp,
-                                    color = if (isDarkMode) Color(0xFFE2E8F0) else SlateTextPrimary,
+                                    color = textPrimary,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -928,30 +964,24 @@ fun PersonnelCard(
             }
 
             // Expand / Collapse Bar + Expandable Details grouped to eliminate inter-item spacing jump
-            val expandBarBg by animateColorAsState(
-                targetValue = when {
-                    isExpanded && isDarkMode -> Color(0x3038BDF8)
-                    isExpanded -> Color(0x2000BCD4)
-                    isDarkMode -> Color(0x1F38BDF8)
-                    else -> Color(0x1200BCD4)
-                },
-                animationSpec = if (animationsEnabled) {
-                    spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 400f)
-                } else tween(0),
-                label = "expandBarBg"
-            )
-
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(expandBarBg)
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(14.dp),
+                            cornerRadius = 14.dp,
+                            isDark = effectiveDark,
+                            accent = primaryAccent,
+                            secondaryAccent = RoyalBlueAccent,
+                            isSelected = isExpanded,
+                            softTintWhenSelected = true
+                        )
                         .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             isExpanded = !isExpanded
                         }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -962,7 +992,7 @@ fun PersonnelCard(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = if (isDarkMode) CyanGlow else VibrantCyan,
+                            tint = primaryAccent,
                             modifier = Modifier
                                 .size(18.dp)
                                 .graphicsLayer { rotationZ = arrowRotation }
@@ -986,7 +1016,7 @@ fun PersonnelCard(
                                 ),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkMode) CyanGlow else VibrantCyan
+                                color = primaryAccent
                             )
                         }
                     }
@@ -1009,7 +1039,7 @@ fun PersonnelCard(
                             text = collapsedScheduleText,
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary),
+                            color = if (personnel.isOverdue) RedDanger else textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1047,10 +1077,15 @@ fun PersonnelCard(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (isDarkMode) Color(0x221E293B) else Color(0x66F1F5F9))
+                            .liquidGlassPanel(
+                                shape = RoundedCornerShape(16.dp),
+                                cornerRadius = 16.dp,
+                                isDark = effectiveDark,
+                                accent = visual.color,
+                                secondaryAccent = primaryAccent
+                            )
                             .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(9.dp)
                     ) {
                         if (personnel.startDateMillis > 0L && personnel.returnDateMillis > 0L) {
                             // Leave Type & Duration Summary
@@ -1059,75 +1094,123 @@ fun PersonnelCard(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isDarkMode) Color(0x337C3AED) else Color(0xFFEDE9FE)
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(10.dp),
+                                        cornerRadius = 10.dp,
+                                        isDark = effectiveDark,
+                                        accent = Color(0xFF8B5CF6),
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
                                 ) {
                                     Text(
                                         text = localizedLeaveType,
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        color = if (effectiveDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                                     )
                                 }
 
-                                Text(
-                                    text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
-                                )
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(50.dp),
+                                        cornerRadius = 50.dp,
+                                        isDark = effectiveDark,
+                                        accent = primaryAccent,
+                                        secondaryAccent = primaryAccent
+                                    )
+                                ) {
+                                    Text(
+                                        text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textPrimary,
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                                    )
+                                }
                             }
 
-                            // Dates Row
+                            // Crisp Dual Frosted Date Tiles
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(12.dp),
+                                            cornerRadius = 12.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryAccent,
+                                            secondaryAccent = RoyalBlueAccent
+                                        )
+                                        .padding(horizontal = 9.dp, vertical = 7.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CalendarMonth,
                                         contentDescription = null,
-                                        tint = if (isDarkMode) CyanGlow else VibrantCyan,
-                                        modifier = Modifier.size(13.dp)
+                                        tint = primaryAccent,
+                                        modifier = Modifier.size(14.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(5.dp))
                                     Text(
                                         text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
-                                        fontSize = 11.sp,
-                                        color = if (isDarkMode) Color(0xFFCBD5E1) else SlateTextSecondary,
-                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 10.5.sp,
+                                        color = textSecondary,
+                                        fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                Text(
-                                    text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (personnel.isOverdue) RedDanger else (if (isDarkMode) Color.White else SlateTextPrimary),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(12.dp),
+                                            cornerRadius = 12.dp,
+                                            isDark = effectiveDark,
+                                            accent = if (personnel.isOverdue) RedDanger else visual.color,
+                                            secondaryAccent = visual.color,
+                                            isSelected = personnel.isOverdue,
+                                            softTintWhenSelected = true
+                                        )
+                                        .padding(horizontal = 9.dp, vertical = 7.dp)
+                                ) {
+                                    Text(
+                                        text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (personnel.isOverdue) RedDanger else textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         } else {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isDarkMode) Color(0x2838BDF8) else Color(0xFFE0F7FA)
+                            Box(
+                                modifier = Modifier.liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = primaryAccent,
+                                    secondaryAccent = RoyalBlueAccent,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
                             ) {
                                 Text(
                                     text = AppStrings.get("no_leave_recorded_short", currentLang),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color(0xFF7DD3FC) else Color(0xFF00838F),
+                                    color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF00838F),
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                                 )
                             }
@@ -1139,10 +1222,10 @@ fun PersonnelCard(
                                 progress = { animatedProgress },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(6.dp)
+                                    .height(7.dp)
                                     .clip(RoundedCornerShape(50.dp)),
                                 color = visual.color,
-                                trackColor = if (isDarkMode) Color(0x33475569) else Color(0x33CBD5E1)
+                                trackColor = if (effectiveDark) Color(0x33475569) else Color(0x33CBD5E1)
                             )
 
                             Text(
@@ -1178,45 +1261,29 @@ fun PersonnelCard(
                             Text(
                                 text = "${AppStrings.get("notes_label", currentLang)} ${personnel.notes}",
                                 fontSize = 10.5.sp,
-                                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                                color = textSecondary,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
-                    // Action Buttons Section (48dp minimum touch targets)
+                    // Action Buttons Section (48dp minimum touch targets with Liquid Glass polish)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (!personnel.isReturnedToDuty) {
-                            Button(
+                            LiquidGlassActionButton(
+                                text = AppStrings.get("confirm_duty_btn", currentLang),
+                                icon = Icons.Default.Check,
                                 onClick = onConfirmDuty,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = EmeraldSuccess,
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(horizontal = 12.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = AppStrings.get("confirm_duty_btn", currentLang),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                                isDark = effectiveDark,
+                                primaryAccent = EmeraldSuccess,
+                                secondaryAccent = Color(0xFF059669),
+                                isPrimary = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
 
                         Row(
@@ -1224,79 +1291,115 @@ fun PersonnelCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            OutlinedButton(
+                            Surface(
                                 onClick = onViewHistory,
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isDarkMode) Color(0x458B5CF6) else Color(0x667C3AED)
-                                ),
-                                contentPadding = PaddingValues(horizontal = 10.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(14.dp),
+                                        cornerRadius = 14.dp,
+                                        isDark = effectiveDark,
+                                        accent = Color(0xFF8B5CF6),
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
                                     .testTag("personnel_history_btn_${personnel.id}")
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.History,
-                                    contentDescription = AppStrings.get("history_btn", currentLang),
-                                    tint = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = AppStrings.get("history_btn", currentLang),
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = AppStrings.get("history_btn", currentLang),
+                                        tint = if (effectiveDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("history_btn", currentLang),
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (effectiveDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
 
-                            OutlinedButton(
+                            Surface(
                                 onClick = onEdit,
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isDarkMode) Color(0x4038BDF8) else Color(0x6000BCD4)
-                                ),
-                                contentPadding = PaddingValues(horizontal = 10.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(14.dp),
+                                        cornerRadius = 14.dp,
+                                        isDark = effectiveDark,
+                                        accent = primaryAccent,
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = AppStrings.get("edit", currentLang),
-                                    tint = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = AppStrings.get("edit", currentLang),
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = AppStrings.get("edit", currentLang),
+                                        tint = primaryAccent,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("edit", currentLang),
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF007791),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
 
-                            IconButton(
+                            Surface(
                                 onClick = onDelete,
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isDarkMode) Color(0x22EF4444) else Color(0x1AEF4444))
-                                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(14.dp),
+                                        cornerRadius = 14.dp,
+                                        isDark = effectiveDark,
+                                        accent = RedDanger,
+                                        secondaryAccent = CoralRedAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = AppStrings.get("delete", currentLang),
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = AppStrings.get("delete", currentLang),
+                                        tint = RedDanger,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }

@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,22 +73,28 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -144,6 +151,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -164,6 +172,7 @@ import com.example.ui.components.DeveloperInfoDialog
 import com.example.ui.components.ExportDialog
 import com.example.ui.components.FilterSortDialog
 import com.example.ui.components.InAppUpdateDialog
+import com.example.ui.components.LiquidGlassConfirmDialog
 import com.example.ui.components.LiquidGlassFloatingCapsule
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.SideNavigationDrawerContent
@@ -173,6 +182,7 @@ import com.example.ui.components.TrashBinDialog
 import com.example.ui.screens.AnalyticsDashboardScreen
 import com.example.ui.screens.NotificationScreen
 import com.example.ui.screens.RoomDatabaseScreen
+import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.DynamicAuroraBackground
@@ -181,10 +191,13 @@ import com.example.ui.theme.KufiArabicBrandFontFamily
 import com.example.ui.theme.LiquidGlassDefaults
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.RedDanger
 import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.liquidGlassDialogShell
 import com.example.ui.theme.liquidGlassInteractive
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.AppUpdateState
@@ -532,7 +545,9 @@ fun LeaveTrackerMainApp(
                 Toast.makeText(context, AppStrings.get("unlock_success", currentLang), Toast.LENGTH_SHORT).show()
             },
             isDarkMode = isDarkMode,
-            currentLang = currentLang
+            currentLang = currentLang,
+            isNeumorphic = isNeumorphic,
+            animationsEnabled = isDynamicAnimationsEnabled
         )
         return
     }
@@ -895,7 +910,8 @@ fun LeaveTrackerMainApp(
                                             RoomDatabaseScreen(
                                                 viewModel = viewModel,
                                                 onBack = { selectedNavPage = AppNavPage.DASHBOARD },
-                                                topBarClearance = topBarClearance
+                                                topBarClearance = topBarClearance,
+                                                bottomDockClearance = bottomDockClearance
                                             )
                                         }
                                         AppNavPage.ANALYTICS -> {
@@ -924,7 +940,8 @@ fun LeaveTrackerMainApp(
                                                         showAddEditDialog = true
                                                     }
                                                 },
-                                                topBarClearance = topBarClearance
+                                                topBarClearance = topBarClearance,
+                                                bottomDockClearance = bottomDockClearance
                                             )
                                         }
                                         AppNavPage.SETTINGS -> {
@@ -1023,103 +1040,165 @@ fun LeaveTrackerMainApp(
                                             )
                                         }
 
-                                        // 3 Prominent Tactile Action Buttons (Matching Reference Design: Green, Coral, Royal Blue)
+                                        // 3 Prominent Liquid Glass Quick Action Tiles (Add Personnel, Urgent Alerts, Room DB)
                                         item {
+                                            val urgentCount = stats.overdue + stats.returningToday
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                // 1. Green Button: "+ إضافة فرد" (Emerald Green)
-                                                Surface(
-                                                    onClick = {
-                                                        personnelToEdit = null
-                                                        showAddEditDialog = true
-                                                    },
-                                                    shape = RoundedCornerShape(16.dp),
-                                                    color = EmeraldSuccess,
-                                                    shadowElevation = if (isNeumorphic) 6.dp else 4.dp,
+                                                // 1. Emerald Liquid Glass Action Tile: "+ إضافة فرد"
+                                                Box(
                                                     modifier = Modifier
                                                         .weight(1f)
-                                                        .height(48.dp)
-                                                        .testTag("action_btn_add_personnel")
+                                                        .defaultMinSize(minHeight = 50.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(16.dp),
+                                                            cornerRadius = 16.dp,
+                                                            isDark = isDarkMode,
+                                                            accent = EmeraldSuccess,
+                                                            secondaryAccent = Color(0xFF059669),
+                                                            isSelected = true,
+                                                            softTintWhenSelected = false
+                                                        )
+                                                        .clickable {
+                                                            personnelToEdit = null
+                                                            showAddEditDialog = true
+                                                        }
+                                                        .testTag("action_btn_add_personnel"),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
                                                     Row(
-                                                        modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 8.dp, vertical = 12.dp),
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         horizontalArrangement = Arrangement.Center
                                                     ) {
-                                                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(17.dp))
+                                                        Icon(
+                                                            imageVector = Icons.Default.Add,
+                                                            contentDescription = null,
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(17.dp)
+                                                        )
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         Text(
                                                             text = AppStrings.get("add_personnel", currentLang),
                                                             color = Color.White,
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 11.sp,
-                                                            maxLines = 1
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
                                                     }
                                                 }
 
-                                                // 2. Coral Red Button: "تنبيهات عاجلة"
-                                                Surface(
-                                                    onClick = {
-                                                        if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
-                                                            previousNavPage = selectedNavPage
-                                                        }
-                                                        selectedNavPage = AppNavPage.NOTIFICATIONS
-                                                    },
-                                                    shape = RoundedCornerShape(16.dp),
-                                                    color = CoralRedAccent,
-                                                    shadowElevation = if (isNeumorphic) 6.dp else 4.dp,
+                                                // 2. Coral Liquid Glass Action Tile: "تنبيهات عاجلة" + urgent pill badge
+                                                Box(
                                                     modifier = Modifier
                                                         .weight(1f)
-                                                        .height(48.dp)
-                                                        .testTag("action_btn_urgent_alerts")
+                                                        .defaultMinSize(minHeight = 50.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(16.dp),
+                                                            cornerRadius = 16.dp,
+                                                            isDark = isDarkMode,
+                                                            accent = CoralRedAccent,
+                                                            secondaryAccent = Color(0xFFDC2626),
+                                                            isSelected = true,
+                                                            softTintWhenSelected = false
+                                                        )
+                                                        .clickable {
+                                                            if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
+                                                                previousNavPage = selectedNavPage
+                                                            }
+                                                            selectedNavPage = AppNavPage.NOTIFICATIONS
+                                                        }
+                                                        .testTag("action_btn_urgent_alerts"),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
                                                     Row(
-                                                        modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 8.dp, vertical = 12.dp),
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         horizontalArrangement = Arrangement.Center
                                                     ) {
-                                                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(17.dp))
+                                                        Icon(
+                                                            imageVector = Icons.Default.NotificationsActive,
+                                                            contentDescription = null,
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         Text(
                                                             text = AppStrings.get("urgent_alerts_title", currentLang).split("(").first().trim(),
                                                             color = Color.White,
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 11.sp,
-                                                            maxLines = 1
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
+                                                        if (urgentCount > 0) {
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .background(Color.White.copy(alpha = 0.25f), CircleShape)
+                                                                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Text(
+                                                                    text = "$urgentCount",
+                                                                    color = Color.White,
+                                                                    fontSize = 9.5.sp,
+                                                                    fontWeight = FontWeight.ExtraBold
+                                                                )
+                                                            }
+                                                        }
                                                     }
                                                 }
 
-                                                // 3. Royal Blue Button: "قاعدة البيانات"
-                                                Surface(
-                                                    onClick = {
-                                                        selectedNavPage = AppNavPage.DATABASE
-                                                    },
-                                                    shape = RoundedCornerShape(16.dp),
-                                                    color = RoyalBlueAccent,
-                                                    shadowElevation = if (isNeumorphic) 6.dp else 4.dp,
+                                                // 3. Royal Blue Liquid Glass Action Tile: "قاعدة البيانات"
+                                                Box(
                                                     modifier = Modifier
                                                         .weight(1f)
-                                                        .height(48.dp)
-                                                        .testTag("action_btn_room_db")
+                                                        .defaultMinSize(minHeight = 50.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = RoundedCornerShape(16.dp),
+                                                            cornerRadius = 16.dp,
+                                                            isDark = isDarkMode,
+                                                            accent = RoyalBlueAccent,
+                                                            secondaryAccent = VibrantCyan,
+                                                            isSelected = true,
+                                                            softTintWhenSelected = false
+                                                        )
+                                                        .clickable {
+                                                            selectedNavPage = AppNavPage.DATABASE
+                                                        }
+                                                        .testTag("action_btn_room_db"),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
                                                     Row(
-                                                        modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 8.dp, vertical = 12.dp),
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         horizontalArrangement = Arrangement.Center
                                                     ) {
-                                                        Icon(Icons.Default.Storage, contentDescription = null, tint = Color.White, modifier = Modifier.size(17.dp))
+                                                        Icon(
+                                                            imageVector = Icons.Default.Storage,
+                                                            contentDescription = null,
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(17.dp)
+                                                        )
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         Text(
                                                             text = AppStrings.get("nav_database", currentLang),
                                                             color = Color.White,
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 11.sp,
-                                                            maxLines = 1
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
                                                     }
                                                 }
@@ -1591,6 +1670,134 @@ fun LeaveTrackerMainApp(
                                             }
                                         }
 
+                                        // Inline 1-Tap Liquid Glass Quick Status Filter Strip
+                                        item {
+                                            val primaryAccent = activeThemePreset?.primary ?: if (isDarkMode) CyanGlow else RoyalBlueAccent
+                                            val quickFilterItems = remember(stats, currentLang, primaryAccent) {
+                                                listOf(
+                                                    Triple("ALL", AppStrings.get("status_all", currentLang) to Icons.Default.Person, stats.total to primaryAccent),
+                                                    Triple("ON_DUTY", stripLeadingEmojiPrefix(AppStrings.get("status_on_duty", currentLang)) to Icons.Default.CheckCircle, stats.onDuty to EmeraldSuccess),
+                                                    Triple("AT_HOME", stripLeadingEmojiPrefix(AppStrings.get("status_at_home", currentLang)) to Icons.Default.Home, stats.atHome to VibrantCyan),
+                                                    Triple("RETURNING_TODAY", stripLeadingEmojiPrefix(AppStrings.get("status_returning_today", currentLang)) to Icons.Default.NotificationsActive, stats.returningToday to RoyalBlueAccent),
+                                                    Triple("OVERDUE", stripLeadingEmojiPrefix(AppStrings.get("status_overdue", currentLang)) to Icons.Default.Warning, stats.overdue to RedDanger),
+                                                    Triple("ELIGIBLE", stripLeadingEmojiPrefix(AppStrings.get("status_eligible", currentLang)) to Icons.Default.Star, stats.eligible to AmberWarning)
+                                                )
+                                            }
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .horizontalScroll(rememberScrollState())
+                                                    .testTag("records_quick_filter_strip"),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                quickFilterItems.forEach { (statusKey, labelAndIcon, countAndAccent) ->
+                                                    val (labelText, iconVec) = labelAndIcon
+                                                    val (countVal, chipAccent) = countAndAccent
+                                                    val isChipSelected = selectedStatus == statusKey
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .defaultMinSize(minHeight = 42.dp)
+                                                            .liquidGlassPanel(
+                                                                shape = CircleShape,
+                                                                cornerRadius = 21.dp,
+                                                                isDark = isDarkMode,
+                                                                accent = chipAccent,
+                                                                secondaryAccent = activeThemePreset?.secondary ?: RoyalBlueAccent,
+                                                                isSelected = isChipSelected
+                                                            )
+                                                            .clickable {
+                                                                viewModel.selectedStatus.value = statusKey
+                                                            }
+                                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                                            .testTag("records_quick_filter_$statusKey"),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = iconVec,
+                                                                contentDescription = null,
+                                                                tint = if (isChipSelected) chipAccent else if (isDarkMode) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                                                modifier = Modifier.size(15.dp)
+                                                            )
+                                                            Text(
+                                                                text = labelText,
+                                                                fontSize = 11.5.sp,
+                                                                fontWeight = if (isChipSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                                color = if (isChipSelected) {
+                                                                    if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                                                } else {
+                                                                    if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF334155)
+                                                                },
+                                                                maxLines = 1
+                                                            )
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .background(
+                                                                        color = chipAccent.copy(alpha = if (isChipSelected) 0.22f else 0.12f),
+                                                                        shape = CircleShape
+                                                                    )
+                                                                    .padding(horizontal = 6.dp, vertical = 1.dp),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Text(
+                                                                    text = "$countVal",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.ExtraBold,
+                                                                    color = chipAccent
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                if (activeFilterCount > 0 || selectedWilaya != "ALL") {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .defaultMinSize(minHeight = 42.dp)
+                                                            .liquidGlassPanel(
+                                                                shape = CircleShape,
+                                                                cornerRadius = 21.dp,
+                                                                isDark = isDarkMode,
+                                                                accent = CoralRedAccent,
+                                                                isSelected = true
+                                                            )
+                                                            .clickable {
+                                                                viewModel.selectedStatus.value = "ALL"
+                                                                viewModel.selectedRank.value = "ALL"
+                                                                viewModel.selectedWilaya.value = "ALL"
+                                                                viewModel.sortOption.value = SortOption.RETURN_SOON
+                                                            }
+                                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                                            .testTag("records_quick_filter_reset"),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Refresh,
+                                                                contentDescription = null,
+                                                                tint = CoralRedAccent,
+                                                                modifier = Modifier.size(15.dp)
+                                                            )
+                                                            Text(
+                                                                text = AppStrings.get("reset_filters", currentLang),
+                                                                fontSize = 11.5.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = CoralRedAccent,
+                                                                maxLines = 1
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         // Results Count & Quick Trash Bin Indicator
                                         item {
                                             Row(
@@ -1611,26 +1818,30 @@ fun LeaveTrackerMainApp(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
-                                                    Surface(
-                                                        onClick = { showTrashBinDialog = true },
-                                                        shape = RoundedCornerShape(50.dp),
-                                                        color = CoralRedAccent.copy(alpha = if (trashedCount > 0) 0.16f else 0.08f),
-                                                        border = BorderStroke(
-                                                            1.dp,
-                                                            CoralRedAccent.copy(alpha = if (trashedCount > 0) 0.55f else 0.25f)
-                                                        ),
-                                                        modifier = Modifier.testTag("records_trash_bin_button")
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .defaultMinSize(minHeight = 40.dp)
+                                                            .liquidGlassPanel(
+                                                                shape = RoundedCornerShape(50.dp),
+                                                                cornerRadius = 50.dp,
+                                                                isDark = isDarkMode,
+                                                                accent = CoralRedAccent,
+                                                                isSelected = trashedCount > 0
+                                                            )
+                                                            .clickable { showTrashBinDialog = true }
+                                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                                            .testTag("records_trash_bin_button"),
+                                                        contentAlignment = Alignment.Center
                                                     ) {
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                                                         ) {
                                                             Icon(
                                                                 imageVector = Icons.Default.DeleteSweep,
                                                                 contentDescription = AppStrings.get("trash_bin_title", currentLang),
                                                                 tint = CoralRedAccent,
-                                                                modifier = Modifier.size(15.dp)
+                                                                modifier = Modifier.size(16.dp)
                                                             )
                                                             Text(
                                                                 text = if (trashedCount > 0) {
@@ -1638,7 +1849,7 @@ fun LeaveTrackerMainApp(
                                                                 } else {
                                                                     AppStrings.get("trash_bin_title", currentLang)
                                                                 },
-                                                                fontSize = 10.5.sp,
+                                                                fontSize = 11.sp,
                                                                 fontWeight = FontWeight.Bold,
                                                                 color = CoralRedAccent
                                                             )
@@ -1843,20 +2054,24 @@ fun LeaveTrackerMainApp(
                                     )
                             ) {
                                 lastSwipeDeletedPerson?.let { deletedPerson ->
-                                    Surface(
-                                        shape = RoundedCornerShape(18.dp),
-                                        color = if (isDarkMode) Color(0xEE1E293B) else Color(0xF50F172A),
-                                        border = BorderStroke(1.2.dp, CoralRedAccent.copy(alpha = 0.7f)),
-                                        shadowElevation = 10.dp,
+                                    Box(
                                         modifier = Modifier
                                             .widthIn(max = 520.dp)
                                             .fillMaxWidth()
+                                            .liquidGlassDialogShell(
+                                                shape = RoundedCornerShape(20.dp),
+                                                cornerRadius = 20.dp,
+                                                elevation = 14.dp,
+                                                isDark = isDarkMode,
+                                                primaryAccent = CoralRedAccent,
+                                                secondaryAccent = EmeraldSuccess
+                                            )
                                             .testTag("swipe_delete_undo_banner")
                                     ) {
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                                                .padding(horizontal = 14.dp, vertical = 10.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
@@ -1865,56 +2080,93 @@ fun LeaveTrackerMainApp(
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                                 modifier = Modifier.weight(1f)
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.DeleteSweep,
-                                                    contentDescription = null,
-                                                    tint = CoralRedAccent,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                                Text(
-                                                    text = "${deletedPerson.getLocalizedName(currentLang)} — ${AppStrings.get("trash_moved_toast", currentLang)}",
-                                                    color = Color.White,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    maxLines = 1,
-                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                                )
-                                            }
-                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                TextButton(
-                                                    onClick = {
-                                                        viewModel.restorePersonnelFromTrash(deletedPerson)
-                                                        lastSwipeDeletedPerson = null
-                                                        Toast.makeText(context, AppStrings.get("trash_restored_toast", currentLang), Toast.LENGTH_SHORT).show()
-                                                    },
-                                                    modifier = Modifier.testTag("swipe_delete_undo_button")
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(34.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = CircleShape,
+                                                            cornerRadius = 17.dp,
+                                                            isDark = isDarkMode,
+                                                            accent = CoralRedAccent,
+                                                            isSelected = true
+                                                        ),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.Undo,
+                                                        imageVector = Icons.Default.DeleteSweep,
                                                         contentDescription = null,
-                                                        tint = EmeraldSuccess,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = AppStrings.get("undo_short", currentLang),
-                                                        color = EmeraldSuccess,
-                                                        fontWeight = FontWeight.ExtraBold,
-                                                        fontSize = 12.sp
+                                                        tint = CoralRedAccent,
+                                                        modifier = Modifier.size(18.dp)
                                                     )
                                                 }
-                                                TextButton(
-                                                    onClick = {
-                                                        lastSwipeDeletedPerson = null
-                                                        showTrashBinDialog = true
-                                                    },
-                                                    modifier = Modifier.testTag("swipe_delete_open_trash_button")
+                                                Text(
+                                                    text = "${deletedPerson.getLocalizedName(currentLang)} — ${AppStrings.get("trash_moved_toast", currentLang)}",
+                                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A),
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .defaultMinSize(minHeight = 40.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = CircleShape,
+                                                            cornerRadius = 20.dp,
+                                                            isDark = isDarkMode,
+                                                            accent = EmeraldSuccess,
+                                                            isSelected = true
+                                                        )
+                                                        .clickable {
+                                                            viewModel.restorePersonnelFromTrash(deletedPerson)
+                                                            lastSwipeDeletedPerson = null
+                                                            Toast.makeText(context, AppStrings.get("trash_restored_toast", currentLang), Toast.LENGTH_SHORT).show()
+                                                        }
+                                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                                        .testTag("swipe_delete_undo_button"),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(
+                                                            imageVector = Icons.AutoMirrored.Filled.Undo,
+                                                            contentDescription = null,
+                                                            tint = EmeraldSuccess,
+                                                            modifier = Modifier.size(15.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = AppStrings.get("undo_short", currentLang),
+                                                            color = EmeraldSuccess,
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            fontSize = 11.5.sp
+                                                        )
+                                                    }
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .defaultMinSize(minHeight = 40.dp)
+                                                        .liquidGlassPanel(
+                                                            shape = CircleShape,
+                                                            cornerRadius = 20.dp,
+                                                            isDark = isDarkMode,
+                                                            accent = VibrantCyan,
+                                                            isSelected = false
+                                                        )
+                                                        .clickable {
+                                                            lastSwipeDeletedPerson = null
+                                                            showTrashBinDialog = true
+                                                        }
+                                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                                        .testTag("swipe_delete_open_trash_button"),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
                                                     Text(
                                                         text = AppStrings.get("trash_bin_title", currentLang),
-                                                        color = Color(0xFF38BDF8),
+                                                        color = if (isDarkMode) CyanGlow else RoyalBlueAccent,
                                                         fontWeight = FontWeight.Bold,
-                                                        fontSize = 11.5.sp
+                                                        fontSize = 11.sp
                                                     )
                                                 }
                                             }
@@ -2018,34 +2270,31 @@ fun LeaveTrackerMainApp(
         )
     }
 
-    // Delete Confirmation Dialog
+    // Delete Confirmation Dialog (Liquid Glass)
     if (personnelToDelete != null) {
         val target = personnelToDelete!!
-        AlertDialog(
-            onDismissRequest = { personnelToDelete = null },
-            title = {
-                Text(AppStrings.get("confirm_delete_title", currentLang), fontWeight = FontWeight.Bold)
+        val qMark = if (currentLang == AppLanguage.ARABIC) "؟" else "?"
+        LiquidGlassConfirmDialog(
+            title = AppStrings.get("confirm_delete_title", currentLang),
+            message = "${AppStrings.get("confirm_delete_message", currentLang)} ${formatRank(target.rank, currentLang)} / ${target.getLocalizedName(currentLang)} (${target.registrationNumber})$qMark",
+            confirmText = AppStrings.get("delete", currentLang),
+            cancelText = AppStrings.get("cancel", currentLang),
+            icon = Icons.Default.DeleteForever,
+            accentColor = RedDanger,
+            secondaryColor = CoralRedAccent,
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled,
+            dialogTestTag = "delete_personnel_confirm_dialog",
+            confirmTestTag = "delete_personnel_confirm_button",
+            cancelTestTag = "delete_personnel_cancel_button",
+            onConfirm = {
+                viewModel.deletePersonnel(target)
+                personnelToDelete = null
+                Toast.makeText(context, AppStrings.get("delete_success", currentLang), Toast.LENGTH_SHORT).show()
             },
-            text = {
-                val qMark = if (currentLang == AppLanguage.ARABIC) "؟" else "?"
-                Text("${AppStrings.get("confirm_delete_message", currentLang)} ${formatRank(target.rank, currentLang)} / ${target.getLocalizedName(currentLang)} (${target.registrationNumber})$qMark")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deletePersonnel(target)
-                        personnelToDelete = null
-                        Toast.makeText(context, AppStrings.get("delete_success", currentLang), Toast.LENGTH_SHORT).show()
-                    }
-                ) {
-                    Text(AppStrings.get("delete", currentLang), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { personnelToDelete = null }) {
-                    Text(AppStrings.get("cancel", currentLang))
-                }
-            }
+            onDismiss = { personnelToDelete = null }
         )
     }
 
@@ -2075,11 +2324,14 @@ fun LeaveTrackerMainApp(
         )
     }
 
-    // Developer Info Dialog (From Drawer)
+    // Developer Info Dialog (From Settings)
     if (showDeveloperDialog) {
         DeveloperInfoDialog(
             currentLang = currentLang,
-            onDismiss = { showDeveloperDialog = false }
+            onDismiss = { showDeveloperDialog = false },
+            isDarkMode = isDarkMode,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled
         )
     }
 
@@ -2095,36 +2347,36 @@ fun LeaveTrackerMainApp(
                 viewModel.importPersonnelFromJson(jsonStr, replaceAll)
             },
             onDismiss = { showExportDialog = false },
-            currentLang = currentLang
+            currentLang = currentLang,
+            isDarkMode = isDarkMode,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled
         )
     }
 
-    // Reset Sample Data Dialog
+    // Reset Sample Data Dialog (Liquid Glass)
     if (showResetConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showResetConfirmDialog = false },
-            title = {
-                Text(AppStrings.get("reset_sample_dialog_title", currentLang), fontWeight = FontWeight.Bold)
+        LiquidGlassConfirmDialog(
+            title = AppStrings.get("reset_sample_dialog_title", currentLang),
+            message = AppStrings.get("reset_sample_dialog_desc", currentLang),
+            confirmText = AppStrings.get("drawer_reset_title", currentLang),
+            cancelText = AppStrings.get("cancel", currentLang),
+            icon = Icons.Default.Refresh,
+            accentColor = AmberWarning,
+            secondaryColor = CoralRedAccent,
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled,
+            dialogTestTag = "reset_sample_confirm_dialog",
+            confirmTestTag = "reset_sample_confirm_button",
+            cancelTestTag = "reset_sample_cancel_button",
+            onConfirm = {
+                viewModel.resetToSampleData()
+                showResetConfirmDialog = false
+                Toast.makeText(context, AppStrings.get("reset_sample_success", currentLang), Toast.LENGTH_SHORT).show()
             },
-            text = {
-                Text(AppStrings.get("reset_sample_dialog_desc", currentLang))
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.resetToSampleData()
-                        showResetConfirmDialog = false
-                        Toast.makeText(context, AppStrings.get("reset_sample_success", currentLang), Toast.LENGTH_SHORT).show()
-                    }
-                ) {
-                    Text(AppStrings.get("drawer_reset_title", currentLang), fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResetConfirmDialog = false }) {
-                    Text(AppStrings.get("cancel", currentLang))
-                }
-            }
+            onDismiss = { showResetConfirmDialog = false }
         )
     }
 
@@ -2166,8 +2418,22 @@ fun LeaveTrackerMainApp(
                 viewModel.emptyTrash()
                 Toast.makeText(context, AppStrings.get("trash_emptied_toast", currentLang), Toast.LENGTH_SHORT).show()
             },
-            onDismiss = { showTrashBinDialog = false }
+            onDismiss = { showTrashBinDialog = false },
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled
         )
+    }
+}
+
+private fun stripLeadingEmojiPrefix(label: String): String {
+    val trimmed = label.trim()
+    val firstSpace = trimmed.indexOf(' ')
+    if (firstSpace <= 0) return trimmed
+    val prefix = trimmed.substring(0, firstSpace)
+    return if (prefix.none { it.isLetterOrDigit() }) {
+        trimmed.substring(firstSpace + 1).trimStart()
+    } else {
+        trimmed
     }
 }
 

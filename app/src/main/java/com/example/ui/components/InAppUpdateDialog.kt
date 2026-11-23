@@ -91,6 +91,12 @@ import androidx.compose.ui.unit.min
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.BuildConfig
+import com.example.ui.theme.CyanGlow
+import com.example.ui.theme.LocalThemePreset
+import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.SyncDialogLiquidGlassWindow
+import com.example.ui.theme.VibrantCyan
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import com.example.util.AppUpdateManager
@@ -191,6 +197,10 @@ fun InAppUpdateDialog(
             dismissOnClickOutside = updateState !is AppUpdateState.Downloading
         )
     ) {
+        SyncDialogLiquidGlassWindow()
+        val themePreset = LocalThemePreset.current
+        val effectiveDark = themePreset?.isDark ?: isDarkMode
+
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -323,31 +333,39 @@ fun InAppUpdateDialog(
                     }
 
                     val containerBrush = when {
-                        isNeumorphic && isDarkMode -> Brush.verticalGradient(
-                            listOf(Color(0xFF172136), Color(0xFF0F172A))
+                        themePreset != null -> Brush.verticalGradient(
+                            listOf(
+                                themePreset.surfacePrimary.copy(alpha = 0.95f),
+                                themePreset.backgroundMid.copy(alpha = 0.95f)
+                            )
                         )
-                        isNeumorphic && !isDarkMode -> Brush.verticalGradient(
-                            listOf(Color(0xFFF8FAFC), Color(0xFFEFF6FF))
+                        isNeumorphic && effectiveDark -> Brush.verticalGradient(
+                            listOf(Color(0xF2172136), Color(0xF20F172A))
                         )
-                        isDarkMode -> Brush.verticalGradient(
-                            listOf(Color(0xFA111827), Color(0xFA0B1324))
+                        isNeumorphic && !effectiveDark -> Brush.verticalGradient(
+                            listOf(Color(0xF2F8FAFC), Color(0xF2EFF6FF))
+                        )
+                        effectiveDark -> Brush.verticalGradient(
+                            listOf(Color(0xF2111827), Color(0xF20B1324))
                         )
                         else -> Brush.verticalGradient(
-                            listOf(Color(0xFCFFFFFF), Color(0xF8EFF8FF))
+                            listOf(Color(0xF2FFFFFF), Color(0xF2F0F9FF))
                         )
                     }
 
                     val cardBorder = BorderStroke(
                         width = 1.5.dp,
                         brush = Brush.linearGradient(
-                            colors = if (isDarkMode) {
+                            colors = if (effectiveDark) {
                                 listOf(
+                                    Color.White.copy(alpha = 0.45f),
                                     Color(0xFF38BDF8).copy(alpha = 0.78f),
                                     Color(0xFFA855F7).copy(alpha = 0.55f),
                                     Color(0xFF10B981).copy(alpha = 0.72f)
                                 )
                             } else {
                                 listOf(
+                                    Color.White.copy(alpha = 0.96f),
                                     Color(0xFF00BCD4).copy(alpha = 0.68f),
                                     Color(0xFF3B82F6).copy(alpha = 0.52f),
                                     Color(0xFF10B981).copy(alpha = 0.65f)
@@ -360,7 +378,7 @@ fun InAppUpdateDialog(
                         shape = cardShape,
                         color = Color.Transparent,
                         border = cardBorder,
-                        shadowElevation = if (isNeumorphic) 12.dp else 18.dp,
+                        shadowElevation = if (isNeumorphic) 12.dp else 20.dp,
                         modifier = Modifier
                             .width(cardWidth)
                             .onSizeChanged { cardSizePx = it }
@@ -374,10 +392,23 @@ fun InAppUpdateDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(containerBrush)
+                                .drawBehind {
+                                    drawRoundRect(
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = if (effectiveDark) 0.14f else 0.52f),
+                                                Color.Transparent
+                                            ),
+                                            startY = 0f,
+                                            endY = size.height * 0.28f
+                                        ),
+                                        cornerRadius = CornerRadius(30.dp.toPx(), 30.dp.toPx())
+                                    )
+                                }
                                 .padding(horizontal = 18.dp, vertical = 18.dp)
                         ) {
-                            // Top Corner Close Icon (non-intrusive so content sits symmetrically centered)
-                            IconButton(
+                            // Top Corner Frosted Close Icon (48dp touch target)
+                            Surface(
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     if (updateState is AppUpdateState.Downloading) {
@@ -386,18 +417,28 @@ fun InAppUpdateDialog(
                                         onDismiss()
                                     }
                                 },
+                                shape = CircleShape,
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .align(Alignment.TopStart)
                                     .size(48.dp)
-                                    .clip(CircleShape)
+                                    .liquidGlassPanel(
+                                        shape = CircleShape,
+                                        cornerRadius = 24.dp,
+                                        isDark = effectiveDark,
+                                        accent = accentCyan,
+                                        secondaryAccent = RoyalBlueAccent
+                                    )
                                     .testTag("update_dialog_close_button")
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = AppStrings.get("close", currentLang),
-                                    tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    modifier = Modifier.size(21.dp)
-                                )
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = AppStrings.get("close", currentLang),
+                                        tint = if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
 
                             Column(
@@ -989,10 +1030,16 @@ private fun VersionPillBadge(
     tint: Color,
     isDarkMode: Boolean
 ) {
-    Surface(
-        shape = RoundedCornerShape(50.dp),
-        color = tint.copy(alpha = if (isDarkMode) 0.18f else 0.11f),
-        border = BorderStroke(1.dp, tint.copy(alpha = 0.45f))
+    Box(
+        modifier = Modifier.liquidGlassPanel(
+            shape = RoundedCornerShape(50.dp),
+            cornerRadius = 50.dp,
+            isDark = isDarkMode,
+            accent = tint,
+            secondaryAccent = tint,
+            isSelected = true,
+            softTintWhenSelected = true
+        )
     ) {
         Text(
             text = text,
