@@ -14,31 +14,18 @@ enum class AppThemeMode(val code: String, val titleAr: String) {
     }
 }
 
-enum class AppThemeStyle(val code: String, val titleAr: String) {
-    GLASSMORPHISM("glassmorphism", "الزجاج الشفاف (Glassmorphism)"),
-    NEUMORPHISM("neumorphism", "النيومورفيزم (Neumorphism)");
-
-    companion object {
-        fun fromCode(code: String): AppThemeStyle {
-            return entries.find { it.code == code } ?: GLASSMORPHISM
-        }
-    }
-}
-
 class SettingsManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
 
     companion object {
         private const val KEY_THEME_MODE = "pref_theme_mode"
-        private const val KEY_THEME_STYLE = "pref_theme_style"
         private const val KEY_DARK_MODE = "pref_dark_mode"
         private const val KEY_DUTY_THRESHOLD = "pref_duty_threshold_days"
         private const val KEY_BIOMETRIC_ENABLED = "pref_biometric_enabled"
         private const val KEY_LANGUAGE = "pref_language"
         private const val KEY_PINNED_NOTIFICATIONS = "pref_pinned_notifications"
         private const val KEY_DISMISSED_NOTIFICATIONS = "pref_dismissed_notifications"
-        private const val KEY_FOCUS_MODE = "pref_focus_mode"
         private const val KEY_DRIVE_SYNC_ENABLED = "pref_drive_sync_enabled"
         private const val KEY_LAST_DRIVE_BACKUP = "pref_last_drive_backup_time"
         private const val KEY_DYNAMIC_ANIMATIONS = "pref_dynamic_animations_enabled"
@@ -95,15 +82,6 @@ class SettingsManager(context: Context) {
         get() = safeGetInt(KEY_DUTY_THRESHOLD, DEFAULT_DUTY_THRESHOLD)
         set(value) = prefs.edit().putInt(KEY_DUTY_THRESHOLD, value).apply()
 
-    var themeStyle: AppThemeStyle
-        get() {
-            val code = safeGetString(KEY_THEME_STYLE, null)
-            return if (code != null) AppThemeStyle.fromCode(code) else AppThemeStyle.NEUMORPHISM
-        }
-        set(value) {
-            prefs.edit().putString(KEY_THEME_STYLE, value.code).apply()
-        }
-
     var selectedThemeEngineId: String
         get() = safeGetString(KEY_THEME_ENGINE_ID, "") ?: ""
         set(value) = prefs.edit().putString(KEY_THEME_ENGINE_ID, value).apply()
@@ -123,10 +101,6 @@ class SettingsManager(context: Context) {
     var dismissedNotificationIds: Set<String>
         get() = safeGetStringSet(KEY_DISMISSED_NOTIFICATIONS, emptySet()).toSet()
         set(value) = prefs.edit().putStringSet(KEY_DISMISSED_NOTIFICATIONS, value).apply()
-
-    var isFocusMode: Boolean
-        get() = safeGetBoolean(KEY_FOCUS_MODE, false)
-        set(value) = prefs.edit().putBoolean(KEY_FOCUS_MODE, value).apply()
 
     var isGoogleDriveSyncEnabled: Boolean
         get() = safeGetBoolean(KEY_DRIVE_SYNC_ENABLED, false)

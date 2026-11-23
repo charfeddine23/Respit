@@ -117,7 +117,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.fragment.app.FragmentActivity
-import com.example.data.AppThemeStyle
 import com.example.data.LeaveRecord
 import com.example.data.Personnel
 import com.example.data.formatLeaveType
@@ -162,12 +161,11 @@ fun RoomDatabaseScreen(
     val haptic = LocalHapticFeedback.current
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
-    val themeStyle by viewModel.currentThemeStyle.collectAsState()
     val activePreset = LocalThemePreset.current
     val effectiveDark = activePreset?.isDark ?: isDarkMode
     val primaryAccent = activePreset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
     val secondaryAccent = activePreset?.secondary ?: VibrantCyan
-    val isNeumorphic = (themeStyle == AppThemeStyle.NEUMORPHISM) && (activePreset?.isLiquidGlass != true)
+    val isNeumorphic = false
 
     val personnelList by viewModel.allPersonnel.collectAsState()
     val leavesList by viewModel.allLeaves.collectAsState()

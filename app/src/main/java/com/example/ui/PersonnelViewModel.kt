@@ -8,7 +8,6 @@ import com.example.BuildConfig
 import com.example.data.AppDatabase
 import com.example.data.AppNotification
 import com.example.data.AppThemeMode
-import com.example.data.AppThemeStyle
 import com.example.data.DutyReferenceInfo
 import com.example.data.LastShortLeaveInfo
 import com.example.data.LeaveAnalyticsCalculator
@@ -77,6 +76,10 @@ sealed class UndoAction(val description: String) {
     data class Updated(val previous: Personnel) : UndoAction("تراجع عن تعديل بيانات")
     data class Added(val id: Long) : UndoAction("تراجع عن إضافة فرد")
     data class ReturnedToDuty(val previous: Personnel) : UndoAction("تراجع عن استئناف العمل")
+    data class ExtendedLeave(
+        val previousPersonnel: Personnel?,
+        val previousLeave: LeaveRecord?
+    ) : UndoAction("تراجع عن تمديد الإجازة")
     data class Imported(val previousList: List<Personnel>) : UndoAction("تراجع عن استيراد البيانات")
 
     fun getDescription(lang: AppLanguage): String = when (this) {
@@ -84,6 +87,7 @@ sealed class UndoAction(val description: String) {
         is Updated -> AppStrings.get("undo_updated", lang)
         is Added -> AppStrings.get("undo_added", lang)
         is ReturnedToDuty -> AppStrings.get("undo_returned", lang)
+        is ExtendedLeave -> AppStrings.get("undo_extended", lang)
         is Imported -> AppStrings.get("undo_imported", lang)
     }
 }
@@ -100,7 +104,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     // User preferences & settings state
     val currentThemeMode = MutableStateFlow(settingsManager.themeMode)
-    val currentThemeStyle = MutableStateFlow(settingsManager.themeStyle)
     val selectedThemeEngineId = MutableStateFlow(settingsManager.selectedThemeEngineId)
     val isDarkMode = MutableStateFlow(
         com.example.ui.theme.ThemeEngine.findById(settingsManager.selectedThemeEngineId)?.isDark
@@ -110,18 +113,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val isBiometricEnabled = MutableStateFlow(settingsManager.isBiometricEnabled)
     val isLocked = MutableStateFlow(settingsManager.isBiometricEnabled)
     val currentLanguage = MutableStateFlow(AppLanguage.fromCode(settingsManager.language))
-    val isFocusMode = MutableStateFlow(settingsManager.isFocusMode)
-
-    fun toggleFocusMode() {
-        val next = !isFocusMode.value
-        isFocusMode.value = next
-        settingsManager.isFocusMode = next
-    }
-
-    fun setFocusMode(enabled: Boolean) {
-        isFocusMode.value = enabled
-        settingsManager.isFocusMode = enabled
-    }
 
     // Dynamic UI Animations state (Master toggle for weak device optimization)
     val isDynamicAnimationsEnabled = MutableStateFlow(settingsManager.isDynamicAnimationsEnabled)
@@ -698,11 +689,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         dismissedNotificationIds.value = emptySet()
     }
 
-    fun setThemeStyle(style: AppThemeStyle) {
-        settingsManager.themeStyle = style
-        currentThemeStyle.value = style
-    }
-
     fun setDutyThreshold(days: Int) {
         val safeDays = days.coerceIn(5, 365)
         dutyThresholdDays.value = safeDays
@@ -751,6 +737,14 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 }
                 is UndoAction.ReturnedToDuty -> {
                     repository.update(action.previous)
+                }
+                is UndoAction.ExtendedLeave -> {
+                    if (action.previousPersonnel != null) {
+                        repository.update(action.previousPersonnel)
+                    }
+                    if (action.previousLeave != null) {
+                        repository.updateLeave(action.previousLeave)
+                    }
                 }
                 is UndoAction.Imported -> {
                     repository.clearAndReset(action.previousList)
@@ -923,6 +917,196 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 lang.code
             )
         }
+    }
+
+    fun extendPersonnelLeave(
+        personnelId: Long,
+        newReturnDateMillis: Long,
+        reasonNote: String = ""
+    ) {
+        viewModelScope.launch {
+            val previous = repository.getPersonnelById(personnelId) ?: return@launch
+            val lang = currentLanguage.value
+            val normalizedStart = if (previous.startDateMillis > 0L) {
+                Personnel.toStartOfDay(previous.startDateMillis)
+            } else {
+                Personnel.toStartOfDay(System.currentTimeMillis())
+            }
+            val currentReturn = if (previous.returnDateMillis > 0L) {
+                Personnel.toStartOfDay(previous.returnDateMillis)
+            } else {
+                normalizedStart
+            }
+            val normalizedReturn = maxOf(normalizedStart, Personnel.toStartOfDay(newReturnDateMillis))
+            val addedDays = Personnel.signedDaysBetween(currentReturn, normalizedReturn).coerceAtLeast(0L)
+            val updatedNotes = formatExtendedNotes(previous.notes, reasonNote, addedDays, lang)
+
+            val matchingLeave = if (previous.startDateMillis > 0L && previous.returnDateMillis > 0L) {
+                repository.findMatchingLeave(
+                    previous.id,
+                    previous.registrationNumber,
+                    previous.startDateMillis,
+                    previous.returnDateMillis
+                )
+            } else null
+
+            lastUndoAction.value = UndoAction.ExtendedLeave(
+                previousPersonnel = previous,
+                previousLeave = matchingLeave
+            )
+
+            val updatedPersonnel = previous.copy(
+                startDateMillis = normalizedStart,
+                returnDateMillis = normalizedReturn,
+                isReturnedToDuty = false,
+                notes = updatedNotes
+            )
+            repository.update(updatedPersonnel)
+
+            if (matchingLeave != null) {
+                repository.updateLeave(
+                    matchingLeave.copy(
+                        personnelId = updatedPersonnel.id,
+                        personnelName = updatedPersonnel.fullName.ifBlank { updatedPersonnel.fullNameLatin },
+                        personnelNameLatin = updatedPersonnel.fullNameLatin,
+                        rank = updatedPersonnel.rank,
+                        registrationNumber = updatedPersonnel.registrationNumber,
+                        startDateMillis = normalizedStart,
+                        returnDateMillis = normalizedReturn,
+                        durationDays = updatedPersonnel.totalLeaveDays,
+                        statusText = updatedPersonnel.status.getCompactBadgeLabel(lang),
+                        destinationWilaya = updatedPersonnel.wilaya,
+                        notes = updatedNotes
+                    )
+                )
+            } else {
+                repository.insertLeave(
+                    LeaveRecord(
+                        personnelId = updatedPersonnel.id,
+                        personnelName = updatedPersonnel.fullName.ifBlank { updatedPersonnel.fullNameLatin },
+                        personnelNameLatin = updatedPersonnel.fullNameLatin,
+                        rank = updatedPersonnel.rank,
+                        registrationNumber = updatedPersonnel.registrationNumber,
+                        leaveType = updatedPersonnel.leaveType,
+                        startDateMillis = normalizedStart,
+                        returnDateMillis = normalizedReturn,
+                        durationDays = updatedPersonnel.totalLeaveDays,
+                        statusText = updatedPersonnel.status.getCompactBadgeLabel(lang),
+                        destinationWilaya = updatedPersonnel.wilaya,
+                        notes = updatedNotes
+                    )
+                )
+            }
+
+            LeaveNotificationHelper.notifyLeaveApproved(
+                getApplication(),
+                updatedPersonnel,
+                lang.code
+            )
+        }
+    }
+
+    fun extendLeaveRecord(
+        record: LeaveRecord,
+        newReturnDateMillis: Long,
+        reasonNote: String = ""
+    ) {
+        viewModelScope.launch {
+            val lang = currentLanguage.value
+            val normalizedStart = Personnel.toStartOfDay(record.startDateMillis)
+            val currentReturn = Personnel.toStartOfDay(record.returnDateMillis)
+            val normalizedReturn = maxOf(normalizedStart, Personnel.toStartOfDay(newReturnDateMillis))
+            val addedDays = Personnel.signedDaysBetween(currentReturn, normalizedReturn).coerceAtLeast(0L)
+            val updatedNotes = formatExtendedNotes(record.notes, reasonNote, addedDays, lang)
+
+            val linkedPersonnel = if (record.personnelId > 0L) {
+                repository.getPersonnelById(record.personnelId)
+            } else null
+
+            if (linkedPersonnel != null &&
+                !com.example.data.isShortLeaveType(record.leaveType) &&
+                Personnel.toStartOfDay(linkedPersonnel.startDateMillis) == normalizedStart &&
+                Personnel.toStartOfDay(linkedPersonnel.returnDateMillis) == currentReturn
+            ) {
+                val updatedPersonnel = linkedPersonnel.copy(
+                    returnDateMillis = normalizedReturn,
+                    isReturnedToDuty = false,
+                    notes = updatedNotes
+                )
+                lastUndoAction.value = UndoAction.ExtendedLeave(
+                    previousPersonnel = linkedPersonnel,
+                    previousLeave = record
+                )
+                repository.update(updatedPersonnel)
+                repository.updateLeave(
+                    record.copy(
+                        returnDateMillis = normalizedReturn,
+                        durationDays = Personnel.inclusiveLeaveDays(normalizedStart, normalizedReturn),
+                        statusText = updatedPersonnel.status.getCompactBadgeLabel(lang),
+                        notes = updatedNotes
+                    )
+                )
+                LeaveNotificationHelper.notifyLeaveApproved(
+                    getApplication(),
+                    updatedPersonnel,
+                    lang.code
+                )
+            } else {
+                val todayStart = Personnel.toStartOfDay(System.currentTimeMillis())
+                val isCompletedShort = com.example.data.isShortLeaveType(record.leaveType) && normalizedReturn < todayStart
+                val completedLabel = when (lang) {
+                    AppLanguage.TAMAZIGHT -> "Yemmed (Yuɣal ɣer umahil)"
+                    AppLanguage.FRENCH -> "Terminé (Repris le service)"
+                    AppLanguage.ENGLISH -> "Completed (Returned to duty)"
+                    AppLanguage.ARABIC -> "مكتملة (مستأنف للعمل)"
+                }
+                val previewStatus = if (isCompletedShort) {
+                    completedLabel
+                } else {
+                    Personnel(
+                        fullName = record.personnelName,
+                        fullNameLatin = record.personnelNameLatin,
+                        rank = record.rank,
+                        registrationNumber = record.registrationNumber,
+                        leaveType = record.leaveType,
+                        startDateMillis = normalizedStart,
+                        returnDateMillis = normalizedReturn,
+                        isReturnedToDuty = false
+                    ).status.getCompactBadgeLabel(lang)
+                }
+
+                lastUndoAction.value = UndoAction.ExtendedLeave(
+                    previousPersonnel = null,
+                    previousLeave = record
+                )
+                repository.updateLeave(
+                    record.copy(
+                        returnDateMillis = normalizedReturn,
+                        durationDays = Personnel.inclusiveLeaveDays(normalizedStart, normalizedReturn),
+                        statusText = previewStatus,
+                        notes = updatedNotes
+                    )
+                )
+            }
+        }
+    }
+
+    private fun formatExtendedNotes(
+        existingNotes: String,
+        reasonNote: String,
+        addedDays: Long,
+        lang: AppLanguage
+    ): String {
+        val cleanReason = reasonNote.trim()
+        if (cleanReason.isBlank()) return existingNotes
+        val extPrefix = when (lang) {
+            AppLanguage.TAMAZIGHT -> "Asiɣzef +$addedDays u"
+            AppLanguage.FRENCH -> "Prolong. +$addedDays j"
+            AppLanguage.ENGLISH -> "Ext. +$addedDays d"
+            AppLanguage.ARABIC -> "تمديد +$addedDays يوم"
+        }
+        val tagText = "$extPrefix: $cleanReason"
+        return if (existingNotes.isBlank()) tagText else "$existingNotes • $tagText"
     }
 
     fun deletePersonnel(personnel: Personnel) {

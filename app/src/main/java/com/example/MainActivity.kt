@@ -316,18 +316,15 @@ fun LeaveTrackerMainApp(
     val context = LocalContext.current
     val isLocked by viewModel.isLocked.collectAsState()
     val currentThemeMode by viewModel.currentThemeMode.collectAsState()
-    val currentThemeStyle by viewModel.currentThemeStyle.collectAsState()
     val selectedThemeEngineId by viewModel.selectedThemeEngineId.collectAsState()
     val activeThemePreset = com.example.ui.theme.LocalThemePreset.current
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
-    val isFocusMode by viewModel.isFocusMode.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
     val lastUndo by viewModel.lastUndoAction.collectAsState()
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isNoScreenshotEnabled by viewModel.isNoScreenshotEnabled.collectAsState()
     val isFitToScreenEnabled by viewModel.isFitToScreenEnabled.collectAsState()
-    val isNeumorphic = (currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM) && (activeThemePreset?.isLiquidGlass != true)
 
     LaunchedEffect(isNoScreenshotEnabled) {
         WindowSecurityHelper.applySecureFlag(context as? android.app.Activity, isNoScreenshotEnabled)
@@ -448,6 +445,8 @@ fun LeaveTrackerMainApp(
     var personnelToEdit by remember { mutableStateOf<Personnel?>(null) }
     var personnelToDelete by remember { mutableStateOf<Personnel?>(null) }
     var personnelForHistory by remember { mutableStateOf<Personnel?>(null) }
+    var personnelToExtend by remember { mutableStateOf<Personnel?>(null) }
+    var historyRecordToExtend by remember { mutableStateOf<Pair<Personnel, com.example.data.LeaveRecord>?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
     var showDeveloperDialog by remember { mutableStateOf(false) }
     var showFilterSortDialog by remember { mutableStateOf(false) }
@@ -546,7 +545,7 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = isNeumorphic,
+            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled
         )
         return
@@ -741,7 +740,6 @@ fun LeaveTrackerMainApp(
                                         HeaderUpdateDownloadButton(
                                             updateState = appUpdateState,
                                             isDarkMode = isDarkMode,
-                                            isNeumorphic = true,
                                             animationsEnabled = isDynamicAnimationsEnabled,
                                             contentDescription = AppStrings.get("update_top_banner_desc", currentLang),
                                             onClick = { viewModel.openUpdateDialog() }
@@ -850,7 +848,7 @@ fun LeaveTrackerMainApp(
                                 onSelectPage = { selectedNavPage = it },
                                 notificationsCount = notificationsCount,
                                 isDarkMode = isDarkMode,
-                                isNeumorphic = isNeumorphic,
+                                isNeumorphic = false,
                                 animationsEnabled = isDynamicAnimationsEnabled,
                                 currentLang = currentLang,
                                 backdropLayer = backdropLayer,
@@ -874,7 +872,7 @@ fun LeaveTrackerMainApp(
                             // Ambient Liquid Dynamic Aurora Mesh Background captured inside backdropLayer
                             DynamicAuroraBackground(
                                 isDark = isDarkMode,
-                                isNeumorphic = currentThemeStyle == com.example.data.AppThemeStyle.NEUMORPHISM,
+                                isNeumorphic = false,
                                 animationsEnabled = isDynamicAnimationsEnabled
                             )
 
@@ -972,12 +970,8 @@ fun LeaveTrackerMainApp(
                                                     onResetSampleData = { showResetConfirmDialog = true },
                                                     currentThemeMode = currentThemeMode,
                                                     onSelectThemeMode = { viewModel.setThemeMode(it) },
-                                                    currentThemeStyle = currentThemeStyle,
-                                                    onSelectThemeStyle = { viewModel.setThemeStyle(it) },
                                                     selectedThemeEngineId = selectedThemeEngineId,
                                                     onSelectThemeEngine = { viewModel.setThemeEngine(it) },
-                                                    isFocusMode = isFocusMode,
-                                                    onToggleFocusMode = { viewModel.toggleFocusMode() },
                                                     dutyThreshold = dutyThreshold,
                                                     onSaveThreshold = { viewModel.setDutyThreshold(it) },
                                                     isBiometricEnabled = isBiometricEnabled,
@@ -1035,7 +1029,7 @@ fun LeaveTrackerMainApp(
                                                     selectedNavPage = AppNavPage.ANALYTICS
                                                 },
                                                 isDarkMode = isDarkMode,
-                                                isNeumorphic = isNeumorphic,
+                                                isNeumorphic = false,
                                                 animationsEnabled = isDynamicAnimationsEnabled
                                             )
                                         }
@@ -1215,7 +1209,7 @@ fun LeaveTrackerMainApp(
                                                         elevation = 5.dp,
                                                         borderAlpha = 0.85f,
                                                         isDark = isDarkMode,
-                                                        isNeumorphic = isNeumorphic,
+                                                        isNeumorphic = false,
                                                         cornerRadius = 24.dp
                                                     )
                                                     .padding(12.dp)
@@ -1293,7 +1287,7 @@ fun LeaveTrackerMainApp(
                                                                 shape = RoundedCornerShape(50.dp),
                                                                 glowColor = MaterialTheme.colorScheme.primary,
                                                                 isDark = isDarkMode,
-                                                                isNeumorphic = isNeumorphic
+                                                                isNeumorphic = false
                                                             )
                                                         ) {
                                                             IconButton(
@@ -1487,9 +1481,8 @@ fun LeaveTrackerMainApp(
                                                             visibilityThreshold = IntOffset.VisibilityThreshold
                                                         )
                                                     ),
-                                                    isFocusMode = isFocusMode,
                                                     isDarkMode = isDarkMode,
-                                                    isNeumorphic = isNeumorphic,
+                                                    isNeumorphic = false,
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
@@ -1523,6 +1516,9 @@ fun LeaveTrackerMainApp(
                                                     },
                                                     onViewHistory = {
                                                         personnelForHistory = person
+                                                    },
+                                                    onExtendLeave = {
+                                                        personnelToExtend = person
                                                     }
                                                 )
                                             }
@@ -1558,7 +1554,7 @@ fun LeaveTrackerMainApp(
                                                         elevation = 5.dp,
                                                         borderAlpha = 0.85f,
                                                         isDark = isDarkMode,
-                                                        isNeumorphic = isNeumorphic,
+                                                        isNeumorphic = false,
                                                         cornerRadius = 24.dp
                                                     )
                                                     .padding(12.dp)
@@ -1632,7 +1628,7 @@ fun LeaveTrackerMainApp(
                                                             shape = RoundedCornerShape(14.dp),
                                                             glowColor = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
                                                             isDark = isDarkMode,
-                                                            isNeumorphic = isNeumorphic
+                                                            isNeumorphic = false
                                                         )
                                                     ) {
                                                         BadgedBox(
@@ -1928,9 +1924,8 @@ fun LeaveTrackerMainApp(
                                                                 PersonnelCard(
                                                                     personnel = person,
                                                                     dutyThresholdDays = dutyThreshold,
-                                                                    isFocusMode = isFocusMode,
                                                                     isDarkMode = isDarkMode,
-                                                                    isNeumorphic = isNeumorphic,
+                                                                    isNeumorphic = false,
                                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                                     currentLang = currentLang,
                                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
@@ -1964,6 +1959,9 @@ fun LeaveTrackerMainApp(
                                                                     },
                                                                     onViewHistory = {
                                                                         personnelForHistory = person
+                                                                    },
+                                                                    onExtendLeave = {
+                                                                        personnelToExtend = person
                                                                     }
                                                                 )
                                                             }
@@ -1990,9 +1988,8 @@ fun LeaveTrackerMainApp(
                                                             visibilityThreshold = IntOffset.VisibilityThreshold
                                                         )
                                                     ),
-                                                    isFocusMode = isFocusMode,
                                                     isDarkMode = isDarkMode,
-                                                    isNeumorphic = isNeumorphic,
+                                                    isNeumorphic = false,
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
@@ -2026,6 +2023,9 @@ fun LeaveTrackerMainApp(
                                                     },
                                                     onViewHistory = {
                                                         personnelForHistory = person
+                                                    },
+                                                    onExtendLeave = {
+                                                        personnelToExtend = person
                                                     }
                                                 )
                                             }
@@ -2212,7 +2212,7 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = isNeumorphic,
+            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled
         )
@@ -2226,6 +2226,10 @@ fun LeaveTrackerMainApp(
             onOpenAddPersonnel = {
                 personnelToEdit = null
                 showAddEditDialog = true
+            },
+            onExtendCurrentLeave = { target ->
+                showAddLeaveDialog = false
+                personnelToExtend = target
             },
             onConfirm = { personnelId, leaveType, startMillis, returnMillis ->
                 viewModel.grantNewLeaveWithType(
@@ -2250,7 +2254,7 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = isNeumorphic,
+            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled
         )
@@ -2258,13 +2262,70 @@ fun LeaveTrackerMainApp(
 
     // Personnel Leave History Dialog (Triggered by "السجل" button on personnel cards)
     personnelForHistory?.let { targetPerson ->
+        val liveTargetPerson = allPersonnelList.firstOrNull { it.id == targetPerson.id } ?: targetPerson
         PersonnelLeaveHistoryDialog(
-            personnel = targetPerson,
+            personnel = liveTargetPerson,
             allLeaves = allLeavesList,
             onDismiss = { personnelForHistory = null },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = isNeumorphic,
+            isNeumorphic = false,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled,
+            onExtendRecord = { record ->
+                historyRecordToExtend = liveTargetPerson to record
+            }
+        )
+    }
+
+    // Extend Active Leave Dialog (Triggered from PersonnelCard or AddNewLeaveDialog)
+    personnelToExtend?.let { targetPerson ->
+        com.example.ui.components.ExtendLeaveDialog(
+            personnel = targetPerson,
+            onDismiss = { personnelToExtend = null },
+            onConfirmExtend = { newReturnMillis, _, reasonNote ->
+                viewModel.extendPersonnelLeave(
+                    personnelId = targetPerson.id,
+                    newReturnDateMillis = newReturnMillis,
+                    reasonNote = reasonNote
+                )
+                personnelToExtend = null
+                Toast.makeText(
+                    context,
+                    AppStrings.get("extend_leave_success", currentLang),
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            isNeumorphic = false,
+            animationsEnabled = isDynamicAnimationsEnabled,
+            isNoScreenshotEnabled = isNoScreenshotEnabled
+        )
+    }
+
+    // Extend Specific Leave Record Dialog (Triggered from PersonnelLeaveHistoryDialog)
+    historyRecordToExtend?.let { (targetPerson, targetRecord) ->
+        com.example.ui.components.ExtendLeaveDialog(
+            personnel = targetPerson,
+            targetRecord = targetRecord,
+            onDismiss = { historyRecordToExtend = null },
+            onConfirmExtend = { newReturnMillis, _, reasonNote ->
+                viewModel.extendLeaveRecord(
+                    record = targetRecord,
+                    newReturnDateMillis = newReturnMillis,
+                    reasonNote = reasonNote
+                )
+                historyRecordToExtend = null
+                Toast.makeText(
+                    context,
+                    AppStrings.get("extend_leave_success", currentLang),
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
+            isDarkMode = isDarkMode,
+            currentLang = currentLang,
+            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled
         )
@@ -2317,7 +2378,7 @@ fun LeaveTrackerMainApp(
             },
             onDismiss = { showFilterSortDialog = false },
             isDarkMode = isDarkMode,
-            isNeumorphic = isNeumorphic,
+            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled,
             currentLang = currentLang
@@ -2385,7 +2446,7 @@ fun LeaveTrackerMainApp(
         InAppUpdateDialog(
             updateState = appUpdateState,
             isDarkMode = isDarkMode,
-            isNeumorphic = isNeumorphic,
+            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             currentLang = currentLang,
             onStartDownload = { viewModel.startAppUpdateDownload() },
@@ -2441,7 +2502,6 @@ private fun stripLeadingEmojiPrefix(label: String): String {
 private fun HeaderUpdateDownloadButton(
     updateState: AppUpdateState,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     animationsEnabled: Boolean,
     contentDescription: String,
     onClick: () -> Unit
@@ -2499,7 +2559,7 @@ private fun HeaderUpdateDownloadButton(
     }
 
     // Match adjacent header_theme_toggle & header_notifications_button exact shape and 48.dp size
-    val shape = if (isNeumorphic) CircleShape else RoundedCornerShape(12.dp)
+    val shape = CircleShape
     val isReady = updateState is AppUpdateState.ReadyToInstall
     val isDownloading = updateState is AppUpdateState.Downloading
     val accentGlow = if (isReady) Color(0xFF10B981) else Color(0xFF00E5FF)
@@ -2515,7 +2575,7 @@ private fun HeaderUpdateDownloadButton(
                 shape = shape,
                 glowColor = accentGlow,
                 isDark = isDarkMode,
-                isNeumorphic = isNeumorphic
+                isNeumorphic = false
             )
             .drawWithContent {
                 drawContent()
@@ -2548,23 +2608,12 @@ private fun HeaderUpdateDownloadButton(
                     end = Offset(cx - dx, cy - dy)
                 )
 
-                if (isNeumorphic) {
-                    drawCircle(
-                        brush = ringBrush,
-                        radius = radius - insetPx,
-                        center = Offset(cx, cy),
-                        style = Stroke(width = strokePx)
-                    )
-                } else {
-                    val crPx = (12.dp.toPx() - insetPx).coerceAtLeast(2f)
-                    drawRoundRect(
-                        brush = ringBrush,
-                        topLeft = Offset(insetPx, insetPx),
-                        size = Size(size.width - insetPx * 2f, size.height - insetPx * 2f),
-                        cornerRadius = CornerRadius(crPx, crPx),
-                        style = Stroke(width = strokePx)
-                    )
-                }
+                drawCircle(
+                    brush = ringBrush,
+                    radius = radius - insetPx,
+                    center = Offset(cx, cy),
+                    style = Stroke(width = strokePx)
+                )
             }
             .clip(shape)
             .clickable(

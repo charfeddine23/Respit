@@ -13,7 +13,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import com.example.data.AppThemeMode
-import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.components.SideNavigationDrawerContent
 import com.example.ui.theme.MyApplicationTheme
@@ -38,8 +37,6 @@ class SettingsRedesignRobolectricTest {
         var currentLang by mutableStateOf(AppLanguage.ARABIC)
         var isDarkMode by mutableStateOf(false)
         var themeMode by mutableStateOf(AppThemeMode.LIGHT)
-        var themeStyle by mutableStateOf(AppThemeStyle.GLASSMORPHISM)
-        var isFocusMode by mutableStateOf(false)
         var isDynamicAnimations by mutableStateOf(true)
         var isLivingLuxury by mutableStateOf(false)
         var isFitToScreen by mutableStateOf(false)
@@ -82,10 +79,6 @@ class SettingsRedesignRobolectricTest {
                         themeMode = it
                         isDarkMode = (it == AppThemeMode.DARK)
                     },
-                    currentThemeStyle = themeStyle,
-                    onSelectThemeStyle = { themeStyle = it },
-                    isFocusMode = isFocusMode,
-                    onToggleFocusMode = { isFocusMode = !isFocusMode },
                     dutyThreshold = threshold,
                     onSaveThreshold = { threshold = it },
                     isBiometricEnabled = isBiometric,
@@ -168,9 +161,9 @@ class SettingsRedesignRobolectricTest {
         composeRule.onNodeWithTag("drawer_theme_toggle").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertTrue(isDarkMode)
-        composeRule.onNodeWithTag("appearance_style_neumorph_btn").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        assertEquals(AppThemeStyle.NEUMORPHISM, themeStyle)
+        composeRule.onNodeWithTag("appearance_style_glass_btn").assertDoesNotExist()
+        composeRule.onNodeWithTag("appearance_style_neumorph_btn").assertDoesNotExist()
+        composeRule.onNodeWithTag("drawer_focus_mode_toggle").assertDoesNotExist()
         composeRule.onNodeWithTag("drawer_theme_engine_button").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("drawer_dynamic_animations_toggle").performScrollTo().performClick()
         composeRule.waitForIdle()
@@ -178,9 +171,6 @@ class SettingsRedesignRobolectricTest {
         composeRule.onNodeWithTag("drawer_living_luxury_toggle").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertTrue(isLivingLuxury)
-        composeRule.onNodeWithTag("drawer_focus_mode_toggle").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        assertTrue(isFocusMode)
         composeRule.onNodeWithTag("drawer_fit_to_screen_toggle").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertTrue(isFitToScreen)

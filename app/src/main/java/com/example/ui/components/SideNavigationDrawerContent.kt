@@ -45,7 +45,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudSync
@@ -57,7 +56,6 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -119,7 +117,6 @@ import androidx.compose.ui.unit.sp
 import com.example.BuildConfig
 import com.example.R
 import com.example.data.AppThemeMode
-import com.example.data.AppThemeStyle
 import com.example.ui.DashboardStats
 import com.example.ui.UndoAction
 import com.example.ui.theme.AmberWarning
@@ -169,12 +166,8 @@ fun SideNavigationDrawerContent(
     onResetSampleData: () -> Unit,
     currentThemeMode: AppThemeMode = if (isDarkMode) AppThemeMode.DARK else AppThemeMode.LIGHT,
     onSelectThemeMode: (AppThemeMode) -> Unit = {},
-    currentThemeStyle: AppThemeStyle = AppThemeStyle.GLASSMORPHISM,
-    onSelectThemeStyle: (AppThemeStyle) -> Unit = {},
     selectedThemeEngineId: String = "",
     onSelectThemeEngine: (String) -> Unit = {},
-    isFocusMode: Boolean = false,
-    onToggleFocusMode: () -> Unit = {},
     dutyThreshold: Int = 45,
     onSaveThreshold: (Int) -> Unit = {},
     isBiometricEnabled: Boolean = false,
@@ -909,50 +902,8 @@ fun SideNavigationDrawerContent(
                         }
                     }
 
-                    // 2.2 Interface & Design Style + Theme Engine
+                    // 2.2 Theme Engine
                     CleanSettingsCard(isDarkMode = isDarkMode) {
-                        Text(
-                            text = AppStrings.get("theme_style_title", currentLang),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF1E293B),
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            TactileSegmentedOption(
-                                label = AppStrings.get("theme_style_glass", currentLang),
-                                icon = Icons.Default.AutoAwesome,
-                                selected = currentThemeStyle == AppThemeStyle.GLASSMORPHISM,
-                                accentColor = accentCyan,
-                                isDarkMode = isDarkMode,
-                                haptic = haptic,
-                                onClick = { onSelectThemeStyle(AppThemeStyle.GLASSMORPHISM) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("appearance_style_glass_btn")
-                            )
-                            TactileSegmentedOption(
-                                label = AppStrings.get("theme_style_neumorph", currentLang),
-                                icon = Icons.Default.Layers,
-                                selected = currentThemeStyle == AppThemeStyle.NEUMORPHISM,
-                                accentColor = Color(0xFF6366F1),
-                                isDarkMode = isDarkMode,
-                                haptic = haptic,
-                                onClick = { onSelectThemeStyle(AppThemeStyle.NEUMORPHISM) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("appearance_style_neumorph_btn")
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        HorizontalDivider(color = dividerColor)
-                        Spacer(modifier = Modifier.height(10.dp))
-
                         val engineAccent = activeThemePreset?.primary ?: accentCyan
                         val engineInteraction = remember { MutableInteractionSource() }
                         val enginePressed by engineInteraction.collectIsPressedAsState()
@@ -1081,7 +1032,7 @@ fun SideNavigationDrawerContent(
                         }
                     }
 
-                    // 2.3 Dynamic Animations & Living UI (with Performance Toggle), Living Breathing Luxury & Focus Mode
+                    // 2.3 Dynamic Animations & Living Breathing Luxury
                     CleanSettingsCard(isDarkMode = isDarkMode) {
                         TactileSwitchSettingRow(
                             icon = Icons.Default.Speed,
@@ -1147,25 +1098,6 @@ fun SideNavigationDrawerContent(
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
-                        )
-
-                        HorizontalDivider(color = dividerColor)
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        TactileSwitchSettingRow(
-                            icon = Icons.Default.CenterFocusStrong,
-                            iconTint = accentCyan,
-                            title = AppStrings.get("focus_mode_title", currentLang),
-                            subtitle = AppStrings.get(
-                                if (isFocusMode) "focus_mode_active" else "focus_mode_inactive",
-                                currentLang
-                            ),
-                            checked = isFocusMode,
-                            trackColor = accentCyan,
-                            isDarkMode = isDarkMode,
-                            haptic = haptic,
-                            switchTag = "drawer_focus_mode_toggle",
-                            onToggle = { onToggleFocusMode() }
                         )
 
                         HorizontalDivider(color = dividerColor)

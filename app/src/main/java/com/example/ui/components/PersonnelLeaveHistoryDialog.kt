@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MoreTime
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -90,7 +92,8 @@ fun PersonnelLeaveHistoryDialog(
     currentLang: AppLanguage = AppLanguage.ARABIC,
     isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
-    isNoScreenshotEnabled: Boolean = false
+    isNoScreenshotEnabled: Boolean = false,
+    onExtendRecord: ((LeaveRecord) -> Unit)? = null
 ) {
     val personLeaves = remember(personnel, allLeaves) {
         Personnel.findLeavesForPersonnel(personnel, allLeaves)
@@ -614,6 +617,50 @@ fun PersonnelLeaveHistoryDialog(
                                                                     overflow = TextOverflow.Ellipsis,
                                                                     modifier = Modifier.weight(1f)
                                                                 )
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (onExtendRecord != null) {
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            horizontalArrangement = Arrangement.End
+                                                        ) {
+                                                            Surface(
+                                                                onClick = { onExtendRecord(record) },
+                                                                shape = RoundedCornerShape(12.dp),
+                                                                color = Color.Transparent,
+                                                                modifier = Modifier
+                                                                    .defaultMinSize(minHeight = 48.dp)
+                                                                    .liquidGlassPanel(
+                                                                        shape = RoundedCornerShape(12.dp),
+                                                                        cornerRadius = 12.dp,
+                                                                        isDark = effectiveDark,
+                                                                        accent = EmeraldSuccess,
+                                                                        secondaryAccent = recordAccent,
+                                                                        isSelected = true,
+                                                                        softTintWhenSelected = true
+                                                                    )
+                                                                    .testTag("extend_history_leave_btn_${record.id}")
+                                                            ) {
+                                                                Row(
+                                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                                ) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.MoreTime,
+                                                                        contentDescription = AppStrings.get("extend_leave_btn", currentLang),
+                                                                        tint = EmeraldSuccess,
+                                                                        modifier = Modifier.size(16.dp)
+                                                                    )
+                                                                    Text(
+                                                                        text = AppStrings.get("extend_short_chip", currentLang),
+                                                                        fontSize = 12.sp,
+                                                                        fontWeight = FontWeight.ExtraBold,
+                                                                        color = EmeraldSuccess
+                                                                    )
+                                                                }
                                                             }
                                                         }
                                                     }

@@ -110,7 +110,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.AppNotification
-import com.example.data.AppThemeStyle
 import com.example.data.Personnel
 import com.example.data.formatRank
 import com.example.data.formatWilaya
@@ -147,14 +146,13 @@ fun NotificationScreen(
     val haptic = LocalHapticFeedback.current
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
-    val themeStyle by viewModel.currentThemeStyle.collectAsState()
     val activePreset = LocalThemePreset.current
     val effectiveDark = activePreset?.isDark ?: isDarkMode
     val primaryAccent = activePreset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
     val secondaryAccent = activePreset?.secondary ?: VibrantCyan
     val textPrimary = activePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = activePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
-    val isNeumorphic = (themeStyle == AppThemeStyle.NEUMORPHISM) && (activePreset?.isLiquidGlass != true)
+    val isNeumorphic = false
     val notifications by viewModel.notifications.collectAsState()
     val allPersonnel by viewModel.allPersonnel.collectAsState()
     val dismissedIds by viewModel.dismissedNotificationIds.collectAsState()

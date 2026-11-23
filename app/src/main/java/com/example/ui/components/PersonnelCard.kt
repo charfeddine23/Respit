@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -58,6 +59,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MoreTime
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
@@ -211,7 +213,6 @@ fun PersonnelCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
-    isFocusMode: Boolean = false,
     isDarkMode: Boolean = false,
     isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
@@ -220,7 +221,8 @@ fun PersonnelCard(
     lastShortLeaveInfo: LastShortLeaveInfo? = null,
     onTogglePin: () -> Unit = {},
     onSwipeDelete: () -> Unit = onDelete,
-    onViewHistory: () -> Unit = {}
+    onViewHistory: () -> Unit = {},
+    onExtendLeave: (() -> Unit)? = null
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
@@ -712,10 +714,10 @@ fun PersonnelCard(
                     elevation = when {
                         isHorizontalDragging -> 12.dp
                         isLivingLuxury -> 8.dp
-                        personnel.isPinned || isFocusMode -> 7.dp
+                        personnel.isPinned -> 7.dp
                         else -> 4.dp
                     },
-                    borderAlpha = if (isFocusMode || isLivingLuxury || isHorizontalDragging) 0.95f else 0.85f,
+                    borderAlpha = if (isLivingLuxury || isHorizontalDragging) 0.95f else 0.85f,
                     isDark = isDarkMode,
                     isNeumorphic = isNeumorphic,
                     cornerRadius = 24.dp
@@ -1274,16 +1276,80 @@ fun PersonnelCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (!personnel.isReturnedToDuty) {
-                            LiquidGlassActionButton(
-                                text = AppStrings.get("confirm_duty_btn", currentLang),
-                                icon = Icons.Default.Check,
-                                onClick = onConfirmDuty,
-                                isDark = effectiveDark,
-                                primaryAccent = EmeraldSuccess,
-                                secondaryAccent = Color(0xFF059669),
-                                isPrimary = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            val canExtendActiveLeave = onExtendLeave != null &&
+                                personnel.startDateMillis > 0L &&
+                                personnel.returnDateMillis > 0L
+                            if (canExtendActiveLeave) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    LiquidGlassActionButton(
+                                        text = AppStrings.get("confirm_duty_btn", currentLang),
+                                        icon = Icons.Default.Check,
+                                        onClick = onConfirmDuty,
+                                        isDark = effectiveDark,
+                                        primaryAccent = EmeraldSuccess,
+                                        secondaryAccent = Color(0xFF059669),
+                                        isPrimary = true,
+                                        modifier = Modifier.weight(1.1f)
+                                    )
+                                    Surface(
+                                        onClick = onExtendLeave!!,
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .defaultMinSize(minHeight = 48.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(16.dp),
+                                                cornerRadius = 16.dp,
+                                                isDark = effectiveDark,
+                                                accent = if (effectiveDark) CyanGlow else VibrantCyan,
+                                                secondaryAccent = RoyalBlueAccent,
+                                                isSelected = true,
+                                                softTintWhenSelected = true
+                                            )
+                                            .testTag("personnel_extend_btn_${personnel.id}")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 12.dp),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MoreTime,
+                                                contentDescription = AppStrings.get("extend_leave_btn", currentLang),
+                                                tint = if (effectiveDark) CyanGlow else RoyalBlueAccent,
+                                                modifier = Modifier.size(17.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = AppStrings.get("extend_leave_btn", currentLang),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = if (effectiveDark) CyanGlow else RoyalBlueAccent,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                LiquidGlassActionButton(
+                                    text = AppStrings.get("confirm_duty_btn", currentLang),
+                                    icon = Icons.Default.Check,
+                                    onClick = onConfirmDuty,
+                                    isDark = effectiveDark,
+                                    primaryAccent = EmeraldSuccess,
+                                    secondaryAccent = Color(0xFF059669),
+                                    isPrimary = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
 
                         Row(

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.MoreTime
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Remove
@@ -106,6 +107,7 @@ fun AddNewLeaveDialog(
     initialPersonnelId: Long? = null,
     onDismiss: () -> Unit,
     onOpenAddPersonnel: () -> Unit,
+    onExtendCurrentLeave: ((Personnel) -> Unit)? = null,
     onConfirm: (
         personnelId: Long,
         leaveType: String,
@@ -558,6 +560,93 @@ fun AddNewLeaveDialog(
                                                         contentDescription = AppStrings.get("select_personnel_label", currentLang),
                                                         tint = primaryColor,
                                                         modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (selectedPersonnel != null &&
+                                    !selectedPersonnel.isReturnedToDuty &&
+                                    selectedPersonnel.startDateMillis > 0L &&
+                                    selectedPersonnel.returnDateMillis > 0L &&
+                                    onExtendCurrentLeave != null
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(18.dp),
+                                                cornerRadius = 18.dp,
+                                                isDark = effectiveDark,
+                                                accent = EmeraldSuccess,
+                                                secondaryAccent = primaryColor,
+                                                isSelected = true,
+                                                softTintWhenSelected = true
+                                            )
+                                            .testTag("add_leave_extend_shortcut_banner")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.MoreTime,
+                                                    contentDescription = null,
+                                                    tint = EmeraldSuccess,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                    text = "${AppStrings.get("extend_active_leave_hint", currentLang)} ${selectedPersonnel.formattedReturnDate}",
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = textPrimary,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Surface(
+                                                onClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    onExtendCurrentLeave(selectedPersonnel)
+                                                },
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = Color.Transparent,
+                                                modifier = Modifier
+                                                    .defaultMinSize(minHeight = 48.dp)
+                                                    .liquidGlassPanel(
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        cornerRadius = 12.dp,
+                                                        isDark = effectiveDark,
+                                                        accent = EmeraldSuccess,
+                                                        secondaryAccent = primaryColor,
+                                                        isSelected = true,
+                                                        softTintWhenSelected = false
+                                                    )
+                                                    .testTag("add_leave_extend_shortcut_btn")
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                                                ) {
+                                                    Text(
+                                                        text = AppStrings.get("extend_now_btn", currentLang),
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        color = Color.White,
+                                                        maxLines = 1
                                                     )
                                                 }
                                             }

@@ -102,7 +102,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.AppThemeStyle
 import com.example.data.LeaveAnalyticsReport
 import com.example.data.MonthlyLeaveStat
 import com.example.data.PersonnelAnnualLeaveStat
@@ -162,12 +161,11 @@ fun AnalyticsDashboardScreen(
     val haptic = LocalHapticFeedback.current
     val currentLang by viewModel.currentLanguage.collectAsState()
     val isDarkModeState by viewModel.isDarkMode.collectAsState()
-    val themeStyle by viewModel.currentThemeStyle.collectAsState()
     val activePreset = LocalThemePreset.current
     val isDarkMode = activePreset?.isDark ?: isDarkModeState
     val primaryAccent = activePreset?.primary ?: if (isDarkMode) CyanGlow else RoyalBlueAccent
     val secondaryAccent = activePreset?.secondary ?: VibrantCyan
-    val isNeumorphic = (themeStyle == AppThemeStyle.NEUMORPHISM) && (activePreset?.isLiquidGlass != true)
+    val isNeumorphic = false
     val animationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
     val report by viewModel.analyticsReport.collectAsState()

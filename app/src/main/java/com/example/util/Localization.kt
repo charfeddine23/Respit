@@ -177,9 +177,6 @@ object AppStrings {
         "theme_desc" to "اختر بين المظهر النهاري أو الليلي",
         "theme_light_btn" to "النهاري",
         "theme_dark_btn" to "الليلي",
-        "focus_mode_title" to "وضع التركيز",
-        "focus_mode_active" to "مفعّل (وضوح عالٍ وإبراز التواريخ)",
-        "focus_mode_inactive" to "معطّل (العرض القياسي)",
         "duty_threshold_title" to "مدة الاستحقاق للإجازة",
         "duty_threshold_desc" to "عدد أيام الخدمة المتواصلة التي يستحق بعدها الفرد إجازة.",
         "selected_value" to "القيمة المحددة:",
@@ -263,11 +260,7 @@ object AppStrings {
         "certified_developer" to "المطور المعتمد",
         "app_icon_desc" to "شعار التطبيق",
 
-        // Theme Styles & Theme Engine
-        "theme_style_title" to "نمط التصميم",
-        "theme_style_desc" to "اختر بين النمط الزجاجي الشفاف أو النمط البارز",
-        "theme_style_glass" to "الزجاجي الشفاف",
-        "theme_style_neumorph" to "النمط البارز",
+        // Theme Engine
         "theme_engine_title" to "Theme Engine",
         "theme_engine_sub" to "60 ثيماً احترافياً ونيون وزجاجاً سائلاً",
         "theme_engine_default" to "الثيم الافتراضي",
@@ -599,7 +592,7 @@ object AppStrings {
         "lang_en_title" to "English",
         "lang_en_sub" to "اللغة الإنجليزية",
         "settings_cat_appearance" to "المظهر",
-        "settings_cat_appearance_sub" to "الوضع الليلي، النمط، محرك الثيمات والتركيز",
+        "settings_cat_appearance_sub" to "الوضع الليلي، محرك الثيمات والحركات",
         "settings_cat_security" to "الأمان",
         "settings_cat_security_sub" to "قفل البصمة وحماية لقطات الشاشة",
         "settings_cat_notifications" to "الإشعارات وعتبة الاستحقاق",
@@ -624,7 +617,27 @@ object AppStrings {
         "short_leave_history_only_hint" to "تُسجّل الإجازة القصيرة في السجل مباشرة دون أن تظهر كآخر إجازة في الواجهة.",
         "short_leave_recorded_success" to "تم تسجيل الإجازة القصيرة في السجل بنجاح",
         "last_short_leave_counter" to "عداد آخر إجازة قصيرة",
-        "short_leave_compact_label" to "قصيرة"
+        "short_leave_compact_label" to "قصيرة",
+
+        // Extend Leave / Holiday Feature
+        "extend_leave_btn" to "تمديد الإجازة",
+        "extend_leave_title" to "تمديد إجازة أو عطلة",
+        "extend_leave_sub" to "تمديد تاريخ العودة تلقائياً مع تحديث السجل الدائم",
+        "extend_duration_section" to "عدد أيام التمديد الإضافية",
+        "extend_days_added_label" to "أيام إضافية",
+        "extend_current_return_label" to "تاريخ الدخول الحالي",
+        "extend_new_return_label" to "تاريخ الدخول الجديد",
+        "extend_current_duration" to "المدة الحالية",
+        "extend_new_duration" to "المدة بعد التمديد",
+        "extend_reason_label" to "سبب التمديد / ملاحظة (اختياري)",
+        "extend_reason_placeholder" to "مثال: ظروف عائلية، تمديد إداري، شهادة طبية...",
+        "extend_confirm_btn" to "تأكيد التمديد",
+        "extend_leave_success" to "تم تمديد الإجازة وتحديث تاريخ الدخول والسجل بنجاح",
+        "extend_active_leave_hint" to "هذا الفرد في إجازة حالياً حتى",
+        "extend_now_btn" to "تمديد الحالية",
+        "undo_extended" to "تراجع عن تمديد الإجازة",
+        "extend_short_chip" to "تمديد",
+        "extend_pick_date_hint" to "أو اختر تاريخ الدخول الجديد مباشرة من التقويم"
     )
 
     private val stringsFr = mapOf(
@@ -777,9 +790,6 @@ object AppStrings {
         "theme_desc" to "Mode Clair ou Mode Sombre (Clair par défaut)",
         "theme_light_btn" to "Clair ☀️",
         "theme_dark_btn" to "Sombre 🌙",
-        "focus_mode_title" to "Mode Concentration",
-        "focus_mode_active" to "Activé (Contraste élevé et dates mises en valeur)",
-        "focus_mode_inactive" to "Désactivé (Affichage standard)",
         "duty_threshold_title" to "Seuil d'éligibilité au congé (Jours)",
         "duty_threshold_desc" to "Nombre de jours consécutifs requis pour être éligible au congé.",
         "selected_value" to "Valeur sélectionnée :",
@@ -863,11 +873,7 @@ object AppStrings {
         "certified_developer" to "Développeur Certifié",
         "app_icon_desc" to "Logo de l'application",
 
-        // Theme Styles & Theme Engine
-        "theme_style_title" to "Style d'interface et design",
-        "theme_style_desc" to "Choisir entre le verre dépoli ou le neumorphisme",
-        "theme_style_glass" to "🔮 Verre Dépoli (Glass)",
-        "theme_style_neumorph" to "🧊 Neumorphisme (Soft UI)",
+        // Theme Engine
         "theme_engine_title" to "Theme Engine",
         "theme_engine_sub" to "60 thèmes pro, néon et verre liquide",
         "theme_engine_default" to "Thème par défaut",
@@ -1203,7 +1209,7 @@ object AppStrings {
         "lang_en_title" to "English",
         "lang_en_sub" to "Langue anglaise",
         "settings_cat_appearance" to "Apparence",
-        "settings_cat_appearance_sub" to "Mode sombre, style, moteur de thèmes & focus",
+        "settings_cat_appearance_sub" to "Mode sombre, moteur de thèmes & animations",
         "settings_cat_security" to "Sécurité",
         "settings_cat_security_sub" to "Verrou biométrique & blocage des captures",
         "settings_cat_notifications" to "Notifications & Seuil",
@@ -1228,7 +1234,27 @@ object AppStrings {
         "short_leave_history_only_hint" to "La permission courte est enregistrée dans l'historique sans remplacer le dernier congé affiché.",
         "short_leave_recorded_success" to "Permission courte enregistrée dans l'historique",
         "last_short_leave_counter" to "Compteur dernière permission courte",
-        "short_leave_compact_label" to "Courte"
+        "short_leave_compact_label" to "Courte",
+
+        // Extend Leave / Holiday Feature
+        "extend_leave_btn" to "Prolonger le congé",
+        "extend_leave_title" to "Prolonger un congé / permission",
+        "extend_leave_sub" to "Ajuster la date de retour et synchroniser l'historique",
+        "extend_duration_section" to "Jours de prolongation à ajouter",
+        "extend_days_added_label" to "Jours ajoutés",
+        "extend_current_return_label" to "Retour actuel",
+        "extend_new_return_label" to "Nouveau retour",
+        "extend_current_duration" to "Durée actuelle",
+        "extend_new_duration" to "Nouvelle durée",
+        "extend_reason_label" to "Motif / note de prolongation (optionnel)",
+        "extend_reason_placeholder" to "Ex : prolongation administrative, motif médical...",
+        "extend_confirm_btn" to "Confirmer la prolongation",
+        "extend_leave_success" to "Congé prolongé et historique mis à jour avec succès",
+        "extend_active_leave_hint" to "Actuellement en congé jusqu'au",
+        "extend_now_btn" to "Prolonger l'actuel",
+        "undo_extended" to "Annuler la prolongation du congé",
+        "extend_short_chip" to "Prolonger",
+        "extend_pick_date_hint" to "Ou sélectionnez directement la nouvelle date de retour"
     )
 
     private val stringsEn = mapOf(
@@ -1381,9 +1407,6 @@ object AppStrings {
         "theme_desc" to "Light Mode or Dark Mode (Default Light)",
         "theme_light_btn" to "Light ☀️",
         "theme_dark_btn" to "Dark 🌙",
-        "focus_mode_title" to "Focus Mode",
-        "focus_mode_active" to "Active (High contrast focus)",
-        "focus_mode_inactive" to "Disabled (Standard view)",
         "duty_threshold_title" to "Leave Eligibility Threshold (Days)",
         "duty_threshold_desc" to "Number of consecutive duty days after which personnel is eligible for leave.",
         "selected_value" to "Selected value:",
@@ -1467,11 +1490,7 @@ object AppStrings {
         "certified_developer" to "Certified Developer",
         "app_icon_desc" to "App Logo",
 
-        // Theme Styles & Theme Engine
-        "theme_style_title" to "Interface & Design Style",
-        "theme_style_desc" to "Choose between Aurora Glassmorphism or Tactile Neumorphism",
-        "theme_style_glass" to "🔮 Glassmorphism",
-        "theme_style_neumorph" to "🧊 Neumorphism",
+        // Theme Engine
         "theme_engine_title" to "Theme Engine",
         "theme_engine_sub" to "60 pro palettes & refractive liquid glass",
         "theme_engine_default" to "Default Theme",
@@ -1807,7 +1826,7 @@ object AppStrings {
         "lang_en_title" to "English",
         "lang_en_sub" to "English Language",
         "settings_cat_appearance" to "Appearance",
-        "settings_cat_appearance_sub" to "Dark mode, style, theme engine, animations & focus",
+        "settings_cat_appearance_sub" to "Dark mode, theme engine & animations",
         "settings_cat_security" to "Security",
         "settings_cat_security_sub" to "Biometric App Lock & Block Screenshots",
         "settings_cat_notifications" to "Notifications & Threshold",
@@ -1832,7 +1851,27 @@ object AppStrings {
         "short_leave_history_only_hint" to "Short leave is saved directly to History without replacing the last displayed leave on the main UI.",
         "short_leave_recorded_success" to "Short leave recorded directly in History",
         "last_short_leave_counter" to "Last Short Leave Counter",
-        "short_leave_compact_label" to "Short"
+        "short_leave_compact_label" to "Short",
+
+        // Extend Leave / Holiday Feature
+        "extend_leave_btn" to "Extend Leave",
+        "extend_leave_title" to "Extend Leave / Holiday",
+        "extend_leave_sub" to "Extend return date and sync permanent leave archive",
+        "extend_duration_section" to "Additional Days to Extend",
+        "extend_days_added_label" to "Days Added",
+        "extend_current_return_label" to "Current Return",
+        "extend_new_return_label" to "New Return Date",
+        "extend_current_duration" to "Current Duration",
+        "extend_new_duration" to "New Total Duration",
+        "extend_reason_label" to "Extension Reason / Note (Optional)",
+        "extend_reason_placeholder" to "e.g., Administrative extension, medical note...",
+        "extend_confirm_btn" to "Confirm Extension",
+        "extend_leave_success" to "Leave extended and history updated successfully",
+        "extend_active_leave_hint" to "Currently on leave until",
+        "extend_now_btn" to "Extend Current",
+        "undo_extended" to "Undo leave extension",
+        "extend_short_chip" to "Extend",
+        "extend_pick_date_hint" to "Or pick the new return date directly from calendar"
     )
 
     private val stringsTzm = mapOf(
@@ -1985,9 +2024,6 @@ object AppStrings {
         "theme_desc" to "Askar afaw neɣ aberkan",
         "theme_light_btn" to "Afaw ☀️",
         "theme_dark_btn" to "Aberkan 🌙",
-        "focus_mode_title" to "Askar n usillew (Focus)",
-        "focus_mode_active" to "Yermed (Asillew n tmuɣli)",
-        "focus_mode_inactive" to "Yensa (Askan amagnu)",
         "duty_threshold_title" to "Talast n tuklala i yimuras (Ussan)",
         "duty_threshold_desc" to "Amḍan n wussan n umahil i yessefken iwakken ad yuklal amdan imuras.",
         "selected_value" to "Azal yettwafernen:",
@@ -2071,11 +2107,7 @@ object AppStrings {
         "certified_developer" to "Ameskar yettwamzen",
         "app_icon_desc" to "Tamdayt n usnas",
 
-        // Theme Styles & Theme Engine
-        "theme_style_title" to "Aɣanib n ugrudem d tmeṣkiwt",
-        "theme_style_desc" to "Fren gar Glassmorphism neɣ Neumorphism",
-        "theme_style_glass" to "🔮 Glassmorphism",
-        "theme_style_neumorph" to "🧊 Neumorphism",
+        // Theme Engine
         "theme_engine_title" to "Amseddu n yisental",
         "theme_engine_sub" to "60 n yisental & Liquid Glass",
         "theme_engine_default" to "Asentel amezwaru",
@@ -2200,7 +2232,7 @@ object AppStrings {
         "lang_en_title" to "English",
         "lang_en_sub" to "Taglizit",
         "settings_cat_appearance" to "Askan & Usentel",
-        "settings_cat_appearance_sub" to "Askar aberkan, aɣanib, amseddu n yisental & usillew",
+        "settings_cat_appearance_sub" to "Askar aberkan, amseddu n yisental & tizelgi",
         "settings_cat_security" to "Taɣellist",
         "settings_cat_security_sub" to "Asekkeṛ s tbiyumiṭrit & seḥbes tuṭṭfa n ugdil",
         "settings_cat_notifications" to "Ilɣa & Talast n tuklala",
@@ -2251,6 +2283,26 @@ object AppStrings {
         "short_leave_history_only_hint" to "Turagt tawezzlant tettusekles deg umazray kan war ma tbeddel amuras aneggaru deg ugdil.",
         "short_leave_recorded_success" to "Turagt tawezzlant tettusekles deg umazray",
         "last_short_leave_counter" to "Amḍan n turagt tawezzlant taneggarut",
-        "short_leave_compact_label" to "Tawezzlant"
+        "short_leave_compact_label" to "Tawezzlant",
+
+        // Extend Leave / Holiday Feature
+        "extend_leave_btn" to "Siɣzef imuras",
+        "extend_leave_title" to "Siɣzef imuras neɣ asgunfu",
+        "extend_leave_sub" to "Beddel azemz n tuɣalin s uleqmem n umazray",
+        "extend_duration_section" to "Ussan n usiɣzef ara d-yettwarnun",
+        "extend_days_added_label" to "Ussan yettwarnun",
+        "extend_current_return_label" to "Tuɣalin tamirant",
+        "extend_new_return_label" to "Tuɣalin tamaynut",
+        "extend_current_duration" to "Tanzagt tamirant",
+        "extend_new_duration" to "Tanzagt tamaynut",
+        "extend_reason_label" to "Taɣawsa n usiɣzef / tazmilt (axtiriy)",
+        "extend_reason_placeholder" to "Amedya: asiɣzef adeblan, tazmilt tasnajyant...",
+        "extend_confirm_btn" to "Sentem asiɣzef",
+        "extend_leave_success" to "Imuras ttusiɣzfen, azemz n tuɣalin yettuleqqem",
+        "extend_active_leave_hint" to "Amdan-agi deg yimuras tura alamma d",
+        "extend_now_btn" to "Siɣzef amirant",
+        "undo_extended" to "Sefsex asiɣzef n yimuras",
+        "extend_short_chip" to "Siɣzef",
+        "extend_pick_date_hint" to "Neɣ fren azemz amaynut n tuɣalin srid"
     )
 }

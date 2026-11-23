@@ -1023,4 +1023,247 @@ class ComposeUiRobolectricTest {
     composeTestRule.onNodeWithTag("biometric_lock_screen").assertIsDisplayed()
     composeTestRule.onNodeWithTag("biometric_unlock_button").assertIsDisplayed()
   }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `ExtendLeaveDialog selects quick extension days and returns accurate new return date`() {
+    val startMillis = getOffsetDateMillis(-5)
+    val returnMillis = getOffsetDateMillis(4)
+    val person = Personnel(
+      id = 77L,
+      fullName = "أمين بوزيدي",
+      fullNameLatin = "Amine Bouzidi",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "1.2026.00077",
+      startDateMillis = startMillis,
+      returnDateMillis = returnMillis,
+      isReturnedToDuty = false,
+      leaveType = "عطلة سنوية"
+    )
+
+    var confirmedReturnMillis = 0L
+    var confirmedAddedDays = 0
+    var confirmedReason = ""
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.ExtendLeaveDialog(
+          personnel = person,
+          onDismiss = {},
+          onConfirmExtend = { newReturn, addedDays, reason ->
+            confirmedReturnMillis = newReturn
+            confirmedAddedDays = addedDays
+            confirmedReason = reason
+          },
+          currentLang = AppLanguage.ARABIC,
+          animationsEnabled = false
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("extend_leave_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("extend_preview_card").assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag("extend_quick_days_7").performScrollTo().performClick()
+    composeTestRule.onNodeWithTag("extend_reason_input").performScrollTo().performTextInput("ظروف عائلية")
+    composeTestRule.onNodeWithTag("extend_confirm_btn").performClick()
+
+    composeTestRule.waitForIdle()
+    assertEquals(7, confirmedAddedDays)
+    assertEquals("ظروف عائلية", confirmedReason)
+    assertEquals(7L, Personnel.signedDaysBetween(returnMillis, confirmedReturnMillis))
+  }
+
+  @Test
+  fun `PersonnelCard displays extend button for active leave and hides it on duty`() {
+    val activePerson = Personnel(
+      id = 301L,
+      fullName = "كريم منصوري",
+      fullNameLatin = "Karim Mansouri",
+      rank = "رقيب - Sergent",
+      registrationNumber = "1.2026.00301",
+      startDateMillis = getOffsetDateMillis(-3),
+      returnDateMillis = getOffsetDateMillis(4),
+      isReturnedToDuty = false
+    )
+    val onDutyPerson = Personnel(
+      id = 302L,
+      fullName = "سالم وهراني",
+      fullNameLatin = "Salem Wahrani",
+      rank = "رقيب - Sergent",
+      registrationNumber = "1.2026.00302",
+      startDateMillis = getOffsetDateMillis(-20),
+      returnDateMillis = getOffsetDateMillis(-10),
+      isReturnedToDuty = true
+    )
+
+    var extendedClicked = false
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        androidx.compose.foundation.layout.Column {
+          PersonnelCard(
+            personnel = activePerson,
+            dutyThresholdDays = 40,
+            onConfirmDuty = {},
+            onEdit = {},
+            onDelete = {},
+            onExtendLeave = { extendedClicked = true },
+            animationsEnabled = false
+          )
+          PersonnelCard(
+            personnel = onDutyPerson,
+            dutyThresholdDays = 40,
+            onConfirmDuty = {},
+            onEdit = {},
+            onDelete = {},
+            onExtendLeave = {},
+            animationsEnabled = false
+          )
+        }
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithText("كريم منصوري").performClick()
+    composeTestRule.onNodeWithText("سالم وهراني").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("personnel_extend_btn_301").assertIsDisplayed().performClick()
+    assertTrue(extendedClicked)
+    composeTestRule.onNodeWithTag("personnel_extend_btn_302").assertDoesNotExist()
+  }
+
+  @Test
+  fun `extendPersonnelLeave updates Personnel and LeaveRecord and supports undo`() {
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val db = com.example.data.AppDatabase.getDatabase(
+      context,
+      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+    )
+    val startMillis = getOffsetDateMillis(-4)
+    val origReturnMillis = getOffsetDateMillis(3)
+    val newReturnMillis = getOffsetDateMillis(8)
+
+    val personId = runBlocking {
+      val id = db.personnelDao().insert(
+        Personnel(
+          fullName = "سمير بن عيسى",
+          fullNameLatin = "Samir Benaissa",
+          rank = "ملازم - Lieutenant",
+          registrationNumber = "1.2026.00501",
+          startDateMillis = startMillis,
+          returnDateMillis = origReturnMillis,
+          isReturnedToDuty = false,
+          leaveType = "عطلة سنوية"
+        )
+      )
+      db.leaveRecordDao().insert(
+        com.example.data.LeaveRecord(
+          personnelId = id,
+          personnelName = "سمير بن عيسى",
+          personnelNameLatin = "Samir Benaissa",
+          rank = "ملازم - Lieutenant",
+          registrationNumber = "1.2026.00501",
+          leaveType = "عطلة سنوية",
+          startDateMillis = startMillis,
+          returnDateMillis = origReturnMillis,
+          durationDays = Personnel.inclusiveLeaveDays(startMillis, origReturnMillis),
+          statusText = "في إجازة"
+        )
+      )
+      id
+    }
+
+    val viewModel = com.example.ui.PersonnelViewModel(context)
+    viewModel.extendPersonnelLeave(personId, newReturnMillis, "تمديد إداري")
+
+    repeat(30) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      val updated = runBlocking { db.personnelDao().getPersonnelById(personId) }
+      if (updated != null && updated.returnDateMillis == newReturnMillis) return@repeat
+      Thread.sleep(40)
+    }
+
+    val extendedPerson = runBlocking { db.personnelDao().getPersonnelById(personId) }!!
+    assertEquals(newReturnMillis, extendedPerson.returnDateMillis)
+    assertTrue(!extendedPerson.isReturnedToDuty)
+    assertTrue(extendedPerson.notes.contains("تمديد إداري"))
+
+    val extendedLeaves = runBlocking { db.leaveRecordDao().getLeavesForPersonnel(personId).first() }
+    assertTrue(extendedLeaves.any { it.returnDateMillis == newReturnMillis && it.durationDays == 13L })
+
+    // Verify atomic undo restores both Personnel and LeaveRecord
+    viewModel.undo()
+    repeat(30) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      val reverted = runBlocking { db.personnelDao().getPersonnelById(personId) }
+      if (reverted != null && reverted.returnDateMillis == origReturnMillis) return@repeat
+      Thread.sleep(40)
+    }
+    val revertedPerson = runBlocking { db.personnelDao().getPersonnelById(personId) }!!
+    assertEquals(origReturnMillis, revertedPerson.returnDateMillis)
+    val revertedLeaves = runBlocking { db.leaveRecordDao().getLeavesForPersonnel(personId).first() }
+    assertTrue(revertedLeaves.any { it.returnDateMillis == origReturnMillis && it.durationDays == 8L })
+  }
+
+  @Test
+  fun `extendLeaveRecord on short leave updates only LeaveRecord without overwriting Personnel`() {
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val db = com.example.data.AppDatabase.getDatabase(
+      context,
+      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+    )
+    val mainStart = getOffsetDateMillis(-20)
+    val mainReturn = getOffsetDateMillis(-10)
+    val shortStart = getOffsetDateMillis(-1)
+    val shortReturn = getOffsetDateMillis(1)
+    val shortExtendedReturn = getOffsetDateMillis(4)
+
+    val (personId, shortRecord) = runBlocking {
+      val id = db.personnelDao().insert(
+        Personnel(
+          fullName = "فريد قاسمي",
+          fullNameLatin = "Farid Kacemi",
+          rank = "عريف أول - Caporal-Chef",
+          registrationNumber = "1.2026.00601",
+          startDateMillis = mainStart,
+          returnDateMillis = mainReturn,
+          isReturnedToDuty = true,
+          leaveType = "عطلة سنوية"
+        )
+      )
+      val rec = com.example.data.LeaveRecord(
+        personnelId = id,
+        personnelName = "فريد قاسمي",
+        personnelNameLatin = "Farid Kacemi",
+        rank = "عريف أول - Caporal-Chef",
+        registrationNumber = "1.2026.00601",
+        leaveType = "إجازة قصيرة",
+        startDateMillis = shortStart,
+        returnDateMillis = shortReturn,
+        durationDays = Personnel.inclusiveLeaveDays(shortStart, shortReturn),
+        statusText = "في إجازة"
+      )
+      val recId = db.leaveRecordDao().insert(rec)
+      id to rec.copy(id = recId)
+    }
+
+    val viewModel = com.example.ui.PersonnelViewModel(context)
+    viewModel.extendLeaveRecord(shortRecord, shortExtendedReturn, "تأجيل السفر")
+
+    repeat(30) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      val updated = runBlocking { db.leaveRecordDao().getLeaveById(shortRecord.id) }
+      if (updated != null && updated.returnDateMillis == shortExtendedReturn) return@repeat
+      Thread.sleep(40)
+    }
+
+    val updatedShort = runBlocking { db.leaveRecordDao().getLeaveById(shortRecord.id) }!!
+    assertEquals(shortExtendedReturn, updatedShort.returnDateMillis)
+    assertEquals(Personnel.inclusiveLeaveDays(shortStart, shortExtendedReturn), updatedShort.durationDays)
+
+    val untouchedPerson = runBlocking { db.personnelDao().getPersonnelById(personId) }!!
+    assertEquals(mainReturn, untouchedPerson.returnDateMillis)
+    assertTrue(untouchedPerson.isReturnedToDuty)
+  }
 }

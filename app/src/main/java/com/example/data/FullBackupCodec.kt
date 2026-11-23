@@ -13,10 +13,8 @@ import java.util.Locale
 data class RestorableSettings(
     val dutyThresholdDays: Int?,
     val themeMode: String?,
-    val themeStyle: String?,
     val themeEngineId: String?,
     val language: String?,
-    val isFocusMode: Boolean?,
     val isDynamicAnimationsEnabled: Boolean?,
     val isLivingLuxuryMode: Boolean? = null,
     val isBiometricEnabled: Boolean?,
@@ -46,10 +44,8 @@ object FullBackupCodec {
         stats: DashboardStats,
         dutyThresholdDays: Int,
         themeMode: AppThemeMode,
-        themeStyle: AppThemeStyle,
         themeEngineId: String = ThemeEngine.DEFAULT_ID,
         language: AppLanguage,
-        isFocusMode: Boolean,
         isDynamicAnimationsEnabled: Boolean,
         isLivingLuxuryMode: Boolean = false,
         isBiometricEnabled: Boolean,
@@ -106,10 +102,8 @@ object FullBackupCodec {
             JSONObject().apply {
                 put("dutyThresholdDays", dutyThresholdDays)
                 put("themeMode", themeMode.code)
-                put("themeStyle", themeStyle.code)
                 put("themeEngineId", themeEngineId)
                 put("language", language.code)
-                put("isFocusMode", isFocusMode)
                 put("isDynamicAnimationsEnabled", isDynamicAnimationsEnabled)
                 put("isLivingLuxuryMode", isLivingLuxuryMode)
                 put("isBiometricEnabled", isBiometricEnabled)
@@ -239,10 +233,8 @@ object FullBackupCodec {
                 settings = RestorableSettings(
                     dutyThresholdDays = if (sObj.has("dutyThresholdDays")) sObj.optInt("dutyThresholdDays") else null,
                     themeMode = if (sObj.has("themeMode")) sObj.optString("themeMode") else null,
-                    themeStyle = if (sObj.has("themeStyle")) sObj.optString("themeStyle") else null,
                     themeEngineId = if (sObj.has("themeEngineId")) sObj.optString("themeEngineId") else null,
                     language = if (sObj.has("language")) sObj.optString("language") else null,
-                    isFocusMode = if (sObj.has("isFocusMode")) sObj.optBoolean("isFocusMode") else null,
                     isDynamicAnimationsEnabled = if (sObj.has("isDynamicAnimationsEnabled")) sObj.optBoolean("isDynamicAnimationsEnabled") else null,
                     isLivingLuxuryMode = if (sObj.has("isLivingLuxuryMode")) sObj.optBoolean("isLivingLuxuryMode") else null,
                     isBiometricEnabled = if (sObj.has("isBiometricEnabled")) sObj.optBoolean("isBiometricEnabled") else null,
