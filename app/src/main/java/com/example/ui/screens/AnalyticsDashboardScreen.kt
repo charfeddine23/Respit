@@ -135,14 +135,16 @@ private enum class MonthlyChartMetric { COUNT, DAYS }
 private enum class PersonnelStatsSort { LEAVES_DESC, DAYS_DESC, DUTY_DESC }
 
 private val analyticsPalette = listOf(
-    Color(0xFF0F766E), // Deep Teal
-    Color(0xFF0284C7), // Steel Sky
-    Color(0xFF059669), // Emerald
-    Color(0xFFD97706), // Warm Amber
-    Color(0xFF4F46E5), // Muted Indigo
-    Color(0xFF64748B), // Cool Slate
-    Color(0xFF0891B2), // Ocean Cyan
-    Color(0xFFDC2626)  // Crimson Alert
+    Color(0xFF00BCD4),
+    Color(0xFF3B82F6),
+    Color(0xFF10B981),
+    Color(0xFFF59E0B),
+    Color(0xFF8B5CF6),
+    Color(0xFFEC4899),
+    Color(0xFFEF4444),
+    Color(0xFF14B8A6),
+    Color(0xFF6366F1),
+    Color(0xFFF97316)
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -161,8 +163,8 @@ fun AnalyticsDashboardScreen(
     val isDarkModeState by viewModel.isDarkMode.collectAsState()
     val activePreset = LocalThemePreset.current
     val isDarkMode = activePreset?.isDark ?: isDarkModeState
-    val primaryAccent = activePreset?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
-    val secondaryAccent = activePreset?.secondary ?: RoyalBlueAccent
+    val primaryAccent = activePreset?.primary ?: if (isDarkMode) CyanGlow else RoyalBlueAccent
+    val secondaryAccent = activePreset?.secondary ?: VibrantCyan
     val isNeumorphic = false
     val animationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
@@ -277,14 +279,18 @@ fun AnalyticsDashboardScreen(
                                         modifier = Modifier
                                             .size(44.dp)
                                             .clip(RoundedCornerShape(14.dp))
-                                            .background(primaryAccent.copy(alpha = if (isDarkMode) 0.18f else 0.12f)),
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(Color(0xFF00BCD4), Color(0xFF2563EB))
+                                                )
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Insights,
                                             contentDescription = null,
-                                            tint = primaryAccent,
-                                            modifier = Modifier.size(22.dp)
+                                            tint = Color.White,
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -395,7 +401,6 @@ fun AnalyticsDashboardScreen(
                     val avgFormatted = remember(report.averageDurationDays) {
                         String.format(Locale.US, "%.1f", report.averageDurationDays)
                     }
-                    val slateAccent = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
                     if (isTablet) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -406,7 +411,7 @@ fun AnalyticsDashboardScreen(
                                 value = "${report.totalLeavesInYear}",
                                 subtitle = "${report.selectedYear}",
                                 icon = Icons.Default.BarChart,
-                                accent = primaryAccent,
+                                accent = VibrantCyan,
                                 isDarkMode = isDarkMode,
                                 isNeumorphic = isNeumorphic,
                                 modifier = Modifier.weight(1f)
@@ -416,7 +421,7 @@ fun AnalyticsDashboardScreen(
                                 value = "${report.totalDaysInYear}",
                                 subtitle = AppStrings.get("days", currentLang),
                                 icon = Icons.Default.CalendarMonth,
-                                accent = EmeraldSuccess,
+                                accent = RoyalBlueAccent,
                                 isDarkMode = isDarkMode,
                                 isNeumorphic = isNeumorphic,
                                 modifier = Modifier.weight(1f)
@@ -426,7 +431,7 @@ fun AnalyticsDashboardScreen(
                                 value = avgFormatted,
                                 subtitle = AppStrings.get("days", currentLang),
                                 icon = Icons.Default.Schedule,
-                                accent = slateAccent,
+                                accent = Color(0xFF8B5CF6),
                                 isDarkMode = isDarkMode,
                                 isNeumorphic = isNeumorphic,
                                 modifier = Modifier.weight(1f)
@@ -453,7 +458,7 @@ fun AnalyticsDashboardScreen(
                                     value = "${report.totalLeavesInYear}",
                                     subtitle = "${report.selectedYear}",
                                     icon = Icons.Default.BarChart,
-                                    accent = primaryAccent,
+                                    accent = VibrantCyan,
                                     isDarkMode = isDarkMode,
                                     isNeumorphic = isNeumorphic,
                                     modifier = Modifier.weight(1f)
@@ -463,7 +468,7 @@ fun AnalyticsDashboardScreen(
                                     value = "${report.totalDaysInYear}",
                                     subtitle = AppStrings.get("days", currentLang),
                                     icon = Icons.Default.CalendarMonth,
-                                    accent = EmeraldSuccess,
+                                    accent = RoyalBlueAccent,
                                     isDarkMode = isDarkMode,
                                     isNeumorphic = isNeumorphic,
                                     modifier = Modifier.weight(1f)
@@ -478,7 +483,7 @@ fun AnalyticsDashboardScreen(
                                     value = avgFormatted,
                                     subtitle = AppStrings.get("days", currentLang),
                                     icon = Icons.Default.Schedule,
-                                    accent = slateAccent,
+                                    accent = Color(0xFF8B5CF6),
                                     isDarkMode = isDarkMode,
                                     isNeumorphic = isNeumorphic,
                                     modifier = Modifier.weight(1f)
@@ -593,7 +598,7 @@ fun AnalyticsDashboardScreen(
                                     Icon(
                                         imageVector = Icons.Default.Search,
                                         contentDescription = AppStrings.get("search_label", currentLang),
-                                        tint = primaryAccent
+                                        tint = VibrantCyan
                                     )
                                 },
                                 trailingIcon = {
@@ -848,11 +853,10 @@ private fun MonthlyLeavesChartCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    val chartAccent = LocalThemePreset.current?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
                     Icon(
                         imageVector = Icons.Default.TrendingUp,
                         contentDescription = null,
-                        tint = chartAccent,
+                        tint = VibrantCyan,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -872,14 +876,13 @@ private fun MonthlyLeavesChartCard(
                 }
 
                 // Count vs Days Liquid Glass Toggle
-                val toggleAccent = LocalThemePreset.current?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
                 Box(
                     modifier = Modifier
                         .liquidGlassPanel(
                             shape = RoundedCornerShape(50.dp),
                             cornerRadius = 50.dp,
                             isDark = isDarkMode,
-                            accent = toggleAccent,
+                            accent = VibrantCyan,
                             secondaryAccent = RoyalBlueAccent
                         )
                         .padding(3.dp)
@@ -900,7 +903,7 @@ private fun MonthlyLeavesChartCard(
                                         shape = RoundedCornerShape(50.dp),
                                         cornerRadius = 50.dp,
                                         isDark = isDarkMode,
-                                        accent = toggleAccent,
+                                        accent = VibrantCyan,
                                         secondaryAccent = RoyalBlueAccent,
                                         isSelected = active,
                                         softTintWhenSelected = false
@@ -941,8 +944,8 @@ private fun MonthlyLeavesChartCard(
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         val gridColor = if (isDarkMode) Color(0x2894A3B8) else Color(0x2864748B)
-                        val barPrimary = if (isDarkMode) CyanGlow else VibrantCyan
-                        val barSecondary = if (isDarkMode) Color(0xFF0D9488) else Color(0xFF0F766E)
+                        val barPrimary = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF0284C7)
+                        val barSecondary = if (isDarkMode) Color(0xFF3B82F6) else Color(0xFF2563EB)
                         val lineAccent = AmberWarning
 
                         Canvas(
@@ -1685,13 +1688,12 @@ private fun PersonnelAnnualStatCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        val cardAccent = LocalThemePreset.current?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
                         Box(
                             modifier = Modifier.liquidGlassPanel(
                                 shape = RoundedCornerShape(8.dp),
                                 cornerRadius = 8.dp,
                                 isDark = isDarkMode,
-                                accent = cardAccent,
+                                accent = VibrantCyan,
                                 secondaryAccent = RoyalBlueAccent,
                                 isSelected = true,
                                 softTintWhenSelected = true
@@ -1701,7 +1703,7 @@ private fun PersonnelAnnualStatCard(
                                 text = formatRank(stat.rankRaw, currentLang),
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = cardAccent,
+                                color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF00838F),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
@@ -1710,7 +1712,7 @@ private fun PersonnelAnnualStatCard(
                                 shape = RoundedCornerShape(8.dp),
                                 cornerRadius = 8.dp,
                                 isDark = isDarkMode,
-                                accent = cardAccent,
+                                accent = VibrantCyan,
                                 secondaryAccent = RoyalBlueAccent
                             )
                         ) {
@@ -1729,14 +1731,13 @@ private fun PersonnelAnnualStatCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Annual Utilization Summary Badge
-                val utilAccent = LocalThemePreset.current?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
                 Box(
                     modifier = Modifier.liquidGlassPanel(
                         shape = RoundedCornerShape(14.dp),
                         cornerRadius = 14.dp,
                         isDark = isDarkMode,
-                        accent = utilAccent,
-                        secondaryAccent = utilAccent,
+                        accent = RoyalBlueAccent,
+                        secondaryAccent = VibrantCyan,
                         isSelected = stat.leavesCountInYear > 0,
                         softTintWhenSelected = true
                     )
@@ -1749,7 +1750,9 @@ private fun PersonnelAnnualStatCard(
                             text = "${stat.leavesCountInYear} ${AppStrings.get("analytics_leaves_unit", currentLang)}",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Black,
-                            color = if (stat.leavesCountInYear > 0) utilAccent else textSecondary
+                            color = if (stat.leavesCountInYear > 0) {
+                                if (isDarkMode) Color(0xFF60A5FA) else RoyalBlueAccent
+                            } else textSecondary
                         )
                         Text(
                             text = "${stat.totalDaysInYear} ${AppStrings.get("days", currentLang)} ($selectedYear)",
@@ -1847,14 +1850,13 @@ private fun PersonnelAnnualStatCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val typeChipAccent = LocalThemePreset.current?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
                     stat.leavesByType.forEach { (typeRaw, count) ->
                         Box(
                             modifier = Modifier.liquidGlassPanel(
                                 shape = RoundedCornerShape(8.dp),
                                 cornerRadius = 8.dp,
                                 isDark = isDarkMode,
-                                accent = typeChipAccent,
+                                accent = Color(0xFF7C3AED),
                                 secondaryAccent = RoyalBlueAccent,
                                 isSelected = true,
                                 softTintWhenSelected = true
@@ -1864,7 +1866,7 @@ private fun PersonnelAnnualStatCard(
                                 text = "${formatLeaveType(typeRaw, currentLang)}: $count",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = typeChipAccent,
+                                color = if (isDarkMode) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }

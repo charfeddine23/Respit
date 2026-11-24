@@ -132,7 +132,7 @@ fun FilterSortDialog(
     val haptic = LocalHapticFeedback.current
 
     val primaryColor = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
-    val secondaryColor = preset?.secondary ?: RoyalBlueAccent
+    val secondaryColor = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else RoyalBlueAccent
 
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF475569)
@@ -360,7 +360,7 @@ fun FilterSortDialog(
                                         label = cleanFilterLabel(AppStrings.get("status_eligible", currentLang)),
                                         count = stats.eligible,
                                         icon = Icons.Default.Star,
-                                        accent = EmeraldSuccess
+                                        accent = Color(0xFF8B5CF6)
                                     )
                                 )
                             }

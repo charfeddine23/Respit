@@ -109,7 +109,18 @@ fun BiometricLockScreen(
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF475569)
 
-    val pulseScale = 1f
+    val pulseScale = if (animationsEnabled) {
+        val infiniteTransition = rememberInfiniteTransition(label = "lockPulse")
+        infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.07f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1300, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "lock_pulse_scale"
+        ).value
+    } else 1f
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
@@ -139,7 +150,7 @@ fun BiometricLockScreen(
                             .widthIn(max = 420.dp)
                             .liquidGlass(
                                 shape = RoundedCornerShape(30.dp),
-                                elevation = 8.dp,
+                                elevation = 12.dp,
                                 borderAlpha = 0.92f,
                                 isDark = effectiveDark,
                                 isNeumorphic = isNeumorphic,
@@ -184,14 +195,20 @@ fun BiometricLockScreen(
                                 }
                             }
 
-                            // Clean Circular Logo Medallion
+                            // Glowing Circular Logo Medallion
                             Box(
                                 modifier = Modifier
-                                    .size(104.dp)
+                                    .size(116.dp)
                                     .scale(pulseScale)
+                                    .shadow(
+                                        elevation = 12.dp,
+                                        shape = CircleShape,
+                                        ambientColor = primaryAccent.copy(alpha = 0.35f),
+                                        spotColor = secondaryAccent.copy(alpha = 0.35f)
+                                    )
                                     .liquidGlassPanel(
                                         shape = CircleShape,
-                                        cornerRadius = 52.dp,
+                                        cornerRadius = 58.dp,
                                         isDark = effectiveDark,
                                         accent = primaryAccent,
                                         secondaryAccent = secondaryAccent,

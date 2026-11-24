@@ -12,7 +12,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -24,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,10 +43,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -63,19 +63,17 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
+import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.SlateTextPrimary
-import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.SyncDialogLiquidGlassWindow
 import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlassDialogShell
+import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.SyncDialogSecureWindow
 
-internal fun contrastOnAccent(accent: Color): Color =
-    if (accent.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
-
 /**
- * Clean, modern sticky header used across dialogs.
+ * Shared sticky Liquid Glass header used across redesigned dialogs.
  */
 @Composable
 fun LiquidGlassDialogHeader(
@@ -94,17 +92,25 @@ fun LiquidGlassDialogHeader(
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDark
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
-    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF475569)
     val haptic = LocalHapticFeedback.current
-    val iconContainerBg = primaryAccent.copy(alpha = if (effectiveDark) 0.16f else 0.11f)
-    val closeBg = if (effectiveDark) Color(0xFF1F2B40) else Color(0xFFF1F5F9)
-    val dividerColor = if (effectiveDark) Color(0xFF283548) else Color(0xFFE2E8F0)
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        primaryAccent.copy(alpha = if (effectiveDark) 0.22f else 0.12f),
+                        secondaryAccent.copy(alpha = if (effectiveDark) 0.14f else 0.06f),
+                        Color.Transparent
+                    )
+                )
+            )
+            .padding(horizontal = 18.dp, vertical = 14.dp)
+    ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -115,23 +121,27 @@ fun LiquidGlassDialogHeader(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(iconContainerBg),
+                        .size(44.dp)
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(14.dp),
+                            cornerRadius = 14.dp,
+                            isDark = effectiveDark,
+                            accent = primaryAccent,
+                            secondaryAccent = secondaryAccent,
+                            isSelected = true,
+                            softTintWhenSelected = false
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = primaryAccent,
-                        modifier = Modifier.size(21.dp)
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -139,7 +149,7 @@ fun LiquidGlassDialogHeader(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -147,15 +157,21 @@ fun LiquidGlassDialogHeader(
                         )
                         if (!badgeText.isNullOrBlank()) {
                             Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50.dp))
-                                    .background(primaryAccent.copy(alpha = if (effectiveDark) 0.18f else 0.12f))
+                                modifier = Modifier.liquidGlassPanel(
+                                    shape = RoundedCornerShape(50.dp),
+                                    cornerRadius = 50.dp,
+                                    isDark = effectiveDark,
+                                    accent = primaryAccent,
+                                    secondaryAccent = secondaryAccent,
+                                    isSelected = true,
+                                    softTintWhenSelected = false
+                                )
                             ) {
                                 Text(
                                     text = badgeText,
-                                    color = primaryAccent,
+                                    color = Color.White,
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Black,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                             }
@@ -186,9 +202,16 @@ fun LiquidGlassDialogHeader(
                         onDismiss()
                     },
                     shape = CircleShape,
-                    color = closeBg,
+                    color = Color.Transparent,
                     modifier = Modifier
                         .size(48.dp)
+                        .liquidGlassPanel(
+                            shape = CircleShape,
+                            cornerRadius = 24.dp,
+                            isDark = effectiveDark,
+                            accent = primaryAccent,
+                            secondaryAccent = secondaryAccent
+                        )
                         .then(if (closeTestTag != null) Modifier.testTag(closeTestTag) else Modifier)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -202,12 +225,11 @@ fun LiquidGlassDialogHeader(
                 }
             }
         }
-        HorizontalDivider(color = dividerColor, thickness = 1.dp)
     }
 }
 
 /**
- * Clean, calm section header with subtle tinted icon badge (eliminates heavy boxed gradients).
+ * Highlighted section header pill matching the design language across dialogs and screens.
  */
 @Composable
 fun LiquidGlassSectionHighlight(
@@ -220,65 +242,91 @@ fun LiquidGlassSectionHighlight(
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDark
-    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color(0xFFE2E8F0) else SlateTextPrimary
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
 
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .liquidGlassPanel(
+                shape = RoundedCornerShape(14.dp),
+                cornerRadius = 14.dp,
+                isDark = effectiveDark,
+                accent = accent,
+                secondaryAccent = accent,
+                isSelected = true,
+                softTintWhenSelected = true
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(26.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(accent.copy(alpha = if (effectiveDark) 0.16f else 0.10f)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(15.dp)
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(9.dp),
+                            cornerRadius = 9.dp,
+                            isDark = effectiveDark,
+                            accent = accent,
+                            secondaryAccent = accent,
+                            isSelected = true,
+                            softTintWhenSelected = false
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Text(
-                text = title,
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        if (!badgeText.isNullOrBlank()) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50.dp))
-                    .background(accent.copy(alpha = if (effectiveDark) 0.16f else 0.10f))
-            ) {
-                Text(
-                    text = badgeText,
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accent,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                )
+            if (!badgeText.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier.liquidGlassPanel(
+                        shape = RoundedCornerShape(50.dp),
+                        cornerRadius = 50.dp,
+                        isDark = effectiveDark,
+                        accent = accent,
+                        secondaryAccent = accent,
+                        isSelected = true,
+                        softTintWhenSelected = true
+                    )
+                ) {
+                    Text(
+                        text = badgeText,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = accent,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * Crisp 48dp+ tactile action button (solid filled primary or clean bordered secondary).
+ * Tactile 48dp+ Liquid Glass action button (either glowing primary gradient or frosted neutral glass).
  */
 @Composable
 fun LiquidGlassActionButton(
@@ -299,23 +347,38 @@ fun LiquidGlassActionButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium),
+        targetValue = if (isPressed && enabled) 0.97f else 1f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
         label = "glassActionBtnScale"
     )
-    val onPrimaryColor = contrastOnAccent(primaryAccent)
-    val contentTint = if (isPrimary) onPrimaryColor else textPrimary
-    val containerColor = if (isPrimary) {
-        primaryAccent
-    } else if (effectiveDark) {
-        Color(0xFF1E293B)
-    } else {
-        Color(0xFFF8FAFC)
-    }
-    val borderStroke = if (isPrimary) null else BorderStroke(
-        1.dp,
-        if (effectiveDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-    )
+    val contentTint = if (isPrimary) Color.White else textPrimary
+
+    val buttonModifier = modifier
+        .defaultMinSize(minHeight = 48.dp)
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+            alpha = if (enabled) 1f else 0.55f
+        }
+        .then(
+            if (isPrimary) {
+                Modifier.shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    ambientColor = primaryAccent.copy(alpha = 0.35f),
+                    spotColor = secondaryAccent.copy(alpha = 0.35f)
+                )
+            } else Modifier
+        )
+        .liquidGlassPanel(
+            shape = RoundedCornerShape(16.dp),
+            cornerRadius = 16.dp,
+            isDark = effectiveDark,
+            accent = primaryAccent,
+            secondaryAccent = secondaryAccent,
+            isSelected = isPrimary,
+            softTintWhenSelected = !isPrimary
+        )
 
     Surface(
         onClick = {
@@ -326,17 +389,9 @@ fun LiquidGlassActionButton(
         },
         enabled = enabled,
         interactionSource = interactionSource,
-        shape = RoundedCornerShape(14.dp),
-        color = containerColor,
-        border = borderStroke,
-        shadowElevation = if (isPrimary && enabled) 2.dp else 0.dp,
-        modifier = modifier
-            .defaultMinSize(minHeight = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                alpha = if (enabled) 1f else 0.50f
-            }
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent,
+        modifier = buttonModifier
     ) {
         Row(
             modifier = Modifier
@@ -349,7 +404,7 @@ fun LiquidGlassActionButton(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (isPrimary) onPrimaryColor else primaryAccent,
+                    tint = if (isPrimary) Color.White else primaryAccent,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -357,7 +412,7 @@ fun LiquidGlassActionButton(
             Text(
                 text = text,
                 fontSize = 13.sp,
-                fontWeight = if (isPrimary) FontWeight.Bold else FontWeight.SemiBold,
+                fontWeight = if (isPrimary) FontWeight.ExtraBold else FontWeight.Bold,
                 color = contentTint,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -367,7 +422,7 @@ fun LiquidGlassActionButton(
 }
 
 /**
- * Clean confirmation modal with calm elevation and restrained typography.
+ * Reusable 5%-transparency Liquid Glass confirmation modal replacing stock AlertDialogs.
  */
 @Composable
 fun LiquidGlassConfirmDialog(
@@ -377,7 +432,7 @@ fun LiquidGlassConfirmDialog(
     cancelText: String,
     icon: ImageVector,
     accentColor: Color = RedDanger,
-    secondaryColor: Color = accentColor,
+    secondaryColor: Color = Color(0xFFF97316),
     isDarkMode: Boolean,
     currentLang: AppLanguage,
     animationsEnabled: Boolean = true,
@@ -391,9 +446,8 @@ fun LiquidGlassConfirmDialog(
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
-    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
-    val dividerColor = if (effectiveDark) Color(0xFF283548) else Color(0xFFE2E8F0)
-    val messageSurface = if (effectiveDark) Color(0xFF1A2538) else Color(0xFFF8FAFC)
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+    val glassDividerColor = if (effectiveDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.62f)
     val entranceState = remember { MutableTransitionState(!animationsEnabled).apply { targetState = true } }
 
     Dialog(
@@ -410,12 +464,12 @@ fun LiquidGlassConfirmDialog(
                 visibleState = entranceState,
                 enter = if (animationsEnabled) {
                     fadeIn(tween(180)) + scaleIn(
-                        initialScale = 0.94f,
+                        initialScale = 0.93f,
                         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 420f)
                     )
                 } else EnterTransition.None,
                 exit = if (animationsEnabled) {
-                    fadeOut(tween(120)) + scaleOut(targetScale = 0.96f)
+                    fadeOut(tween(120)) + scaleOut(targetScale = 0.95f)
                 } else ExitTransition.None
             ) {
                 Box(
@@ -425,15 +479,15 @@ fun LiquidGlassConfirmDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(28.dp),
                         color = Color.Transparent,
                         shadowElevation = 0.dp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .widthIn(max = 400.dp)
+                            .widthIn(max = 420.dp)
                             .liquidGlassDialogShell(
-                                shape = RoundedCornerShape(24.dp),
-                                cornerRadius = 24.dp,
+                                shape = RoundedCornerShape(28.dp),
+                                cornerRadius = 28.dp,
                                 isDark = effectiveDark,
                                 primaryAccent = accentColor,
                                 secondaryAccent = secondaryColor
@@ -449,32 +503,51 @@ fun LiquidGlassConfirmDialog(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(accentColor.copy(alpha = if (effectiveDark) 0.18f else 0.11f)),
+                                    .size(58.dp)
+                                    .shadow(
+                                        elevation = 10.dp,
+                                        shape = RoundedCornerShape(18.dp),
+                                        ambientColor = accentColor.copy(alpha = 0.35f),
+                                        spotColor = secondaryColor.copy(alpha = 0.35f)
+                                    )
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(18.dp),
+                                        cornerRadius = 18.dp,
+                                        isDark = effectiveDark,
+                                        accent = accentColor,
+                                        secondaryAccent = secondaryColor,
+                                        isSelected = true,
+                                        softTintWhenSelected = false
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = null,
-                                    tint = accentColor,
-                                    modifier = Modifier.size(26.dp)
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
 
                             Text(
                                 text = title,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Black,
                                 color = textPrimary,
                                 textAlign = TextAlign.Center
                             )
 
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = messageSurface,
-                                border = BorderStroke(1.dp, dividerColor),
-                                modifier = Modifier.fillMaxWidth()
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(16.dp),
+                                        cornerRadius = 16.dp,
+                                        isDark = effectiveDark,
+                                        accent = accentColor,
+                                        secondaryAccent = secondaryColor
+                                    )
+                                    .padding(horizontal = 14.dp, vertical = 12.dp)
                             ) {
                                 Text(
                                     text = message,
@@ -483,22 +556,22 @@ fun LiquidGlassConfirmDialog(
                                     lineHeight = 19.sp,
                                     color = textSecondary,
                                     textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
+
+                            HorizontalDivider(color = glassDividerColor)
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                val cancelAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
                                 LiquidGlassActionButton(
                                     text = cancelText,
                                     onClick = onDismiss,
                                     isDark = effectiveDark,
-                                    primaryAccent = cancelAccent,
+                                    primaryAccent = if (effectiveDark) CyanGlow else VibrantCyan,
+                                    secondaryAccent = RoyalBlueAccent,
                                     isPrimary = false,
                                     modifier = Modifier
                                         .weight(1f)
@@ -513,7 +586,7 @@ fun LiquidGlassConfirmDialog(
                                     secondaryAccent = secondaryColor,
                                     isPrimary = true,
                                     modifier = Modifier
-                                        .weight(1.1f)
+                                        .weight(1.15f)
                                         .then(if (confirmTestTag != null) Modifier.testTag(confirmTestTag) else Modifier)
                                 )
                             }

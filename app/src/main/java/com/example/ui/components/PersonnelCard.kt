@@ -1,20 +1,31 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,7 +50,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -212,8 +222,7 @@ fun PersonnelCard(
     onTogglePin: () -> Unit = {},
     onSwipeDelete: () -> Unit = onDelete,
     onViewHistory: () -> Unit = {},
-    onExtendLeave: (() -> Unit)? = null,
-    onQuickAddLeave: (() -> Unit)? = null
+    onExtendLeave: (() -> Unit)? = null
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
@@ -228,7 +237,7 @@ fun PersonnelCard(
     val animatedProgress = if (animationsEnabled && !personnel.isReturnedToDuty) {
         animateFloatAsState(
             targetValue = progress,
-            animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
+            animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
             label = "leaveProgress"
         ).value
     } else progress
@@ -242,38 +251,38 @@ fun PersonnelCard(
 
     val visual = when {
         status == LeaveStatus.AT_HOME -> StatusVisual(
-            color = primaryAccent,
-            bgTint = primaryAccent.copy(alpha = if (effectiveDark) 0.16f else 0.10f),
+            color = if (effectiveDark) CyanGlow else VibrantCyan,
+            bgTint = if (effectiveDark) Color(0x3300BCD4) else Color(0xFFE0F2FE),
             icon = Icons.Default.Home,
             badgeKey = "badge_at_home"
         )
         status == LeaveStatus.RETURNING_TODAY -> StatusVisual(
             color = AmberWarning,
-            bgTint = if (effectiveDark) Color(0x29D97706) else Color(0xFFFEF3C7),
+            bgTint = if (isDarkMode) Color(0x33F59E0B) else Color(0xFFFEF3C7),
             icon = Icons.Default.NotificationsActive,
             badgeKey = "badge_returning_today"
         )
         status == LeaveStatus.OVERDUE -> StatusVisual(
             color = RedDanger,
-            bgTint = if (effectiveDark) Color(0x29DC2626) else Color(0xFFFEE2E2),
+            bgTint = if (isDarkMode) Color(0x33EF4444) else Color(0xFFFFE4E6),
             icon = Icons.Default.Warning,
             badgeKey = "badge_overdue"
         )
         status == LeaveStatus.ON_DUTY && isEligible -> StatusVisual(
             color = AmberWarning,
-            bgTint = if (effectiveDark) Color(0x29D97706) else Color(0xFFFEF3C7),
+            bgTint = if (isDarkMode) Color(0x33F59E0B) else Color(0xFFFEF3C7),
             icon = Icons.Default.Star,
             badgeKey = "badge_eligible"
         )
         status == LeaveStatus.ON_DUTY -> StatusVisual(
             color = EmeraldSuccess,
-            bgTint = if (effectiveDark) Color(0x29059669) else Color(0xFFD1FAE5),
+            bgTint = if (isDarkMode) Color(0x3310B981) else Color(0xFFDCFCE7),
             icon = Icons.Default.Shield,
             badgeKey = "badge_on_duty"
         )
         else -> StatusVisual(
-            color = if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary,
-            bgTint = if (effectiveDark) Color(0x2464748B) else Color(0xFFF1F5F9),
+            color = Color(0xFF8B5CF6),
+            bgTint = if (isDarkMode) Color(0x338B5CF6) else Color(0xFFEDE9FE),
             icon = Icons.Default.Schedule,
             badgeKey = "badge_upcoming"
         )
@@ -357,14 +366,46 @@ fun PersonnelCard(
         label = "trashIconTilt"
     )
 
+    val luxuryPulse by if (isLivingLuxury && animationsEnabled) {
+        val transition = rememberInfiniteTransition(label = "cardLuxuryBreath")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "cardBadgeBreath"
+        )
+    } else {
+        remember { mutableFloatStateOf(0f) }
+    }
+
     val pinBorderModifier = when {
         isSwipeArmed || isHorizontalDragging -> Modifier.border(
-            BorderStroke(1.5.dp, CoralRedAccent.copy(alpha = 0.85f)),
-            RoundedCornerShape(20.dp)
+            BorderStroke(
+                1.8.dp,
+                Brush.linearGradient(
+                    listOf(
+                        CoralRedAccent.copy(alpha = 0.92f),
+                        RedDanger.copy(alpha = 0.85f)
+                    )
+                )
+            ),
+            RoundedCornerShape(24.dp)
         )
         personnel.isPinned -> Modifier.border(
-            BorderStroke(1.3.dp, AmberWarning.copy(alpha = 0.65f)),
-            RoundedCornerShape(20.dp)
+            BorderStroke(
+                1.6.dp,
+                Brush.linearGradient(
+                    listOf(
+                        AmberWarning.copy(alpha = 0.85f),
+                        CyanGlow.copy(alpha = 0.55f),
+                        AmberWarning.copy(alpha = 0.70f)
+                    )
+                )
+            ),
+            RoundedCornerShape(24.dp)
         )
         else -> Modifier
     }
@@ -642,25 +683,8 @@ fun PersonnelCard(
             }
         }
 
-        // Foreground Draggable Personnel Card (Clean soft-elevated card with 3D swipe physics)
-        val cardSurfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF151F31) else Color(0xFFFFFFFF)
-        val cardBorderColor = preset?.borderAccent?.copy(alpha = 0.28f)
-            ?: if (effectiveDark) Color(0xFF283548) else Color(0xFFE2E8F0)
-
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = cardSurfaceColor,
-            shadowElevation = when {
-                isHorizontalDragging -> 10.dp
-                personnel.isPinned -> 3.dp
-                effectiveDark -> 1.5.dp
-                else -> 2.dp
-            },
-            border = if (isSwipeArmed || isHorizontalDragging || personnel.isPinned) {
-                null
-            } else {
-                BorderStroke(1.dp, cardBorderColor)
-            },
+        // Foreground Draggable Personnel Card (Pure GPU translation, 3D tilt, shadow lift & fade)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
@@ -670,6 +694,7 @@ fun PersonnelCard(
                     val progress = ((x * dirSign) / safeWidth).coerceIn(0f, 1.2f)
 
                     translationX = x
+                    // Authentic wrist-arc physics: gentle Z tilt + subtle 3D perspective depth
                     rotationZ = (x / safeWidth) * 5.2f
                     rotationY = -(x / safeWidth) * 6.5f
                     cameraDistance = 14f * density
@@ -684,61 +709,86 @@ fun PersonnelCard(
                         scaleY = cardPressScale
                     }
                 }
+                .liquidGlass(
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = when {
+                        isHorizontalDragging -> 12.dp
+                        isLivingLuxury -> 8.dp
+                        personnel.isPinned -> 7.dp
+                        else -> 4.dp
+                    },
+                    borderAlpha = if (isLivingLuxury || isHorizontalDragging) 0.95f else 0.85f,
+                    isDark = isDarkMode,
+                    isNeumorphic = isNeumorphic,
+                    cornerRadius = 24.dp
+                )
                 .then(pinBorderModifier)
                 .testTag("personnel_item_${personnel.id}")
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Clean 3-Zone Header Row:
-                // 1. Leading circular days/status badge
-                // 2. Middle clickable name + clean typographic metadata (Rank · ID · Wilaya) + status pill
-                // 3. Trailing circular emerald quick-action button
+            // Coordinated Card Header:
+            // Leading side: Days count badge + Full Name + FlowRow(Rank + Reg Number)
+            // Trailing side: Status Badge + Wilaya (without code) directly underneath
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.Top
                 ) {
+                    // Days Number-Only Badge (-5, -4, ..., 0, 1, 2...)
                     val formattedDaysBadge = if (effectiveDaysSinceDuty < 0L) {
                         "\u200E$effectiveDaysSinceDuty\u200E"
                     } else {
                         "$effectiveDaysSinceDuty"
                     }
-                    Surface(
-                        shape = CircleShape,
-                        color = visual.bgTint,
-                        border = BorderStroke(1.dp, visual.color.copy(alpha = 0.32f)),
-                        modifier = Modifier.size(46.dp)
+                    val badgeBreathScale = if (isLivingLuxury && animationsEnabled) 1f + (luxuryPulse * 0.055f) else 1f
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .graphicsLayer {
+                                scaleX = badgeBreathScale
+                                scaleY = badgeBreathScale
+                            }
+                            .liquidGlassPanel(
+                                shape = avatarShape,
+                                cornerRadius = if (isNeumorphic) 18.dp else 24.dp,
+                                isDark = effectiveDark,
+                                accent = visual.color,
+                                secondaryAccent = visual.color,
+                                isSelected = true,
+                                softTintWhenSelected = true,
+                                borderWidth = if (isLivingLuxury) 1.7.dp else 1.4.dp
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = formattedDaysBadge,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = when {
-                                    kotlin.math.abs(effectiveDaysSinceDuty) >= 100L -> 12.5.sp
-                                    effectiveDaysSinceDuty <= -10L -> 14.sp
-                                    else -> 16.sp
-                                },
-                                color = visual.color,
-                                maxLines = 1
-                            )
-                        }
+                        Text(
+                            text = formattedDaysBadge,
+                            fontWeight = FontWeight.Black,
+                            fontSize = when {
+                                kotlin.math.abs(effectiveDaysSinceDuty) >= 100L -> 13.sp
+                                effectiveDaysSinceDuty <= -10L -> 15.sp
+                                else -> 17.sp
+                            },
+                            color = visual.color,
+                            maxLines = 1
+                        )
                     }
 
-                    // Middle Section: Bold Name + Clean Typographic Metadata + Single Status Pill
+                    Spacer(modifier = Modifier.width(12.dp))
+
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                isExpanded = !isExpanded
-                            }
-                            .padding(vertical = 2.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -748,7 +798,7 @@ fun PersonnelCard(
                             Text(
                                 text = personnel.getLocalizedName(currentLang),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Black,
                                 color = textPrimary,
                                 fontSize = 15.5.sp,
                                 lineHeight = 20.sp,
@@ -757,24 +807,30 @@ fun PersonnelCard(
                                 modifier = Modifier.weight(1f, fill = false)
                             )
                             if (personnel.isPinned) {
-                                Surface(
-                                    onClick = onTogglePin,
-                                    shape = CircleShape,
-                                    color = AmberWarning.copy(alpha = if (effectiveDark) 0.18f else 0.12f),
+                                Box(
+                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
-                                        .size(24.dp)
+                                        .size(28.dp)
+                                        .liquidGlassPanel(
+                                            shape = CircleShape,
+                                            cornerRadius = 14.dp,
+                                            isDark = effectiveDark,
+                                            accent = AmberWarning,
+                                            secondaryAccent = AmberWarning,
+                                            isSelected = true,
+                                            softTintWhenSelected = true
+                                        )
+                                        .clickable(onClick = onTogglePin)
                                         .testTag("pinned_badge_${personnel.id}")
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.PushPin,
-                                            contentDescription = AppStrings.get("unpin_action", currentLang),
-                                            tint = AmberWarning,
-                                            modifier = Modifier
-                                                .size(12.dp)
-                                                .rotate(30f)
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.PushPin,
+                                        contentDescription = AppStrings.get("unpin_action", currentLang),
+                                        tint = AmberWarning,
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .rotate(30f)
+                                    )
                                 }
                             }
                         }
@@ -783,152 +839,212 @@ fun PersonnelCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
+                            // Localized Military Rank Pill
+                            Box(
+                                modifier = Modifier.liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = primaryAccent,
+                                    secondaryAccent = RoyalBlueAccent,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
+                            ) {
+                                Text(
+                                    text = localizedRank,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF007791),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+
+                            // Registration Number Pill
+                            Box(
+                                modifier = Modifier.liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = primaryAccent,
+                                    secondaryAccent = RoyalBlueAccent
+                                )
+                            ) {
+                                Text(
+                                    text = personnel.registrationNumber,
+                                    fontSize = 10.5.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textSecondary,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                // Trailing Column: Status Badge + Wilaya right beneath it
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.widthIn(max = 148.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.liquidGlassPanel(
+                            shape = RoundedCornerShape(50.dp),
+                            cornerRadius = 50.dp,
+                            isDark = effectiveDark,
+                            accent = visual.color,
+                            secondaryAccent = visual.color,
+                            isSelected = true,
+                            softTintWhenSelected = true
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = visual.icon,
+                                contentDescription = null,
+                                tint = visual.color,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = localizedRank,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textPrimary.copy(alpha = 0.85f),
+                                text = AppStrings.get(visual.badgeKey, currentLang),
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = visual.color,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-
-                            Text(
-                                text = "•",
-                                fontSize = 11.sp,
-                                color = textSecondary.copy(alpha = 0.6f)
-                            )
-
-                            Text(
-                                text = personnel.registrationNumber,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Medium,
-                                color = textSecondary,
-                                maxLines = 1
-                            )
-
-                            if (localizedWilaya.isNotBlank()) {
-                                Text(
-                                    text = "•",
-                                    fontSize = 11.sp,
-                                    color = textSecondary.copy(alpha = 0.6f)
-                                )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                    modifier = Modifier.testTag("personnel_wilaya_${personnel.id}")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.LocationOn,
-                                        contentDescription = AppStrings.get("wilaya_label", currentLang),
-                                        tint = primaryAccent,
-                                        modifier = Modifier.size(11.dp)
-                                    )
-                                    Text(
-                                        text = localizedWilaya,
-                                        fontSize = 11.sp,
-                                        color = textSecondary,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
                         }
+                    }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 1.dp)
+                    // Wilaya Chip (without numeric code) directly below Status Badge
+                    if (localizedWilaya.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = RoyalBlueAccent,
+                                    secondaryAccent = primaryAccent
+                                )
+                                .testTag("personnel_wilaya_${personnel.id}")
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier
-                                    .background(visual.bgTint, CircleShape)
-                                    .padding(horizontal = 8.dp, vertical = 2.5.dp)
-                            ) {
-                                Icon(
-                                    imageVector = visual.icon,
-                                    contentDescription = null,
-                                    tint = visual.color,
-                                    modifier = Modifier.size(11.dp)
-                                )
-                                Text(
-                                    text = AppStrings.get(visual.badgeKey, currentLang),
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = visual.color,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                modifier = Modifier.weight(1f, fill = false)
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    tint = textSecondary,
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .graphicsLayer { rotationZ = arrowRotation }
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = AppStrings.get("wilaya_label", currentLang),
+                                    tint = primaryAccent,
+                                    modifier = Modifier.size(12.dp)
                                 )
-                                val collapsedScheduleText = if (personnel.returnDateMillis > 0L) {
-                                    "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}"
-                                } else {
-                                    AppStrings.get("no_leave_recorded_short", currentLang)
-                                }
                                 Text(
-                                    text = if (isExpanded) {
-                                        AppStrings.get("click_to_collapse", currentLang)
-                                    } else {
-                                        collapsedScheduleText
-                                    },
+                                    text = localizedWilaya,
                                     fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = if (personnel.isOverdue && !isExpanded) RedDanger else textSecondary,
+                                    color = textPrimary,
+                                    fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
                     }
+                }
+            }
 
-                    // Trailing Side: Clean Emerald Green Circular Quick Action Button
-                    val isOnDutyAction = personnel.isReturnedToDuty
-                    val quickActionDesc = if (isOnDutyAction) {
-                        AppStrings.get("quick_add_leave_desc", currentLang)
-                    } else {
-                        AppStrings.get("confirm_duty_btn", currentLang)
-                    }
-                    Surface(
-                        onClick = {
+            // Expand / Collapse Bar + Expandable Details grouped to eliminate inter-item spacing jump
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .liquidGlassPanel(
+                            shape = RoundedCornerShape(14.dp),
+                            cornerRadius = 14.dp,
+                            isDark = effectiveDark,
+                            accent = primaryAccent,
+                            secondaryAccent = RoyalBlueAccent,
+                            isSelected = isExpanded,
+                            softTintWhenSelected = true
+                        )
+                        .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            if (isOnDutyAction) {
-                                (onQuickAddLeave ?: onEdit).invoke()
-                            } else {
-                                onConfirmDuty()
-                            }
-                        },
-                        shape = CircleShape,
-                        color = EmeraldSuccess,
-                        shadowElevation = 2.dp,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag("personnel_quick_action_${personnel.id}")
+                            isExpanded = !isExpanded
+                        }
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (isOnDutyAction) Icons.Default.Add else Icons.Default.Check,
-                                contentDescription = quickActionDesc,
-                                tint = Color.White,
-                                modifier = Modifier.size(21.dp)
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = primaryAccent,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .graphicsLayer { rotationZ = arrowRotation }
+                        )
+                        AnimatedContent(
+                            targetState = isExpanded,
+                            transitionSpec = {
+                                if (animationsEnabled) {
+                                    (fadeIn(tween(180)) + slideInVertically { if (targetState) -it / 3 else it / 3 }) togetherWith
+                                        (fadeOut(tween(120)) + slideOutVertically { if (targetState) it / 3 else -it / 3 })
+                                } else {
+                                    EnterTransition.None togetherWith ExitTransition.None
+                                }
+                            },
+                            label = "expandLabel"
+                        ) { expanded ->
+                            Text(
+                                text = AppStrings.get(
+                                    if (expanded) "click_to_collapse" else "click_to_expand",
+                                    currentLang
+                                ),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryAccent
                             )
                         }
+                    }
+
+                    AnimatedVisibility(
+                        visible = !isExpanded,
+                        enter = if (animationsEnabled) {
+                            fadeIn(tween(200)) + scaleIn(initialScale = 0.94f)
+                        } else EnterTransition.None,
+                        exit = if (animationsEnabled) {
+                            fadeOut(tween(130)) + scaleOut(targetScale = 0.94f)
+                        } else ExitTransition.None
+                    ) {
+                        val collapsedScheduleText = if (personnel.returnDateMillis > 0L) {
+                            "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}"
+                        } else {
+                            AppStrings.get("no_leave_recorded_short", currentLang)
+                        }
+                        Text(
+                            text = collapsedScheduleText,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (personnel.isOverdue) RedDanger else textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 
@@ -956,336 +1072,405 @@ fun PersonnelCard(
                         ) + fadeOut(animationSpec = tween(140, easing = FastOutSlowInEasing))
                     } else ExitTransition.None
                 ) {
-                    val innerSurface = if (effectiveDark) Color(0xFF1A2538) else Color(0xFFF8FAFC)
-                    val innerBorder = if (effectiveDark) Color(0xFF283548) else Color(0xFFE2E8F0)
-                    val tileBg = if (effectiveDark) Color(0xFF151F31) else Color.White
-
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = innerSurface,
-                            border = BorderStroke(1.dp, innerBorder),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(9.dp)
+                        Spacer(modifier = Modifier.height(2.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .liquidGlassPanel(
+                                shape = RoundedCornerShape(16.dp),
+                                cornerRadius = 16.dp,
+                                isDark = effectiveDark,
+                                accent = visual.color,
+                                secondaryAccent = primaryAccent
+                            )
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(9.dp)
+                    ) {
+                        if (personnel.startDateMillis > 0L && personnel.returnDateMillis > 0L) {
+                            // Leave Type & Duration Summary
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (personnel.startDateMillis > 0L && personnel.returnDateMillis > 0L) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(primaryAccent.copy(alpha = if (effectiveDark) 0.16f else 0.10f))
-                                        ) {
-                                            Text(
-                                                text = localizedLeaveType,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = primaryAccent,
-                                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
-                                            )
-                                        }
-
-                                        Text(
-                                            text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = textPrimary
-                                        )
-                                    }
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Surface(
-                                            shape = RoundedCornerShape(10.dp),
-                                            color = tileBg,
-                                            border = BorderStroke(1.dp, innerBorder),
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.CalendarMonth,
-                                                    contentDescription = null,
-                                                    tint = primaryAccent,
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                Text(
-                                                    text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
-                                                    fontSize = 10.5.sp,
-                                                    color = textSecondary,
-                                                    fontWeight = FontWeight.Medium,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-
-                                        Surface(
-                                            shape = RoundedCornerShape(10.dp),
-                                            color = if (personnel.isOverdue) {
-                                                RedDanger.copy(alpha = if (effectiveDark) 0.16f else 0.08f)
-                                            } else {
-                                                tileBg
-                                            },
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (personnel.isOverdue) RedDanger.copy(alpha = 0.45f) else innerBorder
-                                            ),
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text(
-                                                text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = if (personnel.isOverdue) RedDanger else textPrimary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    Text(
-                                        text = AppStrings.get("no_leave_recorded_short", currentLang),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = textSecondary
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(10.dp),
+                                        cornerRadius = 10.dp,
+                                        isDark = effectiveDark,
+                                        accent = Color(0xFF8B5CF6),
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
                                     )
-                                }
-
-                                if (!personnel.isReturnedToDuty) {
-                                    LinearProgressIndicator(
-                                        progress = { animatedProgress },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(6.dp)
-                                            .clip(RoundedCornerShape(50.dp)),
-                                        color = visual.color,
-                                        trackColor = if (effectiveDark) Color(0xFF283548) else Color(0xFFE2E8F0)
-                                    )
-
+                                ) {
                                     Text(
-                                        text = personnel.getCountdownText(currentLang),
-                                        fontSize = 11.sp,
+                                        text = localizedLeaveType,
+                                        fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = visual.color
+                                        color = if (effectiveDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                                     )
-                                } else {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "${AppStrings.get("days_served", currentLang)}: $effectiveDaysSinceDuty ${AppStrings.get("days", currentLang)}",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = EmeraldSuccess
-                                        )
-                                        if (isEligible) {
-                                            Text(
-                                                text = AppStrings.get("status_eligible", currentLang),
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = AmberWarning
-                                            )
-                                        }
-                                    }
                                 }
 
-                                if (personnel.notes.isNotBlank()) {
+                                Box(
+                                    modifier = Modifier.liquidGlassPanel(
+                                        shape = RoundedCornerShape(50.dp),
+                                        cornerRadius = 50.dp,
+                                        isDark = effectiveDark,
+                                        accent = primaryAccent,
+                                        secondaryAccent = primaryAccent
+                                    )
+                                ) {
                                     Text(
-                                        text = "${AppStrings.get("notes_label", currentLang)} ${personnel.notes}",
+                                        text = "${AppStrings.get("leave_duration", currentLang)} ${personnel.totalLeaveDays} ${AppStrings.get("days", currentLang)}",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textPrimary,
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            // Crisp Dual Frosted Date Tiles
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(12.dp),
+                                            cornerRadius = 12.dp,
+                                            isDark = effectiveDark,
+                                            accent = primaryAccent,
+                                            secondaryAccent = RoyalBlueAccent
+                                        )
+                                        .padding(horizontal = 9.dp, vertical = 7.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = primaryAccent,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        text = "${AppStrings.get("benefit_date", currentLang)} ${personnel.formattedStartDate}",
                                         fontSize = 10.5.sp,
                                         color = textSecondary,
-                                        maxLines = 2,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .liquidGlassPanel(
+                                            shape = RoundedCornerShape(12.dp),
+                                            cornerRadius = 12.dp,
+                                            isDark = effectiveDark,
+                                            accent = if (personnel.isOverdue) RedDanger else visual.color,
+                                            secondaryAccent = visual.color,
+                                            isSelected = personnel.isOverdue,
+                                            softTintWhenSelected = true
+                                        )
+                                        .padding(horizontal = 9.dp, vertical = 7.dp)
+                                ) {
+                                    Text(
+                                        text = "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (personnel.isOverdue) RedDanger else textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier.liquidGlassPanel(
+                                    shape = RoundedCornerShape(10.dp),
+                                    cornerRadius = 10.dp,
+                                    isDark = effectiveDark,
+                                    accent = primaryAccent,
+                                    secondaryAccent = RoyalBlueAccent,
+                                    isSelected = true,
+                                    softTintWhenSelected = true
+                                )
+                            ) {
+                                Text(
+                                    text = AppStrings.get("no_leave_recorded_short", currentLang),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF00838F),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+
+                        // Progress Bar & Localized Countdown Text
+                        if (!personnel.isReturnedToDuty) {
+                            LinearProgressIndicator(
+                                progress = { animatedProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(7.dp)
+                                    .clip(RoundedCornerShape(50.dp)),
+                                color = visual.color,
+                                trackColor = if (effectiveDark) Color(0x33475569) else Color(0x33CBD5E1)
+                            )
+
+                            Text(
+                                text = personnel.getCountdownText(currentLang),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = visual.color
+                            )
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${AppStrings.get("days_served", currentLang)}: $effectiveDaysSinceDuty ${AppStrings.get("days", currentLang)}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = EmeraldSuccess
+                                )
+                                if (isEligible) {
+                                    Text(
+                                        text = AppStrings.get("status_eligible", currentLang),
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = AmberWarning
                                     )
                                 }
                             }
                         }
 
-                        // Action Buttons Section (48dp minimum touch targets, clean unified hierarchy)
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (!personnel.isReturnedToDuty) {
-                                val canExtendActiveLeave = onExtendLeave != null &&
-                                    personnel.startDateMillis > 0L &&
-                                    personnel.returnDateMillis > 0L
-                                if (canExtendActiveLeave) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        LiquidGlassActionButton(
-                                            text = AppStrings.get("confirm_duty_btn", currentLang),
-                                            icon = Icons.Default.Check,
-                                            onClick = onConfirmDuty,
-                                            isDark = effectiveDark,
-                                            primaryAccent = EmeraldSuccess,
-                                            isPrimary = true,
-                                            modifier = Modifier.weight(1.1f)
-                                        )
-                                        Surface(
-                                            onClick = onExtendLeave!!,
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = primaryAccent.copy(alpha = if (effectiveDark) 0.16f else 0.10f),
-                                            border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.38f)),
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .defaultMinSize(minHeight = 48.dp)
-                                                .testTag("personnel_extend_btn_${personnel.id}")
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 10.dp, vertical = 12.dp),
-                                                horizontalArrangement = Arrangement.Center,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.MoreTime,
-                                                    contentDescription = AppStrings.get("extend_leave_btn", currentLang),
-                                                    tint = primaryAccent,
-                                                    modifier = Modifier.size(17.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                Text(
-                                                    text = AppStrings.get("extend_leave_btn", currentLang),
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = primaryAccent,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-                                    }
-                                } else {
+                        if (personnel.notes.isNotBlank()) {
+                            Text(
+                                text = "${AppStrings.get("notes_label", currentLang)} ${personnel.notes}",
+                                fontSize = 10.5.sp,
+                                color = textSecondary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    // Action Buttons Section (48dp minimum touch targets with Liquid Glass polish)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (!personnel.isReturnedToDuty) {
+                            val canExtendActiveLeave = onExtendLeave != null &&
+                                personnel.startDateMillis > 0L &&
+                                personnel.returnDateMillis > 0L
+                            if (canExtendActiveLeave) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     LiquidGlassActionButton(
                                         text = AppStrings.get("confirm_duty_btn", currentLang),
                                         icon = Icons.Default.Check,
                                         onClick = onConfirmDuty,
                                         isDark = effectiveDark,
                                         primaryAccent = EmeraldSuccess,
+                                        secondaryAccent = Color(0xFF059669),
                                         isPrimary = true,
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.weight(1.1f)
+                                    )
+                                    Surface(
+                                        onClick = onExtendLeave!!,
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .defaultMinSize(minHeight = 48.dp)
+                                            .liquidGlassPanel(
+                                                shape = RoundedCornerShape(16.dp),
+                                                cornerRadius = 16.dp,
+                                                isDark = effectiveDark,
+                                                accent = if (effectiveDark) CyanGlow else VibrantCyan,
+                                                secondaryAccent = RoyalBlueAccent,
+                                                isSelected = true,
+                                                softTintWhenSelected = true
+                                            )
+                                            .testTag("personnel_extend_btn_${personnel.id}")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 12.dp),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MoreTime,
+                                                contentDescription = AppStrings.get("extend_leave_btn", currentLang),
+                                                tint = if (effectiveDark) CyanGlow else RoyalBlueAccent,
+                                                modifier = Modifier.size(17.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = AppStrings.get("extend_leave_btn", currentLang),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = if (effectiveDark) CyanGlow else RoyalBlueAccent,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                LiquidGlassActionButton(
+                                    text = AppStrings.get("confirm_duty_btn", currentLang),
+                                    icon = Icons.Default.Check,
+                                    onClick = onConfirmDuty,
+                                    isDark = effectiveDark,
+                                    primaryAccent = EmeraldSuccess,
+                                    secondaryAccent = Color(0xFF059669),
+                                    isPrimary = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                onClick = onViewHistory,
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(14.dp),
+                                        cornerRadius = 14.dp,
+                                        isDark = effectiveDark,
+                                        accent = Color(0xFF8B5CF6),
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
+                                    .testTag("personnel_history_btn_${personnel.id}")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = AppStrings.get("history_btn", currentLang),
+                                        tint = if (effectiveDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("history_btn", currentLang),
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (effectiveDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Surface(
+                                onClick = onEdit,
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(14.dp),
+                                        cornerRadius = 14.dp,
+                                        isDark = effectiveDark,
+                                        accent = primaryAccent,
+                                        secondaryAccent = RoyalBlueAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
                             ) {
-                                Surface(
-                                    onClick = onViewHistory,
-                                    shape = RoundedCornerShape(13.dp),
-                                    color = innerSurface,
-                                    border = BorderStroke(1.dp, innerBorder),
+                                Row(
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                        .testTag("personnel_history_btn_${personnel.id}")
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 10.dp),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.History,
-                                            contentDescription = AppStrings.get("history_btn", currentLang),
-                                            tint = textPrimary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = AppStrings.get("history_btn", currentLang),
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = textPrimary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = AppStrings.get("edit", currentLang),
+                                        tint = primaryAccent,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = AppStrings.get("edit", currentLang),
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF007791),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
+                            }
 
-                                Surface(
-                                    onClick = onEdit,
-                                    shape = RoundedCornerShape(13.dp),
-                                    color = primaryAccent.copy(alpha = if (effectiveDark) 0.16f else 0.10f),
-                                    border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.35f)),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 10.dp),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = AppStrings.get("edit", currentLang),
-                                            tint = primaryAccent,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = AppStrings.get("edit", currentLang),
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = primaryAccent,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-
-                                Surface(
-                                    onClick = onDelete,
-                                    shape = RoundedCornerShape(13.dp),
-                                    color = RedDanger.copy(alpha = if (effectiveDark) 0.16f else 0.08f),
-                                    border = BorderStroke(1.dp, RedDanger.copy(alpha = 0.32f)),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = AppStrings.get("delete", currentLang),
-                                            tint = RedDanger,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                            Surface(
+                                onClick = onDelete,
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .liquidGlassPanel(
+                                        shape = RoundedCornerShape(14.dp),
+                                        cornerRadius = 14.dp,
+                                        isDark = effectiveDark,
+                                        accent = RedDanger,
+                                        secondaryAccent = CoralRedAccent,
+                                        isSelected = true,
+                                        softTintWhenSelected = true
+                                    )
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = AppStrings.get("delete", currentLang),
+                                        tint = RedDanger,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
                         }
                     }
+                }
+            }
             }
         }
         }
@@ -1293,8 +1478,8 @@ fun PersonnelCard(
             // Floating zero-layout-shift armed hint & pin progress pill (anchored to stationary outer Box)
             AnimatedVisibility(
                 visible = (isSwipeArmed || holdProgress > 0.02f) && !isHorizontalDragging,
-                enter = if (animationsEnabled) fadeIn(animationSpec = tween(140)) else EnterTransition.None,
-                exit = if (animationsEnabled) fadeOut(animationSpec = tween(100)) else ExitTransition.None,
+                enter = fadeIn(animationSpec = tween(140)),
+                exit = fadeOut(animationSpec = tween(100)),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 6.dp)

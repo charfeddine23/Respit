@@ -96,7 +96,6 @@ import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.SyncDialogLiquidGlassWindow
 import com.example.ui.theme.VibrantCyan
-import com.example.ui.theme.liquidGlassDialogShell
 import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
@@ -120,13 +119,70 @@ fun InAppUpdateDialog(
     onDismiss: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    val enterState = remember { MutableTransitionState(!animationsEnabled).apply { targetState = true } }
+    val enterState = remember { MutableTransitionState(false).apply { targetState = true } }
 
-    val themePreset = LocalThemePreset.current
-    val effectiveDark = themePreset?.isDark ?: isDarkMode
-    val primaryColor = themePreset?.primary ?: MaterialTheme.colorScheme.primary
-    val accentCyan = themePreset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
-    val cardShape = RoundedCornerShape(28.dp)
+    val infiniteTransition = rememberInfiniteTransition(label = "updateDialogMotion")
+    val glowPulse by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.76f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "glowPulse"
+        )
+    } else {
+        remember { mutableStateOf(0.88f) }
+    }
+
+    val haloOrbitAngle by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 12000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "haloOrbit"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+
+    val rocketFloatOffset by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = -2.5f,
+            targetValue = 2.5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "rocketFloat"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+
+    val flamePulse by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.86f,
+            targetValue = 1.22f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 520, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "flamePulse"
+        )
+    } else {
+        remember { mutableStateOf(1f) }
+    }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val accentCyan = Color(0xFF00BCD4)
+    val cardShape = RoundedCornerShape(30.dp)
+    val density = LocalDensity.current
+    var cardSizePx by remember { mutableStateOf(IntSize.Zero) }
 
     Dialog(
         onDismissRequest = {
@@ -142,6 +198,8 @@ fun InAppUpdateDialog(
         )
     ) {
         SyncDialogLiquidGlassWindow()
+        val themePreset = LocalThemePreset.current
+        val effectiveDark = themePreset?.isDark ?: isDarkMode
 
         BoxWithConstraints(
             modifier = Modifier
@@ -156,19 +214,24 @@ fun InAppUpdateDialog(
                 },
             contentAlignment = Alignment.Center
         ) {
-            val cardWidth = (maxWidth - 40.dp).coerceIn(260.dp, 360.dp)
+            // Mathematically guarantee the rotating rounded square stays 100% unclipped on ALL 4 sides at every angle (0..360°)
+            val safeViewportMin = (min(maxWidth, maxHeight) - 24.dp).coerceAtLeast(220.dp)
+            val squareCornerRatio = 0.28f
+            val rotatedDiameterFactor = (sqrt(2f) * (0.5f - squareCornerRatio) + squareCornerRatio) * 2f
+            val outerGlowAllowance = 22.dp
+            val maxUnclippedSquareSide = ((safeViewportMin - outerGlowAllowance) / rotatedDiameterFactor)
+                .coerceIn(200.dp, 356.dp)
+            val cardWidth = (maxUnclippedSquareSide * 0.90f).coerceIn(246.dp, 316.dp)
 
             AnimatedVisibility(
                 visibleState = enterState,
-                enter = if (animationsEnabled) {
-                    fadeIn(tween(200)) + scaleIn(
-                        initialScale = 0.94f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
+                enter = fadeIn(tween(240)) + scaleIn(
+                    initialScale = 0.90f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
                     )
-                } else androidx.compose.animation.EnterTransition.None,
+                ),
                 modifier = Modifier.align(Alignment.Center)
             ) {
                 Box(
@@ -177,19 +240,148 @@ fun InAppUpdateDialog(
                         .testTag("in_app_update_dialog"),
                     contentAlignment = Alignment.Center
                 ) {
+                    // Full-screen unclipped backdrop layer centered identically to the card
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val haloAlpha = (if (isDarkMode) 0.56f else 0.36f) * glowPulse
+                        val sweepColors = listOf(
+                            Color(0xFF00E5FF).copy(alpha = haloAlpha),
+                            Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.92f),
+                            Color(0xFF818CF8).copy(alpha = haloAlpha * 0.88f),
+                            Color(0xFFF472B6).copy(alpha = haloAlpha * 0.85f),
+                            Color(0xFF10B981).copy(alpha = haloAlpha * 0.92f),
+                            Color(0xFF00E5FF).copy(alpha = haloAlpha)
+                        )
+
+                        val maxSquarePx = maxUnclippedSquareSide.toPx()
+                        val measuredSidePx = if (cardSizePx.width > 0 && cardSizePx.height > 0) {
+                            max(cardSizePx.width.toFloat(), cardSizePx.height.toFloat())
+                        } else {
+                            cardWidth.toPx()
+                        }
+                        // Clamp square side strictly under maxSquarePx so no rotated corner ever clips viewport edges
+                        val squareSidePx = measuredSidePx.coerceAtMost(maxSquarePx)
+                        val squareTopLeft = Offset(
+                            center.x - squareSidePx / 2f,
+                            center.y - squareSidePx / 2f
+                        )
+                        val squareCornerPx = squareSidePx * squareCornerRatio
+
+                        // Complete 360-degree rotating background rounded square (never clipped from any side)
+                        rotate(degrees = haloOrbitAngle, pivot = center) {
+                            // Soft outer atmospheric bloom around the rotating square
+                            drawRoundRect(
+                                brush = Brush.sweepGradient(colors = sweepColors, center = center),
+                                topLeft = Offset(
+                                    squareTopLeft.x - 5.dp.toPx(),
+                                    squareTopLeft.y - 5.dp.toPx()
+                                ),
+                                size = Size(squareSidePx + 10.dp.toPx(), squareSidePx + 10.dp.toPx()),
+                                cornerRadius = CornerRadius(squareCornerPx + 5.dp.toPx(), squareCornerPx + 5.dp.toPx()),
+                                style = Stroke(width = 10.dp.toPx()),
+                                alpha = 0.42f
+                            )
+                            // Crisp complete gradient square frame
+                            drawRoundRect(
+                                brush = Brush.sweepGradient(colors = sweepColors, center = center),
+                                topLeft = squareTopLeft,
+                                size = Size(squareSidePx, squareSidePx),
+                                cornerRadius = CornerRadius(squareCornerPx, squareCornerPx),
+                                style = Stroke(width = 3.dp.toPx()),
+                                alpha = 0.92f
+                            )
+                        }
+
+                        // Card-hugging smooth rounded gradient aura centered directly behind the Surface
+                        val cardW = if (cardSizePx.width > 0) cardSizePx.width.toFloat() else cardWidth.toPx()
+                        val cardH = if (cardSizePx.height > 0) cardSizePx.height.toFloat() else with(density) { 300.dp.toPx() }
+                        val cardCenterLeft = center.x - cardW / 2f
+                        val cardCenterTop = center.y - cardH / 2f
+
+                        val midExpand = 5.dp.toPx()
+                        val midRadius = 34.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF00E5FF).copy(alpha = haloAlpha * 0.72f),
+                                    Color(0xFF3B82F6).copy(alpha = haloAlpha * 0.68f),
+                                    Color(0xFFA855F7).copy(alpha = haloAlpha * 0.64f),
+                                    Color(0xFF10B981).copy(alpha = haloAlpha * 0.72f)
+                                )
+                            ),
+                            topLeft = Offset(cardCenterLeft - midExpand, cardCenterTop - midExpand),
+                            size = Size(cardW + midExpand * 2f, cardH + midExpand * 2f),
+                            cornerRadius = CornerRadius(midRadius, midRadius),
+                            style = Stroke(width = 9.dp.toPx())
+                        )
+
+                        val rimExpand = 1.5.dp.toPx()
+                        val rimRadius = 31.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.88f),
+                                    Color(0xFFF472B6).copy(alpha = haloAlpha * 0.75f),
+                                    Color(0xFF10B981).copy(alpha = haloAlpha * 0.88f)
+                                )
+                            ),
+                            topLeft = Offset(cardCenterLeft - rimExpand, cardCenterTop - rimExpand),
+                            size = Size(cardW + rimExpand * 2f, cardH + rimExpand * 2f),
+                            cornerRadius = CornerRadius(rimRadius, rimRadius),
+                            style = Stroke(width = 3.dp.toPx())
+                        )
+                    }
+
+                    val containerBrush = when {
+                        themePreset != null -> Brush.verticalGradient(
+                            listOf(
+                                themePreset.surfacePrimary.copy(alpha = 0.95f),
+                                themePreset.backgroundMid.copy(alpha = 0.95f)
+                            )
+                        )
+                        isNeumorphic && effectiveDark -> Brush.verticalGradient(
+                            listOf(Color(0xF2172136), Color(0xF20F172A))
+                        )
+                        isNeumorphic && !effectiveDark -> Brush.verticalGradient(
+                            listOf(Color(0xF2F8FAFC), Color(0xF2EFF6FF))
+                        )
+                        effectiveDark -> Brush.verticalGradient(
+                            listOf(Color(0xF2111827), Color(0xF20B1324))
+                        )
+                        else -> Brush.verticalGradient(
+                            listOf(Color(0xF2FFFFFF), Color(0xF2F0F9FF))
+                        )
+                    }
+
+                    val cardBorder = BorderStroke(
+                        width = 1.5.dp,
+                        brush = Brush.linearGradient(
+                            colors = if (effectiveDark) {
+                                listOf(
+                                    Color.White.copy(alpha = 0.45f),
+                                    Color(0xFF38BDF8).copy(alpha = 0.78f),
+                                    Color(0xFFA855F7).copy(alpha = 0.55f),
+                                    Color(0xFF10B981).copy(alpha = 0.72f)
+                                )
+                            } else {
+                                listOf(
+                                    Color.White.copy(alpha = 0.96f),
+                                    Color(0xFF00BCD4).copy(alpha = 0.68f),
+                                    Color(0xFF3B82F6).copy(alpha = 0.52f),
+                                    Color(0xFF10B981).copy(alpha = 0.65f)
+                                )
+                            }
+                        )
+                    )
+
                     Surface(
                         shape = cardShape,
                         color = Color.Transparent,
-                        shadowElevation = 0.dp,
+                        border = cardBorder,
+                        shadowElevation = if (isNeumorphic) 12.dp else 20.dp,
                         modifier = Modifier
                             .width(cardWidth)
-                            .liquidGlassDialogShell(
-                                shape = cardShape,
-                                cornerRadius = 28.dp,
-                                isDark = effectiveDark,
-                                primaryAccent = accentCyan,
-                                secondaryAccent = RoyalBlueAccent
-                            )
+                            .onSizeChanged { cardSizePx = it }
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
@@ -199,6 +391,20 @@ fun InAppUpdateDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .background(containerBrush)
+                                .drawBehind {
+                                    drawRoundRect(
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = if (effectiveDark) 0.14f else 0.52f),
+                                                Color.Transparent
+                                            ),
+                                            startY = 0f,
+                                            endY = size.height * 0.28f
+                                        ),
+                                        cornerRadius = CornerRadius(30.dp.toPx(), 30.dp.toPx())
+                                    )
+                                }
                                 .padding(horizontal = 18.dp, vertical = 18.dp)
                         ) {
                             // Top Corner Frosted Close Icon (48dp touch target)
@@ -243,8 +449,13 @@ fun InAppUpdateDialog(
                             ) {
                                 UpdateHeroEmblem(
                                     updateState = updateState,
+                                    primaryColor = primaryColor,
                                     accentCyan = accentCyan,
-                                    isDarkMode = effectiveDark
+                                    isDarkMode = isDarkMode,
+                                    glowPulse = glowPulse,
+                                    haloOrbitAngle = haloOrbitAngle,
+                                    rocketFloatOffset = rocketFloatOffset,
+                                    flamePulse = flamePulse
                                 )
 
                                 Spacer(modifier = Modifier.height(14.dp))
@@ -553,43 +764,263 @@ fun InAppUpdateDialog(
 @Composable
 private fun UpdateHeroEmblem(
     updateState: AppUpdateState,
+    primaryColor: Color,
     accentCyan: Color,
-    isDarkMode: Boolean
+    isDarkMode: Boolean,
+    glowPulse: Float,
+    haloOrbitAngle: Float,
+    rocketFloatOffset: Float,
+    flamePulse: Float
 ) {
     val coreAccent = when (updateState) {
         is AppUpdateState.ReadyToInstall,
-        is AppUpdateState.UpToDate -> Color(0xFF059669)
-        is AppUpdateState.Error -> Color(0xFFD97706)
+        is AppUpdateState.UpToDate -> Color(0xFF10B981)
+        is AppUpdateState.Error -> Color(0xFFF59E0B)
         else -> accentCyan
     }
 
     Box(
-        modifier = Modifier
-            .size(84.dp)
-            .liquidGlassPanel(
-                shape = CircleShape,
-                cornerRadius = 42.dp,
-                isDark = isDarkMode,
-                accent = coreAccent,
-                secondaryAccent = coreAccent,
-                isSelected = true,
-                softTintWhenSelected = true
-            ),
+        modifier = Modifier.size(120.dp),
         contentAlignment = Alignment.Center
     ) {
-        val icon = when (updateState) {
-            is AppUpdateState.UpToDate -> Icons.Default.CheckCircle
-            is AppUpdateState.ReadyToInstall ->
-                if (updateState.requiresPermission) Icons.Default.Security else Icons.Default.DownloadDone
-            is AppUpdateState.Error -> Icons.Default.ErrorOutline
-            else -> Icons.Default.RocketLaunch
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (size.minDimension <= 0f) return@Canvas
+            val c = Offset(size.width / 2f, size.height / 2f)
+            val auraAlpha = (if (isDarkMode) 0.46f else 0.30f) * glowPulse
+
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        coreAccent.copy(alpha = auraAlpha),
+                        primaryColor.copy(alpha = auraAlpha * 0.55f),
+                        Color.Transparent
+                    ),
+                    center = c,
+                    radius = (size.minDimension * 0.56f).coerceAtLeast(1f)
+                ),
+                center = c,
+                radius = (size.minDimension * 0.56f).coerceAtLeast(1f)
+            )
+
+            drawCircle(
+                color = coreAccent.copy(alpha = if (isDarkMode) 0.10f else 0.08f),
+                radius = size.minDimension * 0.48f,
+                center = c
+            )
+            drawCircle(
+                color = coreAccent.copy(alpha = if (isDarkMode) 0.18f else 0.13f),
+                radius = size.minDimension * 0.42f,
+                center = c
+            )
+
+            rotate(degrees = haloOrbitAngle, pivot = c) {
+                drawCircle(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            coreAccent,
+                            primaryColor,
+                            Color(0xFF38BDF8),
+                            Color(0xFFF472B6).copy(alpha = 0.78f),
+                            coreAccent
+                        )
+                    ),
+                    radius = size.minDimension * 0.38f,
+                    center = c,
+                    style = Stroke(width = 2.6.dp.toPx())
+                )
+            }
+
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = if (isDarkMode) {
+                        listOf(Color(0xFF162238), Color(0xFF0A101E))
+                    } else {
+                        listOf(Color(0xFFFFFFFF), Color(0xFFF0F9FF))
+                    },
+                    center = c,
+                    radius = (size.minDimension * 0.36f).coerceAtLeast(1f)
+                ),
+                radius = size.minDimension * 0.36f,
+                center = c
+            )
         }
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = coreAccent,
-            modifier = Modifier.size(38.dp)
-        )
+
+        when (updateState) {
+            is AppUpdateState.UpToDate -> {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(46.dp)
+                )
+            }
+            is AppUpdateState.ReadyToInstall -> {
+                Icon(
+                    imageVector = if (updateState.requiresPermission) Icons.Default.Security else Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(44.dp)
+                )
+            }
+            is AppUpdateState.Error -> {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = Color(0xFFF59E0B),
+                    modifier = Modifier.size(46.dp)
+                )
+            }
+            else -> {
+                Canvas(
+                    modifier = Modifier
+                        .size(74.dp)
+                        .graphicsLayer {
+                            translationY = rocketFloatOffset.dp.toPx()
+                        }
+                ) {
+                    val w = size.width
+                    val h = size.height
+                    val cx = w / 2f
+
+                    val starAlpha = (0.65f + 0.35f * glowPulse).coerceIn(0f, 1f)
+                    drawCircle(
+                        color = Color(0xFFFBBF24).copy(alpha = starAlpha),
+                        radius = 2.1.dp.toPx(),
+                        center = Offset(w * 0.19f, h * 0.66f)
+                    )
+                    drawCircle(
+                        color = accentCyan.copy(alpha = starAlpha),
+                        radius = 1.8.dp.toPx(),
+                        center = Offset(w * 0.18f, h * 0.28f)
+                    )
+                    drawCircle(
+                        color = (if (isDarkMode) Color.White else primaryColor).copy(alpha = starAlpha),
+                        radius = 2.2.dp.toPx(),
+                        center = Offset(w * 0.81f, h * 0.26f)
+                    )
+                    drawCircle(
+                        color = Color(0xFFF472B6).copy(alpha = starAlpha),
+                        radius = 1.9.dp.toPx(),
+                        center = Offset(w * 0.79f, h * 0.65f)
+                    )
+
+                    val flameLength = h * 0.20f * flamePulse
+                    val outerFlamePath = Path().apply {
+                        moveTo(cx - w * 0.072f, h * 0.67f)
+                        lineTo(cx, h * 0.67f + flameLength)
+                        lineTo(cx + w * 0.072f, h * 0.67f)
+                        close()
+                    }
+                    drawPath(
+                        path = outerFlamePath,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color(0xFFFBBF24), Color(0xFFF97316), Color(0xFFEF4444))
+                        )
+                    )
+                    val innerFlamePath = Path().apply {
+                        moveTo(cx - w * 0.036f, h * 0.67f)
+                        lineTo(cx, h * 0.67f + flameLength * 0.58f)
+                        lineTo(cx + w * 0.036f, h * 0.67f)
+                        close()
+                    }
+                    drawPath(innerFlamePath, color = Color(0xFFFEF08A))
+
+                    val finBrush = Brush.verticalGradient(
+                        listOf(primaryColor, Color(0xFF0284C7))
+                    )
+                    val leftFin = Path().apply {
+                        moveTo(cx - w * 0.105f, h * 0.48f)
+                        lineTo(cx - w * 0.26f, h * 0.66f)
+                        lineTo(cx - w * 0.075f, h * 0.625f)
+                        close()
+                    }
+                    drawPath(leftFin, brush = finBrush)
+
+                    val rightFin = Path().apply {
+                        moveTo(cx + w * 0.105f, h * 0.48f)
+                        lineTo(cx + w * 0.26f, h * 0.66f)
+                        lineTo(cx + w * 0.075f, h * 0.625f)
+                        close()
+                    }
+                    drawPath(rightFin, brush = finBrush)
+
+                    val bodyPath = Path().apply {
+                        moveTo(cx, h * 0.13f)
+                        cubicTo(
+                            cx + w * 0.165f, h * 0.27f,
+                            cx + w * 0.145f, h * 0.54f,
+                            cx + w * 0.085f, h * 0.67f
+                        )
+                        lineTo(cx - w * 0.085f, h * 0.67f)
+                        cubicTo(
+                            cx - w * 0.145f, h * 0.54f,
+                            cx - w * 0.165f, h * 0.27f,
+                            cx, h * 0.13f
+                        )
+                        close()
+                    }
+                    drawPath(
+                        path = bodyPath,
+                        brush = Brush.horizontalGradient(
+                            colors = if (isDarkMode) {
+                                listOf(Color.White, Color(0xFFF1F5F9), Color(0xFFCBD5E1))
+                            } else {
+                                listOf(Color(0xFFF8FAFC), Color(0xFFE2E8F0), Color(0xFFCBD5E1))
+                            }
+                        )
+                    )
+
+                    val nosePath = Path().apply {
+                        moveTo(cx, h * 0.13f)
+                        cubicTo(
+                            cx + w * 0.088f, h * 0.205f,
+                            cx + w * 0.108f, h * 0.265f,
+                            cx + w * 0.108f, h * 0.295f
+                        )
+                        lineTo(cx - w * 0.108f, h * 0.295f)
+                        cubicTo(
+                            cx - w * 0.108f, h * 0.265f,
+                            cx - w * 0.088f, h * 0.205f,
+                            cx, h * 0.13f
+                        )
+                        close()
+                    }
+                    drawPath(
+                        path = nosePath,
+                        brush = Brush.horizontalGradient(listOf(Color(0xFF38BDF8), accentCyan))
+                    )
+
+                    val windowCenter = Offset(cx, h * 0.435f)
+                    drawCircle(
+                        color = Color(0xFF0F172A),
+                        radius = w * 0.088f,
+                        center = windowCenter
+                    )
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color(0xFF7DD3FC), Color(0xFF0284C7)),
+                            center = Offset(cx - w * 0.02f, h * 0.415f),
+                            radius = (w * 0.07f).coerceAtLeast(1f)
+                        ),
+                        radius = w * 0.062f,
+                        center = windowCenter
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.75f),
+                        radius = w * 0.018f,
+                        center = Offset(cx - w * 0.024f, h * 0.412f)
+                    )
+
+                    drawLine(
+                        color = Color(0xFF475569),
+                        start = Offset(cx - w * 0.065f, h * 0.67f),
+                        end = Offset(cx + w * 0.065f, h * 0.67f),
+                        strokeWidth = 3.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -640,33 +1071,38 @@ private fun ThemedPillCtaButton(
         label = "ctaPressScale"
     )
 
-    val ctaFill = gradientColors.first()
-    val ctaContent = contrastOnAccent(ctaFill)
-
     Button(
         onClick = onClick,
         interactionSource = interactionSource,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(50.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = ctaFill,
-            contentColor = ctaContent
+            containerColor = Color.Transparent,
+            contentColor = Color.White
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.30f)),
         contentPadding = PaddingValues(horizontal = 20.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .height(52.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(50.dp),
+                ambientColor = gradientColors.first().copy(alpha = 0.45f),
+                spotColor = gradientColors.last().copy(alpha = 0.55f)
+            )
+            .clip(RoundedCornerShape(50.dp))
+            .background(Brush.horizontalGradient(gradientColors))
             .testTag(testTag)
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = ctaContent,
+                tint = Color.White,
                 modifier = Modifier.size(19.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -674,8 +1110,8 @@ private fun ThemedPillCtaButton(
         Text(
             text = text,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = ctaContent
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White
         )
     }
 }

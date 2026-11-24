@@ -9,7 +9,6 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
@@ -94,12 +93,6 @@ class MainActivityUpgradeRobolectricTest {
     ActivityScenario.launch(MainActivity::class.java).use { scenario ->
       composeTestRule.waitForIdle()
       assertEquals(Lifecycle.State.RESUMED, scenario.state)
-
-      composeTestRule.waitUntil(timeoutMillis = 5_000L) {
-        composeTestRule.onAllNodesWithTag("entry_see_more_card").fetchSemanticsNodes().isNotEmpty()
-      }
-      composeTestRule.onNodeWithTag("entry_see_more_card").performClick()
-      composeTestRule.waitForIdle()
 
       composeTestRule.waitUntil(timeoutMillis = 5_000L) {
         composeTestRule.onAllNodesWithTag("dashboard_lazy_column").fetchSemanticsNodes().isNotEmpty()

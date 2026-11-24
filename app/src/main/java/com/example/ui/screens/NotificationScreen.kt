@@ -148,8 +148,8 @@ fun NotificationScreen(
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val activePreset = LocalThemePreset.current
     val effectiveDark = activePreset?.isDark ?: isDarkMode
-    val primaryAccent = activePreset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
-    val secondaryAccent = activePreset?.secondary ?: RoyalBlueAccent
+    val primaryAccent = activePreset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
+    val secondaryAccent = activePreset?.secondary ?: VibrantCyan
     val textPrimary = activePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = activePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
     val isNeumorphic = false
@@ -237,7 +237,7 @@ fun NotificationScreen(
                                         .size(9.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (urgentCount > 0) RedDanger else primaryAccent
+                                            if (urgentCount > 0) RedDanger else VibrantCyan
                                         )
                                 )
                                 Spacer(modifier = Modifier.width(7.dp))
@@ -289,7 +289,7 @@ fun NotificationScreen(
                         TactileCircleActionButton(
                             icon = Icons.Default.Refresh,
                             contentDescription = AppStrings.get("refresh", currentLang),
-                            tint = primaryAccent,
+                            tint = VibrantCyan,
                             isDark = effectiveDark,
                             haptic = haptic,
                             onClick = {
@@ -363,7 +363,7 @@ fun NotificationScreen(
                             AlertKpiTile(
                                 label = AppStrings.get("notif_summary_eligible", currentLang),
                                 count = eligibleCount,
-                                accent = EmeraldSuccess,
+                                accent = Color(0xFF8B5CF6),
                                 isSelected = selectedFilter == "ELIGIBLE",
                                 isDark = effectiveDark,
                                 haptic = haptic,
@@ -375,7 +375,7 @@ fun NotificationScreen(
                             AlertKpiTile(
                                 label = AppStrings.get("notif_summary_total", currentLang),
                                 count = notifications.size,
-                                accent = primaryAccent,
+                                accent = VibrantCyan,
                                 isSelected = selectedFilter == "ALL",
                                 isDark = effectiveDark,
                                 haptic = haptic,
@@ -422,7 +422,7 @@ fun NotificationScreen(
                                     selectedFilter = "RETURNING_TODAY"
                                 },
                                 isDark = effectiveDark,
-                                accentColor = primaryAccent
+                                accentColor = VibrantCyan
                             )
                             NotificationFilterChip(
                                 label = "${AppStrings.get("filter_overdue", currentLang)} ($overdueCount)",
@@ -442,7 +442,7 @@ fun NotificationScreen(
                                     selectedFilter = "APPROACHING"
                                 },
                                 isDark = effectiveDark,
-                                accentColor = AmberWarning
+                                accentColor = EmeraldSuccess
                             )
                             NotificationFilterChip(
                                 label = "${AppStrings.get("filter_eligible", currentLang)} ($eligibleCount)",
@@ -452,7 +452,7 @@ fun NotificationScreen(
                                     selectedFilter = "ELIGIBLE"
                                 },
                                 isDark = effectiveDark,
-                                accentColor = EmeraldSuccess
+                                accentColor = Color(0xFF8B5CF6)
                             )
                         }
 
@@ -639,7 +639,7 @@ fun NotificationScreen(
             cancelText = AppStrings.get("cancel", currentLang),
             icon = Icons.Default.ClearAll,
             accentColor = RedDanger,
-            secondaryColor = RedDanger,
+            secondaryColor = Color(0xFFF97316),
             isDarkMode = effectiveDark,
             currentLang = currentLang,
             animationsEnabled = isDynamicAnimationsEnabled,
@@ -844,38 +844,38 @@ private fun rememberNotificationVisualSpec(
     return remember(type, currentLang, fallbackPrimary) {
         when (type) {
             "OVERDUE" -> NotificationVisualSpec(
-                primaryColor = Color(0xFFDC2626),
-                secondaryColor = Color(0xFFB91C1C),
+                primaryColor = Color(0xFFEF4444),
+                secondaryColor = Color(0xFFDC2626),
                 icon = Icons.Default.Warning,
                 label = AppStrings.get("notif_type_overdue", currentLang)
             )
             "RETURNING_TODAY" -> NotificationVisualSpec(
-                primaryColor = fallbackPrimary,
-                secondaryColor = fallbackPrimary,
+                primaryColor = Color(0xFF00BCD4),
+                secondaryColor = Color(0xFF2563EB),
                 icon = Icons.Default.NotificationsActive,
                 label = AppStrings.get("notif_type_returning_today", currentLang)
             )
             "APPROACHING_RETURN" -> NotificationVisualSpec(
-                primaryColor = Color(0xFFD97706),
-                secondaryColor = Color(0xFFB45309),
+                primaryColor = Color(0xFFF59E0B),
+                secondaryColor = Color(0xFFEA580C),
                 icon = Icons.Default.Event,
                 label = AppStrings.get("notif_type_approaching", currentLang)
             )
             "APPROACHING_START" -> NotificationVisualSpec(
-                primaryColor = Color(0xFF059669),
-                secondaryColor = Color(0xFF047857),
+                primaryColor = Color(0xFF10B981),
+                secondaryColor = Color(0xFF059669),
                 icon = Icons.Default.FlightTakeoff,
                 label = AppStrings.get("notif_type_leave_start", currentLang)
             )
             "ELIGIBLE" -> NotificationVisualSpec(
-                primaryColor = Color(0xFF059669),
-                secondaryColor = Color(0xFF0D9488),
+                primaryColor = Color(0xFF8B5CF6),
+                secondaryColor = Color(0xFF6366F1),
                 icon = Icons.Default.Star,
                 label = AppStrings.get("notif_type_eligible", currentLang)
             )
             else -> NotificationVisualSpec(
                 primaryColor = fallbackPrimary,
-                secondaryColor = fallbackPrimary,
+                secondaryColor = Color(0xFF00BCD4),
                 icon = Icons.Default.Notifications,
                 label = AppStrings.get("notif_type_alert", currentLang)
             )
@@ -1465,7 +1465,6 @@ private fun NotificationDetailPopup(
                             }
 
                             if (personnel != null) {
-                                val popupAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1473,7 +1472,7 @@ private fun NotificationDetailPopup(
                                             shape = RoundedCornerShape(18.dp),
                                             cornerRadius = 18.dp,
                                             isDark = effectiveDark,
-                                            accent = popupAccent,
+                                            accent = VibrantCyan,
                                             secondaryAccent = RoyalBlueAccent,
                                             isSelected = true,
                                             softTintWhenSelected = true
@@ -1498,7 +1497,7 @@ private fun NotificationDetailPopup(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontFamily = FontFamily.Monospace,
                                                 fontWeight = FontWeight.Bold,
-                                                color = popupAccent
+                                                color = VibrantCyan
                                             )
                                         }
 

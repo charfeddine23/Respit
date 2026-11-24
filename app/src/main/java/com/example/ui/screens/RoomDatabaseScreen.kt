@@ -666,7 +666,7 @@ private fun RoomDatabaseHeaderCard(
                 RoomStatBox(
                     label = AppStrings.get("room_total_leaves_count", currentLang),
                     value = "$leavesCount",
-                    color = EmeraldSuccess,
+                    color = Color(0xFF7C3AED),
                     isDarkMode = effectiveDark,
                     modifier = Modifier.weight(1f)
                 )
@@ -864,8 +864,6 @@ private fun SearchBox(
     val hintColor = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
     val shape = RoundedCornerShape(18.dp)
 
-    val searchAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -873,8 +871,8 @@ private fun SearchBox(
                 shape = shape,
                 cornerRadius = 18.dp,
                 isDark = effectiveDark,
-                accent = searchAccent,
-                secondaryAccent = RoyalBlueAccent,
+                accent = VibrantCyan,
+                secondaryAccent = Color(0xFF7C3AED),
                 isSelected = isFocused,
                 softTintWhenSelected = true
             )
@@ -893,7 +891,7 @@ private fun SearchBox(
                         shape = CircleShape,
                         cornerRadius = 15.dp,
                         isDark = effectiveDark,
-                        accent = searchAccent,
+                        accent = VibrantCyan,
                         secondaryAccent = RoyalBlueAccent,
                         isSelected = true,
                         softTintWhenSelected = true
@@ -903,7 +901,7 @@ private fun SearchBox(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = searchAccent,
+                    tint = if (isFocused) CyanGlow else VibrantCyan,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -933,7 +931,7 @@ private fun SearchBox(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     ),
-                    cursorBrush = SolidColor(searchAccent),
+                    cursorBrush = SolidColor(CyanGlow),
                     modifier = Modifier
                         .fillMaxWidth()
                         .onFocusChanged { isFocused = it.isFocused }
@@ -1126,7 +1124,7 @@ private fun RoomLeaveRecordRowCard(
     val effectiveDark = preset?.isDark ?: isDarkMode
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
-    val leaveAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+    val leaveAccent = Color(0xFF7C3AED)
 
     Box(
         modifier = Modifier
@@ -1328,9 +1326,9 @@ private fun RoomDiagnosticsCard(
             DiagnosticRow(AppStrings.get("room_diag_pattern", currentLang), "Repository Pattern", textPrimary, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_tables", currentLang), "personnel, leave_records", textPrimary, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_personnel_rows", currentLang), "$personnelCount $recUnit", EmeraldSuccess, textSecondary)
-            DiagnosticRow(AppStrings.get("room_diag_leaves_rows", currentLang), "$leavesCount $recUnit", accent, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_leaves_rows", currentLang), "$leavesCount $recUnit", Color(0xFF7C3AED), textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_sandbox", currentLang), AppStrings.get("room_diag_sandbox_val", currentLang), textPrimary, textSecondary)
-            DiagnosticRow(AppStrings.get("room_diag_cloud", currentLang), AppStrings.get("room_diag_local_only", currentLang), accent, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_cloud", currentLang), AppStrings.get("room_diag_local_only", currentLang), VibrantCyan, textSecondary)
         }
     }
 }
@@ -1434,7 +1432,34 @@ private fun ClearPersonnelConfirmationDialog(
     var authError by remember { mutableStateOf<String?>(null) }
 
     val enterState = remember { MutableTransitionState(false).apply { targetState = true } }
-    val pulseScale = 1f
+    val infiniteTransition = rememberInfiniteTransition(label = "clearDialogMotion")
+    val pulseScale by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.94f,
+            targetValue = 1.07f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "clearPulse"
+        )
+    } else {
+        remember { mutableStateOf(1f) }
+    }
+
+    val auraAlpha by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.45f,
+            targetValue = 0.85f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1900, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "clearAuraAlpha"
+        )
+    } else {
+        remember { mutableStateOf(0.65f) }
+    }
 
     fun launchBiometricVerification() {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1498,7 +1523,7 @@ private fun ClearPersonnelConfirmationDialog(
                             cornerRadius = 28.dp,
                             isDark = effectiveDark,
                             primaryAccent = RedDanger,
-                            secondaryAccent = RedDanger
+                            secondaryAccent = Color(0xFF7C3AED)
                         )
                         .testTag("room_clear_confirm_dialog")
                 ) {
@@ -1508,13 +1533,27 @@ private fun ClearPersonnelConfirmationDialog(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(68.dp)
+                                .size(72.dp)
                                 .graphicsLayer {
                                     scaleX = pulseScale
                                     scaleY = pulseScale
                                 },
                             contentAlignment = Alignment.Center
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.radialGradient(
+                                            listOf(
+                                                RedDanger.copy(alpha = 0.28f),
+                                                Color(0xFF7C3AED).copy(alpha = 0.12f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
                             Box(
                                 modifier = Modifier
                                     .size(56.dp)
@@ -1610,7 +1649,7 @@ private fun ClearPersonnelConfirmationDialog(
                                     cornerRadius = 16.dp,
                                     isDark = effectiveDark,
                                     accent = RedDanger,
-                                    secondaryAccent = RedDanger
+                                    secondaryAccent = Color(0xFF7C3AED)
                                 )
                                 .padding(horizontal = 14.dp, vertical = 12.dp)
                         ) {
