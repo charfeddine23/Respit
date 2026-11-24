@@ -637,7 +637,12 @@ object AppStrings {
         "extend_now_btn" to "تمديد الحالية",
         "undo_extended" to "تراجع عن تمديد الإجازة",
         "extend_short_chip" to "تمديد",
-        "extend_pick_date_hint" to "أو اختر تاريخ الدخول الجديد مباشرة من التقويم"
+        "extend_pick_date_hint" to "أو اختر تاريخ الدخول الجديد مباشرة من التقويم",
+        "all_persons_title" to "جميع الأفراد",
+        "banner_on_duty_short" to "بالخدمة",
+        "banner_on_leave_short" to "في إجازة",
+        "banner_alerts_short" to "عائد/متأخر",
+        "quick_add_leave_desc" to "إضافة إجازة سريعة"
     )
 
     private val stringsFr = mapOf(
@@ -1254,7 +1259,12 @@ object AppStrings {
         "extend_now_btn" to "Prolonger l'actuel",
         "undo_extended" to "Annuler la prolongation du congé",
         "extend_short_chip" to "Prolonger",
-        "extend_pick_date_hint" to "Ou sélectionnez directement la nouvelle date de retour"
+        "extend_pick_date_hint" to "Ou sélectionnez directement la nouvelle date de retour",
+        "all_persons_title" to "Tout le personnel",
+        "banner_on_duty_short" to "en service",
+        "banner_on_leave_short" to "en congé",
+        "banner_alerts_short" to "retour/retard",
+        "quick_add_leave_desc" to "Ajouter un congé rapide"
     )
 
     private val stringsEn = mapOf(
@@ -1871,7 +1881,12 @@ object AppStrings {
         "extend_now_btn" to "Extend Current",
         "undo_extended" to "Undo leave extension",
         "extend_short_chip" to "Extend",
-        "extend_pick_date_hint" to "Or pick the new return date directly from calendar"
+        "extend_pick_date_hint" to "Or pick the new return date directly from calendar",
+        "all_persons_title" to "All persons",
+        "banner_on_duty_short" to "on duty",
+        "banner_on_leave_short" to "on leave",
+        "banner_alerts_short" to "returning/overdue",
+        "quick_add_leave_desc" to "Quick add leave"
     )
 
     private val stringsTzm = mapOf(
@@ -2303,6 +2318,11 @@ object AppStrings {
         "extend_now_btn" to "Siɣzef amirant",
         "undo_extended" to "Sefsex asiɣzef n yimuras",
         "extend_short_chip" to "Siɣzef",
-        "extend_pick_date_hint" to "Neɣ fren azemz amaynut n tuɣalin srid"
+        "extend_pick_date_hint" to "Neɣ fren azemz amaynut n tuɣalin srid",
+        "all_persons_title" to "Akk imdanen",
+        "banner_on_duty_short" to "deg umahil",
+        "banner_on_leave_short" to "deg yimuras",
+        "banner_alerts_short" to "tuɣalin/aɛeṭṭel",
+        "quick_add_leave_desc" to "Rnu imuras s tɣawla"
     )
 }

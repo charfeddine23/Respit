@@ -1266,4 +1266,141 @@ class ComposeUiRobolectricTest {
     assertEquals(mainReturn, untouchedPerson.returnDateMillis)
     assertTrue(untouchedPerson.isReturnedToDuty)
   }
+
+  @Test
+  @Config(qualifiers = "w412dp-h915dp")
+  fun `DashboardPillSearchBar DashboardQuickActionRow and AllPersonsSummaryBanner render and respond in English and Arabic`() {
+    var filterOpened = false
+    var allPersonsOpened = false
+    var addPersonnelClicked = false
+    var latestSearch = ""
+    val stats = com.example.ui.DashboardStats(
+      total = 12,
+      atHome = 4,
+      returningToday = 1,
+      overdue = 1,
+      onDuty = 6,
+      eligible = 2
+    )
+
+    composeTestRule.setContent {
+      val searchVal = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+      MyApplicationTheme {
+        androidx.compose.foundation.layout.Column {
+          com.example.ui.components.DashboardPillSearchBar(
+            searchQuery = searchVal.value,
+            onSearchQueryChange = {
+              searchVal.value = it
+              latestSearch = it
+            },
+            onSubmitSearch = {},
+            onOpenFilter = { filterOpened = true },
+            activeFilterCount = 2,
+            isDarkMode = false,
+            currentLang = AppLanguage.ENGLISH
+          )
+          com.example.ui.components.DashboardQuickActionRow(
+            urgentCount = 2,
+            currentLang = AppLanguage.ENGLISH,
+            isDarkMode = false,
+            onAddPersonnel = { addPersonnelClicked = true },
+            onOpenUrgentAlerts = {},
+            onOpenDatabase = {}
+          )
+          com.example.ui.components.AllPersonsSummaryBanner(
+            stats = stats,
+            currentLang = AppLanguage.ENGLISH,
+            animationsEnabled = false,
+            onOpenAllPersons = { allPersonsOpened = true }
+          )
+        }
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("search_field").assertIsDisplayed().performTextInput("Mila")
+    composeTestRule.waitForIdle()
+    assertEquals("Mila", latestSearch)
+
+    composeTestRule.onNodeWithTag("filter_sort_dialog_button").assertIsDisplayed().performClick()
+    assertTrue(filterOpened)
+
+    composeTestRule.onNodeWithTag("action_btn_add_personnel").assertIsDisplayed().performClick()
+    assertTrue(addPersonnelClicked)
+
+    composeTestRule.onNodeWithTag("all_persons_summary_banner").assertIsDisplayed()
+    composeTestRule.onNodeWithText("All persons", useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("all_persons_dotted_route", useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("all_persons_summary_text", useUnmergedTree = true)
+      .assertIsDisplayed()
+      .assert(hasText("6 on duty", substring = true))
+    composeTestRule.onNodeWithTag("all_persons_summary_banner").performClick()
+    assertTrue(allPersonsOpened)
+  }
+
+  @Test
+  fun `PersonnelCard trailing emerald quick action triggers onQuickAddLeave when on duty and onConfirmDuty when on leave`() {
+    val onDutyPerson = Personnel(
+      id = 501L,
+      fullName = "خالد عطايلية",
+      fullNameLatin = "Charfeddine Kahlessenane",
+      rank = "نقيب - Capitaine",
+      registrationNumber = "1.2026.00501",
+      wilaya = "43 - ميلة (Mila)",
+      startDateMillis = getOffsetDateMillis(-25),
+      returnDateMillis = getOffsetDateMillis(-15),
+      isReturnedToDuty = true
+    )
+    val onLeavePerson = Personnel(
+      id = 502L,
+      fullName = "أمين بن صالح",
+      fullNameLatin = "Amine Bensalah",
+      rank = "رقيب - Sergent",
+      registrationNumber = "1.2026.00502",
+      wilaya = "16 - الجزائر (Alger)",
+      startDateMillis = getOffsetDateMillis(-2),
+      returnDateMillis = getOffsetDateMillis(5),
+      isReturnedToDuty = false
+    )
+
+    var quickLeaveTriggered = false
+    var confirmDutyTriggered = false
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        androidx.compose.foundation.layout.Column {
+          PersonnelCard(
+            personnel = onDutyPerson,
+            dutyThresholdDays = 40,
+            onConfirmDuty = {},
+            onEdit = {},
+            onDelete = {},
+            onQuickAddLeave = { quickLeaveTriggered = true },
+            animationsEnabled = false,
+            currentLang = AppLanguage.ENGLISH
+          )
+          PersonnelCard(
+            personnel = onLeavePerson,
+            dutyThresholdDays = 40,
+            onConfirmDuty = { confirmDutyTriggered = true },
+            onEdit = {},
+            onDelete = {},
+            onQuickAddLeave = {},
+            animationsEnabled = false,
+            currentLang = AppLanguage.ENGLISH
+          )
+        }
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithText("Charfeddine Kahlessenane").assertIsDisplayed()
+    composeTestRule.onNodeWithText("On Duty", useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("personnel_wilaya_501", useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("personnel_quick_action_501").assertIsDisplayed().performClick()
+    assertTrue(quickLeaveTriggered)
+
+    composeTestRule.onNodeWithTag("personnel_quick_action_502").assertIsDisplayed().performClick()
+    assertTrue(confirmDutyTriggered)
+  }
 }

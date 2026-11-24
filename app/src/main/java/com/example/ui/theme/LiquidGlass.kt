@@ -119,7 +119,7 @@ fun DynamicAuroraBackground(
         } else if (effectiveDark) {
             listOf(Color(0x3800E5FF).copy(alpha = (0.22f * orbBoost).coerceAtMost(0.45f)), Color(0x1800BCD4), Color.Transparent)
         } else {
-            listOf(Color(0x3B00E5FF).copy(alpha = (0.24f * orbBoost).coerceAtMost(0.44f)), Color(0x1A00BCD4), Color.Transparent)
+            listOf(Color(0x2410B981).copy(alpha = (0.12f * orbBoost).coerceAtMost(0.28f)), Color(0x1000BCD4), Color.Transparent)
         }
     }
     val orb2Colors = remember(effectiveDark, preset?.id, isLiving) {
@@ -129,7 +129,7 @@ fun DynamicAuroraBackground(
         } else if (effectiveDark) {
             listOf(Color(0x2E7C4DFF).copy(alpha = (0.19f * orbBoost).coerceAtMost(0.42f)), Color(0x126366F1), Color.Transparent)
         } else {
-            listOf(Color(0x308B5CF6).copy(alpha = (0.20f * orbBoost).coerceAtMost(0.40f)), Color(0x12A855F7), Color.Transparent)
+            listOf(Color(0x2000BCD4).copy(alpha = (0.11f * orbBoost).coerceAtMost(0.26f)), Color(0x0D2563EB), Color.Transparent)
         }
     }
     val orb3Colors = remember(effectiveDark, preset?.id, isLiving) {
@@ -139,7 +139,7 @@ fun DynamicAuroraBackground(
         } else if (effectiveDark) {
             listOf(Color(0x2810B981).copy(alpha = (0.17f * orbBoost).coerceAtMost(0.38f)), Color(0x10059669), Color.Transparent)
         } else {
-            listOf(Color(0x2E00BCD4).copy(alpha = (0.19f * orbBoost).coerceAtMost(0.38f)), Color(0x120284C7), Color.Transparent)
+            listOf(Color(0x1E00BCD4).copy(alpha = (0.10f * orbBoost).coerceAtMost(0.24f)), Color(0x0A10B981), Color.Transparent)
         }
     }
 

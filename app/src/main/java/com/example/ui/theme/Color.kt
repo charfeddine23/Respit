@@ -5,13 +5,13 @@ import androidx.compose.ui.graphics.Color
 // ==========================================
 // Aurora Mesh Gradient Background Palette
 // ==========================================
-val AuroraCyanTop = Color(0xFFE0F7FA)         // Soft light cyan/blue at the top
-val AuroraWhiteMid = Color(0xFFFFFFFF)        // Clean white transition in the middle
-val AuroraPurpleBottom = Color(0xFFF3E5F5)    // Gentle muted purple/blue at the bottom
+val AuroraCyanTop = Color(0xFFF3F8FC)         // Bright airy cool-tint at the top
+val AuroraWhiteMid = Color(0xFFFFFFFF)        // Clean crisp white transition in the middle
+val AuroraPurpleBottom = Color(0xFFEEF4FA)    // Gentle soft ice-blue/slate tint at the bottom
 
 // Alternative subtle accents for gradients
-val AuroraCyanLight = Color(0xFFEBFBFC)
-val AuroraPurpleLight = Color(0xFFF8EFFB)
+val AuroraCyanLight = Color(0xFFF8FBFE)
+val AuroraPurpleLight = Color(0xFFF6F9FC)
 
 // ==========================================
 // Glassmorphism Card & Container Surfaces

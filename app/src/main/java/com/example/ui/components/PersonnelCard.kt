@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -222,13 +223,14 @@ fun PersonnelCard(
     onTogglePin: () -> Unit = {},
     onSwipeDelete: () -> Unit = onDelete,
     onViewHistory: () -> Unit = {},
-    onExtendLeave: (() -> Unit)? = null
+    onExtendLeave: (() -> Unit)? = null,
+    onQuickAddLeave: (() -> Unit)? = null
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
-    val primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+    val primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else Color(0xFF059669)
 
     val status = personnel.status
     val isEligible = personnel.isReturnedToDuty && effectiveDaysSinceDuty >= dutyThresholdDays
@@ -392,20 +394,20 @@ fun PersonnelCard(
                     )
                 )
             ),
-            RoundedCornerShape(24.dp)
+            RoundedCornerShape(22.dp)
         )
         personnel.isPinned -> Modifier.border(
             BorderStroke(
-                1.6.dp,
+                1.5.dp,
                 Brush.linearGradient(
                     listOf(
                         AmberWarning.copy(alpha = 0.85f),
-                        CyanGlow.copy(alpha = 0.55f),
+                        EmeraldSuccess.copy(alpha = 0.55f),
                         AmberWarning.copy(alpha = 0.70f)
                     )
                 )
             ),
-            RoundedCornerShape(24.dp)
+            RoundedCornerShape(22.dp)
         )
         else -> Modifier
     }
@@ -683,8 +685,30 @@ fun PersonnelCard(
             }
         }
 
-        // Foreground Draggable Personnel Card (Pure GPU translation, 3D tilt, shadow lift & fade)
-        Box(
+        // Foreground Draggable Personnel Card (Clean soft-elevated card with 3D swipe physics)
+        val cardSurfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF151E30) else Color(0xFFFEFFFF)
+        val cardBorderColor = preset?.borderHighlight?.copy(alpha = 0.55f)
+            ?: if (effectiveDark) Color(0x2838BDF8) else Color(0xFFE2E8F0)
+        val chipBgColor = preset?.surfaceSecondary ?: if (effectiveDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+        val emeraldButtonBrush = Brush.linearGradient(
+            listOf(Color(0xFF10B981), Color(0xFF059669))
+        )
+
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = cardSurfaceColor,
+            shadowElevation = when {
+                isHorizontalDragging -> 12.dp
+                isLivingLuxury -> 8.dp
+                personnel.isPinned -> 7.dp
+                effectiveDark -> 4.dp
+                else -> 5.dp
+            },
+            border = if (isSwipeArmed || isHorizontalDragging || personnel.isPinned) {
+                null
+            } else {
+                BorderStroke(1.dp, cardBorderColor)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
@@ -694,7 +718,6 @@ fun PersonnelCard(
                     val progress = ((x * dirSign) / safeWidth).coerceIn(0f, 1.2f)
 
                     translationX = x
-                    // Authentic wrist-arc physics: gentle Z tilt + subtle 3D perspective depth
                     rotationZ = (x / safeWidth) * 5.2f
                     rotationY = -(x / safeWidth) * 6.5f
                     cameraDistance = 14f * density
@@ -709,86 +732,68 @@ fun PersonnelCard(
                         scaleY = cardPressScale
                     }
                 }
-                .liquidGlass(
-                    shape = RoundedCornerShape(24.dp),
-                    elevation = when {
-                        isHorizontalDragging -> 12.dp
-                        isLivingLuxury -> 8.dp
-                        personnel.isPinned -> 7.dp
-                        else -> 4.dp
-                    },
-                    borderAlpha = if (isLivingLuxury || isHorizontalDragging) 0.95f else 0.85f,
-                    isDark = isDarkMode,
-                    isNeumorphic = isNeumorphic,
-                    cornerRadius = 24.dp
-                )
                 .then(pinBorderModifier)
                 .testTag("personnel_item_${personnel.id}")
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            // Coordinated Card Header:
-            // Leading side: Days count badge + Full Name + FlowRow(Rank + Reg Number)
-            // Trailing side: Status Badge + Wilaya (without code) directly underneath
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
+                // Clean 3-Zone Header Row:
+                // 1. Leading circular days/status badge
+                // 2. Middle clickable name + concise metadata (Rank, ID, Wilaya, Status) + schedule toggle
+                // 3. Trailing circular vibrant emerald green quick-action button
                 Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.Top
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Days Number-Only Badge (-5, -4, ..., 0, 1, 2...)
+                    // Leading Circular Avatar/Badge
                     val formattedDaysBadge = if (effectiveDaysSinceDuty < 0L) {
                         "\u200E$effectiveDaysSinceDuty\u200E"
                     } else {
                         "$effectiveDaysSinceDuty"
                     }
                     val badgeBreathScale = if (isLivingLuxury && animationsEnabled) 1f + (luxuryPulse * 0.055f) else 1f
-                    Box(
+                    Surface(
+                        shape = avatarShape,
+                        color = visual.color.copy(alpha = if (effectiveDark) 0.18f else 0.12f),
+                        border = BorderStroke(1.5.dp, visual.color.copy(alpha = 0.55f)),
                         modifier = Modifier
                             .size(48.dp)
                             .graphicsLayer {
                                 scaleX = badgeBreathScale
                                 scaleY = badgeBreathScale
                             }
-                            .liquidGlassPanel(
-                                shape = avatarShape,
-                                cornerRadius = if (isNeumorphic) 18.dp else 24.dp,
-                                isDark = effectiveDark,
-                                accent = visual.color,
-                                secondaryAccent = visual.color,
-                                isSelected = true,
-                                softTintWhenSelected = true,
-                                borderWidth = if (isLivingLuxury) 1.7.dp else 1.4.dp
-                            ),
-                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = formattedDaysBadge,
-                            fontWeight = FontWeight.Black,
-                            fontSize = when {
-                                kotlin.math.abs(effectiveDaysSinceDuty) >= 100L -> 13.sp
-                                effectiveDaysSinceDuty <= -10L -> 15.sp
-                                else -> 17.sp
-                            },
-                            color = visual.color,
-                            maxLines = 1
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = formattedDaysBadge,
+                                fontWeight = FontWeight.Black,
+                                fontSize = when {
+                                    kotlin.math.abs(effectiveDaysSinceDuty) >= 100L -> 13.sp
+                                    effectiveDaysSinceDuty <= -10L -> 15.sp
+                                    else -> 17.sp
+                                },
+                                color = visual.color,
+                                maxLines = 1
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
-
+                    // Middle Section: Bold Name + Concise Metadata + Schedule Expand Trigger
                     Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                isExpanded = !isExpanded
+                            }
+                            .padding(vertical = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -807,30 +812,25 @@ fun PersonnelCard(
                                 modifier = Modifier.weight(1f, fill = false)
                             )
                             if (personnel.isPinned) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
+                                Surface(
+                                    onClick = onTogglePin,
+                                    shape = CircleShape,
+                                    color = AmberWarning.copy(alpha = if (effectiveDark) 0.22f else 0.14f),
+                                    border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.45f)),
                                     modifier = Modifier
-                                        .size(28.dp)
-                                        .liquidGlassPanel(
-                                            shape = CircleShape,
-                                            cornerRadius = 14.dp,
-                                            isDark = effectiveDark,
-                                            accent = AmberWarning,
-                                            secondaryAccent = AmberWarning,
-                                            isSelected = true,
-                                            softTintWhenSelected = true
-                                        )
-                                        .clickable(onClick = onTogglePin)
+                                        .size(26.dp)
                                         .testTag("pinned_badge_${personnel.id}")
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PushPin,
-                                        contentDescription = AppStrings.get("unpin_action", currentLang),
-                                        tint = AmberWarning,
-                                        modifier = Modifier
-                                            .size(14.dp)
-                                            .rotate(30f)
-                                    )
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.PushPin,
+                                            contentDescription = AppStrings.get("unpin_action", currentLang),
+                                            tint = AmberWarning,
+                                            modifier = Modifier
+                                                .size(13.dp)
+                                                .rotate(30f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -839,38 +839,27 @@ fun PersonnelCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            // Localized Military Rank Pill
+                            // Rank chip
                             Box(
-                                modifier = Modifier.liquidGlassPanel(
-                                    shape = RoundedCornerShape(10.dp),
-                                    cornerRadius = 10.dp,
-                                    isDark = effectiveDark,
-                                    accent = primaryAccent,
-                                    secondaryAccent = RoyalBlueAccent,
-                                    isSelected = true,
-                                    softTintWhenSelected = true
-                                )
+                                modifier = Modifier
+                                    .background(chipBgColor, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
                             ) {
                                 Text(
                                     text = localizedRank,
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF007791),
+                                    color = textPrimary,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
-                            // Registration Number Pill
+                            // Registration number
                             Box(
-                                modifier = Modifier.liquidGlassPanel(
-                                    shape = RoundedCornerShape(10.dp),
-                                    cornerRadius = 10.dp,
-                                    isDark = effectiveDark,
-                                    accent = primaryAccent,
-                                    secondaryAccent = RoyalBlueAccent
-                                )
+                                modifier = Modifier
+                                    .background(chipBgColor, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
                             ) {
                                 Text(
                                     text = personnel.registrationNumber,
@@ -878,173 +867,129 @@ fun PersonnelCard(
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.SemiBold,
                                     color = textSecondary,
+                                    maxLines = 1
+                                )
+                            }
+
+                            // Wilaya (without numeric code)
+                            if (localizedWilaya.isNotBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                    modifier = Modifier
+                                        .background(chipBgColor, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                                        .testTag("personnel_wilaya_${personnel.id}")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = AppStrings.get("wilaya_label", currentLang),
+                                        tint = primaryAccent,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Text(
+                                        text = localizedWilaya,
+                                        fontSize = 10.5.sp,
+                                        color = textSecondary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                            // Concise Status Pill (e.g., "On Duty")
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier
+                                    .background(visual.color.copy(alpha = if (effectiveDark) 0.20f else 0.12f), CircleShape)
+                                    .padding(horizontal = 8.dp, vertical = 2.5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = visual.icon,
+                                    contentDescription = null,
+                                    tint = visual.color,
+                                    modifier = Modifier.size(11.5.dp)
+                                )
+                                Text(
+                                    text = AppStrings.get(visual.badgeKey, currentLang),
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = visual.color,
                                     maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
-                    }
-                }
 
-                Spacer(modifier = Modifier.width(10.dp))
-
-                // Trailing Column: Status Badge + Wilaya right beneath it
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.widthIn(max = 148.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.liquidGlassPanel(
-                            shape = RoundedCornerShape(50.dp),
-                            cornerRadius = 50.dp,
-                            isDark = effectiveDark,
-                            accent = visual.color,
-                            secondaryAccent = visual.color,
-                            isSelected = true,
-                            softTintWhenSelected = true
-                        )
-                    ) {
+                        // Subtle schedule/expand strip
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(top = 1.dp)
                         ) {
                             Icon(
-                                imageVector = visual.icon,
+                                imageVector = Icons.Default.KeyboardArrowDown,
                                 contentDescription = null,
-                                tint = visual.color,
-                                modifier = Modifier.size(13.dp)
+                                tint = textSecondary,
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .graphicsLayer { rotationZ = arrowRotation }
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            val collapsedScheduleText = if (personnel.returnDateMillis > 0L) {
+                                "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}"
+                            } else {
+                                AppStrings.get("no_leave_recorded_short", currentLang)
+                            }
                             Text(
-                                text = AppStrings.get(visual.badgeKey, currentLang),
+                                text = if (isExpanded) {
+                                    AppStrings.get("click_to_collapse", currentLang)
+                                } else {
+                                    collapsedScheduleText
+                                },
                                 fontSize = 10.5.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = visual.color,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (personnel.isOverdue && !isExpanded) RedDanger else textSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
-                    // Wilaya Chip (without numeric code) directly below Status Badge
-                    if (localizedWilaya.isNotBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .liquidGlassPanel(
-                                    shape = RoundedCornerShape(10.dp),
-                                    cornerRadius = 10.dp,
-                                    isDark = effectiveDark,
-                                    accent = RoyalBlueAccent,
-                                    secondaryAccent = primaryAccent
-                                )
-                                .testTag("personnel_wilaya_${personnel.id}")
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationOn,
-                                    contentDescription = AppStrings.get("wilaya_label", currentLang),
-                                    tint = primaryAccent,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Text(
-                                    text = localizedWilaya,
-                                    fontSize = 10.5.sp,
-                                    color = textPrimary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
+                    // Trailing Side: Vibrant Emerald Green Circular Quick Action Button
+                    val isOnDutyAction = personnel.isReturnedToDuty
+                    val quickActionDesc = if (isOnDutyAction) {
+                        AppStrings.get("quick_add_leave_desc", currentLang)
+                    } else {
+                        AppStrings.get("confirm_duty_btn", currentLang)
                     }
-                }
-            }
-
-            // Expand / Collapse Bar + Expandable Details grouped to eliminate inter-item spacing jump
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidGlassPanel(
-                            shape = RoundedCornerShape(14.dp),
-                            cornerRadius = 14.dp,
-                            isDark = effectiveDark,
-                            accent = primaryAccent,
-                            secondaryAccent = RoyalBlueAccent,
-                            isSelected = isExpanded,
-                            softTintWhenSelected = true
-                        )
-                        .clickable {
+                    Surface(
+                        onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            isExpanded = !isExpanded
-                        }
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            if (isOnDutyAction) {
+                                (onQuickAddLeave ?: onEdit).invoke()
+                            } else {
+                                onConfirmDuty()
+                            }
+                        },
+                        shape = CircleShape,
+                        color = Color.Transparent,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(emeraldButtonBrush, CircleShape)
+                            .testTag("personnel_quick_action_${personnel.id}")
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = primaryAccent,
-                            modifier = Modifier
-                                .size(18.dp)
-                                .graphicsLayer { rotationZ = arrowRotation }
-                        )
-                        AnimatedContent(
-                            targetState = isExpanded,
-                            transitionSpec = {
-                                if (animationsEnabled) {
-                                    (fadeIn(tween(180)) + slideInVertically { if (targetState) -it / 3 else it / 3 }) togetherWith
-                                        (fadeOut(tween(120)) + slideOutVertically { if (targetState) it / 3 else -it / 3 })
-                                } else {
-                                    EnterTransition.None togetherWith ExitTransition.None
-                                }
-                            },
-                            label = "expandLabel"
-                        ) { expanded ->
-                            Text(
-                                text = AppStrings.get(
-                                    if (expanded) "click_to_collapse" else "click_to_expand",
-                                    currentLang
-                                ),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = primaryAccent
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isOnDutyAction) Icons.Default.Add else Icons.Default.Check,
+                                contentDescription = quickActionDesc,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                    }
-
-                    AnimatedVisibility(
-                        visible = !isExpanded,
-                        enter = if (animationsEnabled) {
-                            fadeIn(tween(200)) + scaleIn(initialScale = 0.94f)
-                        } else EnterTransition.None,
-                        exit = if (animationsEnabled) {
-                            fadeOut(tween(130)) + scaleOut(targetScale = 0.94f)
-                        } else ExitTransition.None
-                    ) {
-                        val collapsedScheduleText = if (personnel.returnDateMillis > 0L) {
-                            "${AppStrings.get("return_date", currentLang)} ${personnel.formattedReturnDate}"
-                        } else {
-                            AppStrings.get("no_leave_recorded_short", currentLang)
-                        }
-                        Text(
-                            text = collapsedScheduleText,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (personnel.isOverdue) RedDanger else textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
                     }
                 }
 
@@ -1471,15 +1416,14 @@ fun PersonnelCard(
                     }
                 }
             }
-            }
         }
         }
 
             // Floating zero-layout-shift armed hint & pin progress pill (anchored to stationary outer Box)
             AnimatedVisibility(
                 visible = (isSwipeArmed || holdProgress > 0.02f) && !isHorizontalDragging,
-                enter = fadeIn(animationSpec = tween(140)),
-                exit = fadeOut(animationSpec = tween(100)),
+                enter = if (animationsEnabled) fadeIn(animationSpec = tween(140)) else EnterTransition.None,
+                exit = if (animationsEnabled) fadeOut(animationSpec = tween(100)) else ExitTransition.None,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 6.dp)
