@@ -8,7 +8,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -116,13 +116,10 @@ fun StatisticsSection(
     } else overdueFraction
 
     val isLivingLuxury = LocalLivingLuxuryMode.current
-    val cardSurfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF151E30) else Color(0xFFFEFFFF)
-    val cardBorderColor = preset?.borderHighlight?.copy(alpha = 0.5f)
-        ?: if (effectiveDark) Color(0x2E38BDF8) else Color(0xFFE2E8F0)
 
     val pulseAlpha: Float
     val livingBreathScale: Float
-    if (animationsEnabled) {
+    if (animationsEnabled || isLivingLuxury) {
         val infiniteTransition = rememberInfiniteTransition(label = "pulseInfinite")
         pulseAlpha = infiniteTransition.animateFloat(
             initialValue = 0.35f,
@@ -155,27 +152,28 @@ fun StatisticsSection(
             .testTag("statistics_section"),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = cardSurfaceColor,
-            shadowElevation = if (effectiveDark) 4.dp else 6.dp,
-            border = BorderStroke(1.dp, cardBorderColor),
-            modifier = Modifier.fillMaxWidth()
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .liquidGlass(
+                    shape = RoundedCornerShape(26.dp),
+                    elevation = 7.dp,
+                    borderAlpha = 0.92f,
+                    isDark = effectiveDark,
+                    isNeumorphic = isNeumorphic,
+                    cornerRadius = 26.dp
+                )
+                .padding(16.dp)
         ) {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp)
-            ) {
-                val isWide = maxWidth >= 500.dp
-                val isCompact = maxWidth < 340.dp
-                val ringSize = if (isWide) 124.dp else if (isCompact) 92.dp else 104.dp
-                val canvasSize = if (isWide) 114.dp else if (isCompact) 84.dp else 96.dp
-                val strokeWidthDp = if (isWide) 10.5.dp else if (isCompact) 8.dp else 9.dp
-                val centerTotalSp = if (isWide) 23.sp else if (isCompact) 18.sp else 21.sp
-                val centerLabelSp = if (isWide) 10.sp else if (isCompact) 8.sp else 8.5.sp
+            val isWide = maxWidth >= 500.dp
+            val isCompact = maxWidth < 340.dp
+            val ringSize = if (isWide) 132.dp else if (isCompact) 102.dp else 118.dp
+            val canvasSize = if (isWide) 122.dp else if (isCompact) 94.dp else 110.dp
+            val strokeWidthDp = if (isWide) 11.dp else if (isCompact) 8.5.dp else 10.dp
+            val centerTotalSp = if (isWide) 24.sp else if (isCompact) 19.sp else 22.sp
+            val centerLabelSp = if (isWide) 10.sp else if (isCompact) 8.sp else 9.sp
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 // Top Header Row: Pulsing Dashboard Indicator & Analytics Entry Pill
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -419,7 +417,6 @@ fun StatisticsSection(
                 }
             }
         }
-        }
     }
 }
 
@@ -438,35 +435,29 @@ private fun DashboardMetricRow(
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color(0xFFE2E8F0) else SlateTextPrimary
-    val rowShape = RoundedCornerShape(14.dp)
-    val rowSurface = if (isSelected) {
-        accentColor.copy(alpha = if (effectiveDark) 0.16f else 0.08f)
-    } else if (effectiveDark) {
-        preset?.surfaceSecondary ?: Color(0xFF1E293B)
-    } else {
-        preset?.surfaceSecondary ?: Color(0xFFF8FAFC)
-    }
-    val rowBorder = if (isSelected) {
-        accentColor.copy(alpha = 0.55f)
-    } else if (effectiveDark) {
-        Color.White.copy(alpha = 0.08f)
-    } else {
-        Color(0xFFE2E8F0)
-    }
+    val rowShape = RoundedCornerShape(16.dp)
 
     Surface(
         onClick = onClick,
         shape = rowShape,
-        color = rowSurface,
-        border = BorderStroke(if (isSelected) 1.2.dp else 0.8.dp, rowBorder),
+        color = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp)
+            .liquidGlassPanel(
+                shape = rowShape,
+                cornerRadius = 16.dp,
+                isDark = effectiveDark,
+                accent = accentColor,
+                secondaryAccent = accentColor,
+                isSelected = isSelected,
+                softTintWhenSelected = true
+            )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = if (isWide) 12.dp else 10.dp, vertical = if (isWide) 8.dp else 7.dp),
+                .padding(horizontal = if (isWide) 12.dp else 10.dp, vertical = if (isWide) 9.dp else 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {

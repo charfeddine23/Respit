@@ -138,7 +138,7 @@ fun AddNewLeaveDialog(
     val initialSelected = remember(personnelList, initialPersonnelId) {
         personnelList.firstOrNull { it.id == initialPersonnelId } ?: personnelList.firstOrNull()
     }
-    var selectedPersonnelId by remember(personnelList, initialPersonnelId) {
+    var selectedPersonnelId by remember(personnelList) {
         mutableStateOf(initialSelected?.id)
     }
     val selectedPersonnel = remember(personnelList, selectedPersonnelId) {
