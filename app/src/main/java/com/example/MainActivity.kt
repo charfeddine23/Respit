@@ -17,6 +17,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -28,10 +30,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -120,7 +124,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -165,16 +168,18 @@ import com.example.ui.SortOption
 import androidx.fragment.app.FragmentActivity
 import com.example.ui.components.AddEditPersonnelDialog
 import com.example.ui.components.AddNewLeaveDialog
+import com.example.ui.components.AllPersonsSummaryBanner
 import com.example.ui.components.AppBottomNavigationPanel
 import com.example.ui.components.PersonnelLeaveHistoryDialog
 import com.example.ui.components.AppNavPage
 import com.example.ui.components.BiometricLockScreen
+import com.example.ui.components.DashboardPillSearchBar
+import com.example.ui.components.DashboardQuickActionRow
 import com.example.ui.components.DeveloperInfoDialog
 import com.example.ui.components.ExportDialog
 import com.example.ui.components.FilterSortDialog
 import com.example.ui.components.InAppUpdateDialog
 import com.example.ui.components.LiquidGlassConfirmDialog
-import com.example.ui.screens.EntryLandingScreen
 import com.example.ui.components.LiquidGlassFloatingCapsule
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.SideNavigationDrawerContent
@@ -444,7 +449,7 @@ fun LeaveTrackerMainApp(
 
     var showAddEditDialog by remember { mutableStateOf(false) }
     var showAddLeaveDialog by remember { mutableStateOf(false) }
-    var initialLeavePersonnelId by remember { mutableStateOf<Long?>(null) }
+    var quickLeavePersonnelId by remember { mutableStateOf<Long?>(null) }
     var personnelToEdit by remember { mutableStateOf<Personnel?>(null) }
     var personnelToDelete by remember { mutableStateOf<Personnel?>(null) }
     var personnelForHistory by remember { mutableStateOf<Personnel?>(null) }
@@ -457,8 +462,6 @@ fun LeaveTrackerMainApp(
     var showTrashBinDialog by remember { mutableStateOf(false) }
     var lastSwipeDeletedPerson by remember { mutableStateOf<Personnel?>(null) }
     var swipeUndoTicket by remember { mutableIntStateOf(0) }
-    var showEntryLanding by rememberSaveable { mutableStateOf(openNotificationsSignal == 0) }
-    var entrySearchQuery by rememberSaveable { mutableStateOf("") }
     var selectedNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
     var previousNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
@@ -493,7 +496,6 @@ fun LeaveTrackerMainApp(
 
     LaunchedEffect(openNotificationsSignal) {
         if (openNotificationsSignal > 0) {
-            showEntryLanding = false
             if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
                 previousNavPage = selectedNavPage
             }
@@ -558,55 +560,17 @@ fun LeaveTrackerMainApp(
     }
 
     // Back navigation: Pop secondary pages (including Settings/Analytics/Notifications) back to previous or Dashboard
-    BackHandler(enabled = !showEntryLanding && selectedNavPage != AppNavPage.DASHBOARD) {
+    BackHandler(enabled = selectedNavPage != AppNavPage.DASHBOARD) {
         selectedNavPage = if (selectedNavPage == AppNavPage.NOTIFICATIONS) previousNavPage else AppNavPage.DASHBOARD
     }
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
-        Crossfade(
-            targetState = showEntryLanding,
-            animationSpec = tween(
-                durationMillis = if (isDynamicAnimationsEnabled) 220 else 0,
-                easing = FastOutSlowInEasing
-            ),
-            label = "entryToMainCrossfade"
-        ) { isOnEntryScreen ->
-            if (isOnEntryScreen) {
-                EntryLandingScreen(
-                    personnelList = allPersonnelList,
-                    dutyReferenceMap = dutyReferenceMap,
-                    stats = stats,
-                    searchQuery = entrySearchQuery,
-                    onSearchQueryChange = { entrySearchQuery = it },
-                    onQuickAddLeave = { target ->
-                        initialLeavePersonnelId = target.id
-                        showAddLeaveDialog = true
-                    },
-                    onOpenPersonnelHistory = { target ->
-                        personnelForHistory = target
-                    },
-                    onTogglePin = { target ->
-                        viewModel.togglePinPersonnel(target)
-                    },
-                    onAddPersonnel = {
-                        personnelToEdit = null
-                        showAddEditDialog = true
-                    },
-                    onSeeMore = {
-                        selectedNavPage = AppNavPage.DASHBOARD
-                        showEntryLanding = false
-                    },
-                    currentLang = currentLang,
-                    isDarkMode = isDarkMode,
-                    animationsEnabled = isDynamicAnimationsEnabled
-                )
-            } else {
-                val backdropLayer = rememberGraphicsLayer()
-                var backdropOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
+        val backdropLayer = rememberGraphicsLayer()
+        var backdropOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
 
-                Scaffold(
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("main_scaffold"),
@@ -796,7 +760,6 @@ fun LeaveTrackerMainApp(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .clip(CircleShape)
-                                        .clickable { showEntryLanding = true }
                                         .padding(vertical = 4.dp, horizontal = 4.dp)
                                         .testTag("app_title_row")
                                 ) {
@@ -871,7 +834,7 @@ fun LeaveTrackerMainApp(
                                             .clip(CircleShape)
                                             .clickable {
                                                 fabHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                initialLeavePersonnelId = null
+                                                quickLeavePersonnelId = null
                                                 showAddLeaveDialog = true
                                             }
                                             .testTag("add_personnel_fab"),
@@ -889,17 +852,45 @@ fun LeaveTrackerMainApp(
                         },
                         floatingActionButtonPosition = FabPosition.End,
                         bottomBar = {
-                            AppBottomNavigationPanel(
-                                selectedPage = selectedNavPage,
-                                onSelectPage = { selectedNavPage = it },
-                                notificationsCount = notificationsCount,
-                                isDarkMode = isDarkMode,
-                                isNeumorphic = false,
-                                animationsEnabled = isDynamicAnimationsEnabled,
-                                currentLang = currentLang,
-                                backdropLayer = backdropLayer,
-                                backdropOffsetInRoot = backdropOffsetInRoot
-                            )
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                AnimatedVisibility(
+                                    visible = selectedNavPage == AppNavPage.DASHBOARD,
+                                    enter = if (isDynamicAnimationsEnabled) {
+                                        fadeIn(tween(200)) + expandVertically(expandFrom = Alignment.Bottom)
+                                    } else EnterTransition.None,
+                                    exit = if (isDynamicAnimationsEnabled) {
+                                        fadeOut(tween(140)) + shrinkVertically(shrinkTowards = Alignment.Bottom)
+                                    } else ExitTransition.None
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        AllPersonsSummaryBanner(
+                                            stats = stats,
+                                            currentLang = currentLang,
+                                            animationsEnabled = isDynamicAnimationsEnabled,
+                                            onOpenAllPersons = { selectedNavPage = AppNavPage.RECORDS }
+                                        )
+                                    }
+                                }
+                                AppBottomNavigationPanel(
+                                    selectedPage = selectedNavPage,
+                                    onSelectPage = { selectedNavPage = it },
+                                    notificationsCount = notificationsCount,
+                                    isDarkMode = isDarkMode,
+                                    isNeumorphic = false,
+                                    animationsEnabled = isDynamicAnimationsEnabled,
+                                    currentLang = currentLang,
+                                    backdropLayer = backdropLayer,
+                                    backdropOffsetInRoot = backdropOffsetInRoot
+                                )
+                            }
                         }
                     ) { innerPadding ->
                         val topBarClearance = innerPadding.calculateTopPadding()
@@ -1052,6 +1043,10 @@ fun LeaveTrackerMainApp(
                                             }
                                         }
                                         AppNavPage.DASHBOARD -> {
+                                            val activeDashboardFilterCount = (if (selectedStatus != "ALL") 1 else 0) +
+                                                (if (selectedRank != "ALL") 1 else 0) +
+                                                (if (currentSort != SortOption.RETURN_SOON) 1 else 0)
+
                                             LazyColumn(
                                                 state = dashboardListState,
                                                 modifier = Modifier
@@ -1059,9 +1054,46 @@ fun LeaveTrackerMainApp(
                                                     .widthIn(max = contentMaxWidth)
                                                     .testTag("dashboard_lazy_column"),
                                                 contentPadding = contentPadding,
-                                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
                                             ) {
-                                        // Unified Interactive KPI Dashboard (with Pulse & living animation support)
+                                        // 1. Prominent Pill-Shaped Search Bar at the top
+                                        item {
+                                            DashboardPillSearchBar(
+                                                searchQuery = searchQuery,
+                                                onSearchQueryChange = {
+                                                    viewModel.searchQuery.value = it
+                                                    if (it.trim().length >= 3) {
+                                                        viewModel.addRecentSearch(it)
+                                                    }
+                                                },
+                                                onSubmitSearch = {
+                                                    if (searchQuery.isNotBlank()) {
+                                                        viewModel.addRecentSearch(searchQuery)
+                                                    }
+                                                },
+                                                onOpenFilter = {
+                                                    showFilterSortDialog = true
+                                                },
+                                                recentSearches = recentSearches,
+                                                onSelectRecentSearch = { queryItem ->
+                                                    viewModel.searchQuery.value = queryItem
+                                                    viewModel.addRecentSearch(queryItem)
+                                                },
+                                                onRemoveRecentSearch = { queryItem ->
+                                                    viewModel.removeRecentSearch(queryItem)
+                                                },
+                                                onClearRecentSearches = {
+                                                    viewModel.clearRecentSearches()
+                                                },
+                                                activeFilterCount = activeDashboardFilterCount,
+                                                isDarkMode = isDarkMode,
+                                                currentLang = currentLang,
+                                                searchFieldTestTag = "search_field",
+                                                filterButtonTestTag = "filter_sort_dialog_button"
+                                            )
+                                        }
+
+                                        // 2. Interactive KPI Dashboard Card
                                         item {
                                             StatisticsSection(
                                                 stats = stats,
@@ -1080,368 +1112,26 @@ fun LeaveTrackerMainApp(
                                             )
                                         }
 
-                                        // 3 Prominent Liquid Glass Quick Action Tiles (Add Personnel, Urgent Alerts, Room DB)
+                                        // 3. Quick Action Row (Add Personnel, Urgent Alerts, Room DB)
                                         item {
-                                            val urgentCount = stats.overdue + stats.returningToday
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                // 1. Emerald Liquid Glass Action Tile: "+ إضافة فرد"
-                                                Box(
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .defaultMinSize(minHeight = 50.dp)
-                                                        .liquidGlassPanel(
-                                                            shape = RoundedCornerShape(16.dp),
-                                                            cornerRadius = 16.dp,
-                                                            isDark = isDarkMode,
-                                                            accent = EmeraldSuccess,
-                                                            secondaryAccent = Color(0xFF059669),
-                                                            isSelected = true,
-                                                            softTintWhenSelected = false
-                                                        )
-                                                        .clickable {
-                                                            personnelToEdit = null
-                                                            showAddEditDialog = true
-                                                        }
-                                                        .testTag("action_btn_add_personnel"),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 8.dp, vertical = 12.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Add,
-                                                            contentDescription = null,
-                                                            tint = Color.White,
-                                                            modifier = Modifier.size(17.dp)
-                                                        )
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        Text(
-                                                            text = AppStrings.get("add_personnel", currentLang),
-                                                            color = Color.White,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 11.sp,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
+                                            DashboardQuickActionRow(
+                                                urgentCount = stats.overdue + stats.returningToday,
+                                                currentLang = currentLang,
+                                                isDarkMode = isDarkMode,
+                                                onAddPersonnel = {
+                                                    personnelToEdit = null
+                                                    showAddEditDialog = true
+                                                },
+                                                onOpenUrgentAlerts = {
+                                                    if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
+                                                        previousNavPage = selectedNavPage
                                                     }
+                                                    selectedNavPage = AppNavPage.NOTIFICATIONS
+                                                },
+                                                onOpenDatabase = {
+                                                    selectedNavPage = AppNavPage.DATABASE
                                                 }
-
-                                                // 2. Coral Liquid Glass Action Tile: "تنبيهات عاجلة" + urgent pill badge
-                                                Box(
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .defaultMinSize(minHeight = 50.dp)
-                                                        .liquidGlassPanel(
-                                                            shape = RoundedCornerShape(16.dp),
-                                                            cornerRadius = 16.dp,
-                                                            isDark = isDarkMode,
-                                                            accent = CoralRedAccent,
-                                                            secondaryAccent = Color(0xFFDC2626),
-                                                            isSelected = true,
-                                                            softTintWhenSelected = false
-                                                        )
-                                                        .clickable {
-                                                            if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
-                                                                previousNavPage = selectedNavPage
-                                                            }
-                                                            selectedNavPage = AppNavPage.NOTIFICATIONS
-                                                        }
-                                                        .testTag("action_btn_urgent_alerts"),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 8.dp, vertical = 12.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.NotificationsActive,
-                                                            contentDescription = null,
-                                                            tint = Color.White,
-                                                            modifier = Modifier.size(16.dp)
-                                                        )
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        Text(
-                                                            text = AppStrings.get("urgent_alerts_title", currentLang).split("(").first().trim(),
-                                                            color = Color.White,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 11.sp,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                        if (urgentCount > 0) {
-                                                            Spacer(modifier = Modifier.width(4.dp))
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .background(Color.White.copy(alpha = 0.25f), CircleShape)
-                                                                    .padding(horizontal = 5.dp, vertical = 1.dp),
-                                                                contentAlignment = Alignment.Center
-                                                            ) {
-                                                                Text(
-                                                                    text = "$urgentCount",
-                                                                    color = Color.White,
-                                                                    fontSize = 9.5.sp,
-                                                                    fontWeight = FontWeight.ExtraBold
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                // 3. Royal Blue Liquid Glass Action Tile: "قاعدة البيانات"
-                                                Box(
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .defaultMinSize(minHeight = 50.dp)
-                                                        .liquidGlassPanel(
-                                                            shape = RoundedCornerShape(16.dp),
-                                                            cornerRadius = 16.dp,
-                                                            isDark = isDarkMode,
-                                                            accent = RoyalBlueAccent,
-                                                            secondaryAccent = VibrantCyan,
-                                                            isSelected = true,
-                                                            softTintWhenSelected = false
-                                                        )
-                                                        .clickable {
-                                                            selectedNavPage = AppNavPage.DATABASE
-                                                        }
-                                                        .testTag("action_btn_room_db"),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 8.dp, vertical = 12.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Storage,
-                                                            contentDescription = null,
-                                                            tint = Color.White,
-                                                            modifier = Modifier.size(17.dp)
-                                                        )
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        Text(
-                                                            text = AppStrings.get("nav_database", currentLang),
-                                                            color = Color.White,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 11.sp,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // Quick Search and Filter Trigger Box
-                                        item {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .liquidGlass(
-                                                        shape = LiquidGlassDefaults.CardShape,
-                                                        elevation = 5.dp,
-                                                        borderAlpha = 0.85f,
-                                                        isDark = isDarkMode,
-                                                        isNeumorphic = false,
-                                                        cornerRadius = 24.dp
-                                                    )
-                                                    .padding(12.dp)
-                                            ) {
-                                                Column(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                                    ) {
-                                                        OutlinedTextField(
-                                                            value = searchQuery,
-                                                            onValueChange = {
-                                                                viewModel.searchQuery.value = it
-                                                                if (it.trim().length >= 3) {
-                                                                    viewModel.addRecentSearch(it)
-                                                                }
-                                                            },
-                                                            modifier = Modifier
-                                                                .weight(1f)
-                                                                .testTag("search_field"),
-                                                            placeholder = {
-                                                                Text(
-                                                                    AppStrings.get("search_placeholder", currentLang),
-                                                                    style = MaterialTheme.typography.bodyMedium,
-                                                                    color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                                                )
-                                                            },
-                                                            leadingIcon = {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Search,
-                                                                    contentDescription = AppStrings.get("search_label", currentLang),
-                                                                    tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
-                                                                )
-                                                            },
-                                                            trailingIcon = {
-                                                                if (searchQuery.isNotEmpty()) {
-                                                                    IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                                                        Icon(
-                                                                            imageVector = Icons.Default.Clear,
-                                                                            contentDescription = AppStrings.get("clear_search", currentLang),
-                                                                            tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                                                        )
-                                                                    }
-                                                                }
-                                                            },
-                                                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                                            keyboardActions = KeyboardActions(
-                                                                onSearch = {
-                                                                    if (searchQuery.isNotBlank()) {
-                                                                        viewModel.addRecentSearch(searchQuery)
-                                                                    }
-                                                                }
-                                                            ),
-                                                            colors = OutlinedTextFieldDefaults.colors(
-                                                                focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                                                unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                                                focusedContainerColor = if (isDarkMode) Color(0x331E293B) else Color(0xF5FFFFFF),
-                                                                unfocusedContainerColor = if (isDarkMode) Color(0x221E293B) else Color(0xD9FFFFFF),
-                                                                unfocusedBorderColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x4000BCD4),
-                                                                focusedBorderColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
-                                                                focusedPlaceholderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                                                unfocusedPlaceholderColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                                                cursorColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
-                                                            ),
-                                                            singleLine = true,
-                                                            shape = RoundedCornerShape(50.dp)
-                                                        )
-
-                                                        Box(
-                                                            modifier = Modifier.liquidGlassInteractive(
-                                                                shape = RoundedCornerShape(50.dp),
-                                                                glowColor = MaterialTheme.colorScheme.primary,
-                                                                isDark = isDarkMode,
-                                                                isNeumorphic = false
-                                                            )
-                                                        ) {
-                                                            IconButton(
-                                                                onClick = {
-                                                                    selectedNavPage = AppNavPage.RECORDS
-                                                                    showFilterSortDialog = true
-                                                                },
-                                                                modifier = Modifier
-                                                                    .size(52.dp)
-                                                                    .testTag("filter_sort_dialog_button")
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Tune,
-                                                                    contentDescription = AppStrings.get("filter_sort_btn", currentLang),
-                                                                    tint = MaterialTheme.colorScheme.primary,
-                                                                    modifier = Modifier.size(26.dp)
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-
-                                                    // Recent Searches
-                                                    if (recentSearches.isNotEmpty()) {
-                                                        Row(
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .horizontalScroll(rememberScrollState()),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.History,
-                                                                contentDescription = AppStrings.get("recent_searches_title", currentLang),
-                                                                tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
-                                                                modifier = Modifier.size(16.dp)
-                                                            )
-                                                            Text(
-                                                                text = AppStrings.get("recent_searches_title", currentLang),
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = if (isDarkMode) Color(0xFFE2E8F0) else Color(0xFF64748B),
-                                                                fontSize = 11.sp
-                                                            )
-                                                            recentSearches.forEach { queryItem ->
-                                                                Surface(
-                                                                    shape = RoundedCornerShape(50.dp),
-                                                                    color = if (searchQuery == queryItem) {
-                                                                        if (isDarkMode) Color(0xFF00BCD4) else Color(0xFFE0F7FA)
-                                                                    } else {
-                                                                        if (isDarkMode) Color(0xFF334155) else Color(0xF2FFFFFF)
-                                                                    },
-                                                                    border = BorderStroke(
-                                                                        0.8.dp,
-                                                                        if (isDarkMode) Color(0x6600E5FF) else Color(0x4000BCD4)
-                                                                    ),
-                                                                    onClick = {
-                                                                        viewModel.searchQuery.value = queryItem
-                                                                        viewModel.addRecentSearch(queryItem)
-                                                                    },
-                                                                    modifier = Modifier.height(28.dp)
-                                                                ) {
-                                                                    Row(
-                                                                        verticalAlignment = Alignment.CenterVertically,
-                                                                        modifier = Modifier.padding(horizontal = 8.dp)
-                                                                    ) {
-                                                                        Text(
-                                                                            text = queryItem,
-                                                                            style = MaterialTheme.typography.labelSmall,
-                                                                            fontWeight = FontWeight.SemiBold,
-                                                                            color = if (searchQuery == queryItem) {
-                                                                                if (isDarkMode) Color.White else Color(0xFF00838F)
-                                                                            } else {
-                                                                                if (isDarkMode) Color(0xFFF1F5F9) else Color(0xFF0F172A)
-                                                                            },
-                                                                            fontSize = 11.sp
-                                                                        )
-                                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                                        IconButton(
-                                                                            onClick = { viewModel.removeRecentSearch(queryItem) },
-                                                                            modifier = Modifier.size(16.dp)
-                                                                        ) {
-                                                                            Icon(
-                                                                                imageVector = Icons.Default.Close,
-                                                                                contentDescription = AppStrings.get("delete", currentLang),
-                                                                                tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                                                                modifier = Modifier.size(11.dp)
-                                                                            )
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                            TextButton(
-                                                                onClick = { viewModel.clearRecentSearches() },
-                                                                modifier = Modifier.height(28.dp),
-                                                                contentPadding = PaddingValues(horizontal = 6.dp)
-                                                            ) {
-                                                                Text(
-                                                                    text = AppStrings.get("clear_btn", currentLang),
-                                                                    style = MaterialTheme.typography.labelSmall,
-                                                                    color = if (isDarkMode) Color(0xFFF87171) else Color(0xFFEF4444),
-                                                                    fontSize = 10.sp,
-                                                                    fontWeight = FontWeight.Bold
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            )
                                         }
 
                                         // Quick Navigation Header to Records
@@ -1521,11 +1211,13 @@ fun LeaveTrackerMainApp(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
                                                     modifier = Modifier.animateItem(
-                                                        placementSpec = spring(
-                                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                                            stiffness = 380f,
-                                                            visibilityThreshold = IntOffset.VisibilityThreshold
-                                                        )
+                                                        placementSpec = if (isDynamicAnimationsEnabled) {
+                                                            spring(
+                                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                                stiffness = 380f,
+                                                                visibilityThreshold = IntOffset.VisibilityThreshold
+                                                            )
+                                                        } else null
                                                     ),
                                                     isDarkMode = isDarkMode,
                                                     isNeumorphic = false,
@@ -1565,13 +1257,17 @@ fun LeaveTrackerMainApp(
                                                     },
                                                     onExtendLeave = {
                                                         personnelToExtend = person
+                                                    },
+                                                    onQuickAddLeave = {
+                                                        quickLeavePersonnelId = person.id
+                                                        showAddLeaveDialog = true
                                                     }
                                                 )
                                             }
                                         }
 
                                         item {
-                                            Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 108.dp)))
+                                            Spacer(modifier = Modifier.height(maxOf(bottomDockClearance + 24.dp, 112.dp)))
                                         }
                                     }
                                 }
@@ -1590,126 +1286,28 @@ fun LeaveTrackerMainApp(
                                                 contentPadding = contentPadding,
                                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                                             ) {
-                                        // Full Search Bar with Filter & Sort dialog trigger
+                                        // Full Pill Search Bar with Filter & Sort dialog trigger
                                         item {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .liquidGlass(
-                                                        shape = LiquidGlassDefaults.CardShape,
-                                                        elevation = 5.dp,
-                                                        borderAlpha = 0.85f,
-                                                        isDark = isDarkMode,
-                                                        isNeumorphic = false,
-                                                        cornerRadius = 24.dp
-                                                    )
-                                                    .padding(12.dp)
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = searchQuery,
-                                                        onValueChange = {
-                                                            viewModel.searchQuery.value = it
-                                                            if (it.trim().length >= 3) {
-                                                                viewModel.addRecentSearch(it)
-                                                            }
-                                                        },
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .testTag("search_field_records"),
-                                                        placeholder = {
-                                                            Text(
-                                                                AppStrings.get("search_placeholder", currentLang),
-                                                                style = MaterialTheme.typography.bodyMedium,
-                                                                color = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                                            )
-                                                        },
-                                                        leadingIcon = {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Search,
-                                                                contentDescription = AppStrings.get("search_label", currentLang),
-                                                                tint = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
-                                                            )
-                                                        },
-                                                        trailingIcon = {
-                                                            if (searchQuery.isNotEmpty()) {
-                                                                IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                                                    Icon(
-                                                                        imageVector = Icons.Default.Clear,
-                                                                        contentDescription = AppStrings.get("clear_search", currentLang),
-                                                                        tint = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                                                    )
-                                                                }
-                                                            }
-                                                        },
-                                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                                        keyboardActions = KeyboardActions(
-                                                            onSearch = {
-                                                                if (searchQuery.isNotBlank()) {
-                                                                    viewModel.addRecentSearch(searchQuery)
-                                                                }
-                                                            }
-                                                        ),
-                                                        colors = OutlinedTextFieldDefaults.colors(
-                                                            focusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                                            unfocusedTextColor = if (isDarkMode) Color.White else Color(0xFF0F172A),
-                                                            focusedContainerColor = if (isDarkMode) Color(0x331E293B) else Color(0xF5FFFFFF),
-                                                            unfocusedContainerColor = if (isDarkMode) Color(0x221E293B) else Color(0xD9FFFFFF),
-                                                            unfocusedBorderColor = if (isDarkMode) Color(0x4000E5FF) else Color(0x4000BCD4),
-                                                            focusedBorderColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4),
-                                                            focusedPlaceholderColor = if (isDarkMode) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                                            unfocusedPlaceholderColor = if (isDarkMode) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                                            cursorColor = if (isDarkMode) Color(0xFF00E5FF) else Color(0xFF00BCD4)
-                                                        ),
-                                                        singleLine = true,
-                                                        shape = RoundedCornerShape(14.dp)
-                                                    )
-
-                                                    Box(
-                                                        modifier = Modifier.liquidGlassInteractive(
-                                                            shape = RoundedCornerShape(14.dp),
-                                                            glowColor = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
-                                                            isDark = isDarkMode,
-                                                            isNeumorphic = false
-                                                        )
-                                                    ) {
-                                                        BadgedBox(
-                                                            badge = {
-                                                                if (activeFilterCount > 0) {
-                                                                    Badge(
-                                                                        containerColor = Color(0xFF00BCD4),
-                                                                        contentColor = Color.White
-                                                                    ) {
-                                                                        Text(
-                                                                            text = "$activeFilterCount",
-                                                                            fontWeight = FontWeight.Bold,
-                                                                            fontSize = 11.sp
-                                                                        )
-                                                                    }
-                                                                }
-                                                            }
-                                                        ) {
-                                                            IconButton(
-                                                                onClick = { showFilterSortDialog = true },
-                                                                modifier = Modifier
-                                                                    .size(52.dp)
-                                                                    .testTag("filter_sort_dialog_button_records")
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Tune,
-                                                                    contentDescription = AppStrings.get("filter_sort_btn", currentLang),
-                                                                    tint = if (activeFilterCount > 0) Color(0xFF00BCD4) else MaterialTheme.colorScheme.primary,
-                                                                    modifier = Modifier.size(26.dp)
-                                                                )
-                                                            }
-                                                        }
+                                            DashboardPillSearchBar(
+                                                searchQuery = searchQuery,
+                                                onSearchQueryChange = {
+                                                    viewModel.searchQuery.value = it
+                                                    if (it.trim().length >= 3) {
+                                                        viewModel.addRecentSearch(it)
                                                     }
-                                                }
-                                            }
+                                                },
+                                                onSubmitSearch = {
+                                                    if (searchQuery.isNotBlank()) {
+                                                        viewModel.addRecentSearch(searchQuery)
+                                                    }
+                                                },
+                                                onOpenFilter = { showFilterSortDialog = true },
+                                                activeFilterCount = activeFilterCount,
+                                                isDarkMode = isDarkMode,
+                                                currentLang = currentLang,
+                                                searchFieldTestTag = "search_field_records",
+                                                filterButtonTestTag = "filter_sort_dialog_button_records"
+                                            )
                                         }
 
                                         // Inline 1-Tap Liquid Glass Quick Status Filter Strip
@@ -2008,6 +1606,10 @@ fun LeaveTrackerMainApp(
                                                                     },
                                                                     onExtendLeave = {
                                                                         personnelToExtend = person
+                                                                    },
+                                                                    onQuickAddLeave = {
+                                                                        quickLeavePersonnelId = person.id
+                                                                        showAddLeaveDialog = true
                                                                     }
                                                                 )
                                                             }
@@ -2072,6 +1674,10 @@ fun LeaveTrackerMainApp(
                                                     },
                                                     onExtendLeave = {
                                                         personnelToExtend = person
+                                                    },
+                                                    onQuickAddLeave = {
+                                                        quickLeavePersonnelId = person.id
+                                                        showAddLeaveDialog = true
                                                     }
                                                 )
                                             }
@@ -2225,8 +1831,6 @@ fun LeaveTrackerMainApp(
                 }
             }
         }
-            }
-        }
 
     // Add / Edit Personnel Dialog
     if (showAddEditDialog) {
@@ -2266,14 +1870,14 @@ fun LeaveTrackerMainApp(
         )
     }
 
-    // Add New Leave Dialog (Triggered by circular + FAB or Entry screen + button)
+    // Add New Leave Dialog (Triggered by circular + FAB or PersonnelCard emerald quick-action)
     if (showAddLeaveDialog) {
         AddNewLeaveDialog(
             personnelList = allPersonnelList,
-            initialPersonnelId = initialLeavePersonnelId,
+            initialPersonnelId = quickLeavePersonnelId,
             onDismiss = {
                 showAddLeaveDialog = false
-                initialLeavePersonnelId = null
+                quickLeavePersonnelId = null
             },
             onOpenAddPersonnel = {
                 personnelToEdit = null
@@ -2281,7 +1885,7 @@ fun LeaveTrackerMainApp(
             },
             onExtendCurrentLeave = { target ->
                 showAddLeaveDialog = false
-                initialLeavePersonnelId = null
+                quickLeavePersonnelId = null
                 personnelToExtend = target
             },
             onConfirm = { personnelId, leaveType, startMillis, returnMillis ->
@@ -2292,7 +1896,7 @@ fun LeaveTrackerMainApp(
                     returnDateMillis = returnMillis
                 )
                 showAddLeaveDialog = false
-                initialLeavePersonnelId = null
+                quickLeavePersonnelId = null
                 Toast.makeText(
                     context,
                     AppStrings.get(
