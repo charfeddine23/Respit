@@ -120,6 +120,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -173,6 +174,7 @@ import com.example.ui.components.ExportDialog
 import com.example.ui.components.FilterSortDialog
 import com.example.ui.components.InAppUpdateDialog
 import com.example.ui.components.LiquidGlassConfirmDialog
+import com.example.ui.screens.EntryLandingScreen
 import com.example.ui.components.LiquidGlassFloatingCapsule
 import com.example.ui.components.PersonnelCard
 import com.example.ui.components.SideNavigationDrawerContent
@@ -442,6 +444,7 @@ fun LeaveTrackerMainApp(
 
     var showAddEditDialog by remember { mutableStateOf(false) }
     var showAddLeaveDialog by remember { mutableStateOf(false) }
+    var initialLeavePersonnelId by remember { mutableStateOf<Long?>(null) }
     var personnelToEdit by remember { mutableStateOf<Personnel?>(null) }
     var personnelToDelete by remember { mutableStateOf<Personnel?>(null) }
     var personnelForHistory by remember { mutableStateOf<Personnel?>(null) }
@@ -454,6 +457,8 @@ fun LeaveTrackerMainApp(
     var showTrashBinDialog by remember { mutableStateOf(false) }
     var lastSwipeDeletedPerson by remember { mutableStateOf<Personnel?>(null) }
     var swipeUndoTicket by remember { mutableIntStateOf(0) }
+    var showEntryLanding by rememberSaveable { mutableStateOf(openNotificationsSignal == 0) }
+    var entrySearchQuery by rememberSaveable { mutableStateOf("") }
     var selectedNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
     var previousNavPage by remember { mutableStateOf(AppNavPage.DASHBOARD) }
     val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
@@ -488,6 +493,7 @@ fun LeaveTrackerMainApp(
 
     LaunchedEffect(openNotificationsSignal) {
         if (openNotificationsSignal > 0) {
+            showEntryLanding = false
             if (selectedNavPage != AppNavPage.NOTIFICATIONS) {
                 previousNavPage = selectedNavPage
             }
@@ -552,17 +558,55 @@ fun LeaveTrackerMainApp(
     }
 
     // Back navigation: Pop secondary pages (including Settings/Analytics/Notifications) back to previous or Dashboard
-    BackHandler(enabled = selectedNavPage != AppNavPage.DASHBOARD) {
+    BackHandler(enabled = !showEntryLanding && selectedNavPage != AppNavPage.DASHBOARD) {
         selectedNavPage = if (selectedNavPage == AppNavPage.NOTIFICATIONS) previousNavPage else AppNavPage.DASHBOARD
     }
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
     ) {
-        val backdropLayer = rememberGraphicsLayer()
-        var backdropOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
+        Crossfade(
+            targetState = showEntryLanding,
+            animationSpec = tween(
+                durationMillis = if (isDynamicAnimationsEnabled) 220 else 0,
+                easing = FastOutSlowInEasing
+            ),
+            label = "entryToMainCrossfade"
+        ) { isOnEntryScreen ->
+            if (isOnEntryScreen) {
+                EntryLandingScreen(
+                    personnelList = allPersonnelList,
+                    dutyReferenceMap = dutyReferenceMap,
+                    stats = stats,
+                    searchQuery = entrySearchQuery,
+                    onSearchQueryChange = { entrySearchQuery = it },
+                    onQuickAddLeave = { target ->
+                        initialLeavePersonnelId = target.id
+                        showAddLeaveDialog = true
+                    },
+                    onOpenPersonnelHistory = { target ->
+                        personnelForHistory = target
+                    },
+                    onTogglePin = { target ->
+                        viewModel.togglePinPersonnel(target)
+                    },
+                    onAddPersonnel = {
+                        personnelToEdit = null
+                        showAddEditDialog = true
+                    },
+                    onSeeMore = {
+                        selectedNavPage = AppNavPage.DASHBOARD
+                        showEntryLanding = false
+                    },
+                    currentLang = currentLang,
+                    isDarkMode = isDarkMode,
+                    animationsEnabled = isDynamicAnimationsEnabled
+                )
+            } else {
+                val backdropLayer = rememberGraphicsLayer()
+                var backdropOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
 
-        Scaffold(
+                Scaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("main_scaffold"),
@@ -752,6 +796,7 @@ fun LeaveTrackerMainApp(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .clip(CircleShape)
+                                        .clickable { showEntryLanding = true }
                                         .padding(vertical = 4.dp, horizontal = 4.dp)
                                         .testTag("app_title_row")
                                 ) {
@@ -826,6 +871,7 @@ fun LeaveTrackerMainApp(
                                             .clip(CircleShape)
                                             .clickable {
                                                 fabHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                initialLeavePersonnelId = null
                                                 showAddLeaveDialog = true
                                             }
                                             .testTag("add_personnel_fab"),
@@ -2179,6 +2225,8 @@ fun LeaveTrackerMainApp(
                 }
             }
         }
+            }
+        }
 
     // Add / Edit Personnel Dialog
     if (showAddEditDialog) {
@@ -2218,17 +2266,22 @@ fun LeaveTrackerMainApp(
         )
     }
 
-    // Add New Leave Dialog (Triggered by circular + FAB)
+    // Add New Leave Dialog (Triggered by circular + FAB or Entry screen + button)
     if (showAddLeaveDialog) {
         AddNewLeaveDialog(
             personnelList = allPersonnelList,
-            onDismiss = { showAddLeaveDialog = false },
+            initialPersonnelId = initialLeavePersonnelId,
+            onDismiss = {
+                showAddLeaveDialog = false
+                initialLeavePersonnelId = null
+            },
             onOpenAddPersonnel = {
                 personnelToEdit = null
                 showAddEditDialog = true
             },
             onExtendCurrentLeave = { target ->
                 showAddLeaveDialog = false
+                initialLeavePersonnelId = null
                 personnelToExtend = target
             },
             onConfirm = { personnelId, leaveType, startMillis, returnMillis ->
@@ -2239,6 +2292,7 @@ fun LeaveTrackerMainApp(
                     returnDateMillis = returnMillis
                 )
                 showAddLeaveDialog = false
+                initialLeavePersonnelId = null
                 Toast.makeText(
                     context,
                     AppStrings.get(

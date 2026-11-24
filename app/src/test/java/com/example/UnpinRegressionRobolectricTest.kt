@@ -92,6 +92,12 @@ class UnpinRegressionRobolectricTest {
       assertEquals(Lifecycle.State.RESUMED, scenario.state)
 
       composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+        composeTestRule.onAllNodesWithTag("entry_see_more_card").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeTestRule.onNodeWithTag("entry_see_more_card").performClick()
+      composeTestRule.waitForIdle()
+
+      composeTestRule.waitUntil(timeoutMillis = 5_000L) {
         composeTestRule.onAllNodesWithTag("dashboard_lazy_column").fetchSemanticsNodes().isNotEmpty()
       }
 
