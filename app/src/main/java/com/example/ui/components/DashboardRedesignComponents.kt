@@ -1,17 +1,11 @@
 package com.example.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,7 +70,6 @@ import com.example.ui.theme.CoralRedAccent
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
 import com.example.ui.theme.LocalThemePreset
-import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
@@ -102,10 +95,10 @@ fun DashboardPillSearchBar(
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
-    val primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else Color(0xFF059669)
-    val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF151E30) else Color(0xFFFEFFFF)
+    val primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+    val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF151F31) else Color(0xFFFFFFFF)
     val borderColor = preset?.borderAccent?.copy(alpha = 0.28f)
-        ?: if (effectiveDark) Color(0x3338BDF8) else Color(0xFFE2E8F0)
+        ?: if (effectiveDark) Color(0xFF283548) else Color(0xFFE2E8F0)
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
 
@@ -116,31 +109,31 @@ fun DashboardPillSearchBar(
         Surface(
             shape = CircleShape,
             color = surfaceColor,
-            shadowElevation = if (effectiveDark) 4.dp else 6.dp,
+            shadowElevation = if (effectiveDark) 2.dp else 3.dp,
             border = BorderStroke(1.dp, borderColor),
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 56.dp)
+                .defaultMinSize(minHeight = 54.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
-                        .background(primaryAccent.copy(alpha = if (effectiveDark) 0.18f else 0.10f)),
+                        .background(primaryAccent.copy(alpha = if (effectiveDark) 0.14f else 0.08f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = AppStrings.get("search_label", currentLang),
                         tint = primaryAccent,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(19.dp)
                     )
                 }
 
@@ -198,7 +191,7 @@ fun DashboardPillSearchBar(
                     color = if (activeFilterCount > 0) {
                         primaryAccent
                     } else if (effectiveDark) {
-                        Color.White.copy(alpha = 0.08f)
+                        Color(0xFF1F2B40)
                     } else {
                         Color(0xFFF1F5F9)
                     },
@@ -226,8 +219,8 @@ fun DashboardPillSearchBar(
                             Icon(
                                 imageVector = Icons.Default.Tune,
                                 contentDescription = AppStrings.get("filter_sort_btn", currentLang),
-                                tint = if (activeFilterCount > 0) Color.White else primaryAccent,
-                                modifier = Modifier.size(21.dp)
+                                tint = if (activeFilterCount > 0) contrastOnAccent(primaryAccent) else textSecondary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -247,13 +240,13 @@ fun DashboardPillSearchBar(
                 Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = AppStrings.get("recent_searches_title", currentLang),
-                    tint = primaryAccent,
-                    modifier = Modifier.size(15.dp)
+                    tint = textSecondary,
+                    modifier = Modifier.size(14.dp)
                 )
                 Text(
                     text = AppStrings.get("recent_searches_title", currentLang),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = textSecondary,
                     fontSize = 11.sp
                 )
@@ -262,13 +255,13 @@ fun DashboardPillSearchBar(
                     Surface(
                         shape = CircleShape,
                         color = if (isMatched) {
-                            primaryAccent.copy(alpha = if (effectiveDark) 0.28f else 0.14f)
+                            primaryAccent.copy(alpha = if (effectiveDark) 0.20f else 0.10f)
                         } else {
                             surfaceColor
                         },
                         border = BorderStroke(
-                            0.8.dp,
-                            if (isMatched) primaryAccent.copy(alpha = 0.65f) else borderColor
+                            1.dp,
+                            if (isMatched) primaryAccent.copy(alpha = 0.55f) else borderColor
                         ),
                         onClick = { onSelectRecentSearch(queryItem) },
                         modifier = Modifier.height(30.dp)
@@ -280,7 +273,7 @@ fun DashboardPillSearchBar(
                             Text(
                                 text = queryItem,
                                 style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                                 color = if (isMatched) primaryAccent else textPrimary,
                                 fontSize = 11.sp
                             )
@@ -309,7 +302,7 @@ fun DashboardPillSearchBar(
                         style = MaterialTheme.typography.labelSmall,
                         color = CoralRedAccent,
                         fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -329,9 +322,10 @@ fun DashboardQuickActionRow(
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
-    val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF151E30) else Color(0xFFFEFFFF)
-    val borderColor = preset?.borderHighlight?.copy(alpha = 0.45f)
-        ?: if (effectiveDark) Color(0x2838BDF8) else Color(0xFFE2E8F0)
+    val primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+    val surfaceColor = preset?.surfacePrimary ?: if (effectiveDark) Color(0xFF151F31) else Color(0xFFFFFFFF)
+    val borderColor = preset?.borderAccent?.copy(alpha = 0.28f)
+        ?: if (effectiveDark) Color(0xFF283548) else Color(0xFFE2E8F0)
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
 
     Row(
@@ -356,7 +350,7 @@ fun DashboardQuickActionRow(
         QuickActionPillTile(
             label = AppStrings.get("urgent_alerts_title", currentLang).split("(").first().trim(),
             icon = Icons.Default.NotificationsActive,
-            accent = CoralRedAccent,
+            accent = if (urgentCount > 0) CoralRedAccent else primaryAccent,
             surfaceColor = surfaceColor,
             borderColor = borderColor,
             textColor = textPrimary,
@@ -370,7 +364,7 @@ fun DashboardQuickActionRow(
         QuickActionPillTile(
             label = AppStrings.get("nav_database", currentLang),
             icon = Icons.Default.Storage,
-            accent = preset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent,
+            accent = primaryAccent,
             surfaceColor = surfaceColor,
             borderColor = borderColor,
             textColor = textPrimary,
@@ -399,12 +393,12 @@ private fun QuickActionPillTile(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = surfaceColor,
-        shadowElevation = if (effectiveDark) 3.dp else 4.dp,
+        shadowElevation = if (effectiveDark) 1.dp else 2.dp,
         border = BorderStroke(1.dp, borderColor),
         modifier = modifier
-            .defaultMinSize(minHeight = 52.dp)
+            .defaultMinSize(minHeight = 50.dp)
             .testTag(testTag)
     ) {
         Row(
@@ -416,23 +410,23 @@ private fun QuickActionPillTile(
         ) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
-                    .background(accent.copy(alpha = if (effectiveDark) 0.22f else 0.13f)),
+                    .background(accent.copy(alpha = if (effectiveDark) 0.16f else 0.10f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accent,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
             }
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
                 color = textColor,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -450,7 +444,7 @@ private fun QuickActionPillTile(
                         text = "$badgeCount",
                         color = Color.White,
                         fontSize = 9.5.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -475,34 +469,18 @@ fun AllPersonsSummaryBanner(
     val animatedProgress = if (animationsEnabled) {
         animateFloatAsState(
             targetValue = onDutyFraction,
-            animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+            animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
             label = "bannerProgressAnim"
         ).value
     } else {
         onDutyFraction
     }
 
-    val pulsePhase: Float = if (animationsEnabled) {
-        val infiniteTransition = rememberInfiniteTransition(label = "bannerRoutePulse")
-        infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 2200, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "routePulsePhase"
-        ).value
-    } else {
-        0f
-    }
-
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val bannerBrush = Brush.linearGradient(
         colors = listOf(
             Color(0xFF064E3B),
-            Color(0xFF065F46),
-            Color(0xFF047857)
+            Color(0xFF065F46)
         )
     )
     val urgentCount = stats.returningToday + stats.overdue
@@ -512,25 +490,24 @@ fun AllPersonsSummaryBanner(
 
     Surface(
         onClick = onOpenAllPersons,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(22.dp),
         color = Color.Transparent,
-        shadowElevation = 8.dp,
-        border = BorderStroke(1.dp, Color(0x3D6EE7B7)),
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.dp, Color(0x336EE7B7)),
         modifier = modifier
             .widthIn(max = 640.dp)
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 92.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(bannerBrush, RoundedCornerShape(24.dp))
+            .defaultMinSize(minHeight = 88.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(bannerBrush, RoundedCornerShape(22.dp))
             .testTag("all_persons_summary_banner")
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 18.dp, vertical = 13.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
-            // Top Header: "All persons" + total pill + circular arrow indicator
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -544,7 +521,7 @@ fun AllPersonsSummaryBanner(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.16f)),
+                            .background(Color.White.copy(alpha = 0.14f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -557,21 +534,21 @@ fun AllPersonsSummaryBanner(
                     Text(
                         text = AppStrings.get("all_persons_title", currentLang),
                         color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 15.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Box(
                         modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.20f), CircleShape)
+                            .background(Color.White.copy(alpha = 0.18f), CircleShape)
                             .padding(horizontal = 8.dp, vertical = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "${stats.total}",
                             color = Color.White,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.ExtraBold,
                             fontSize = 11.5.sp
                         )
                     }
@@ -581,7 +558,7 @@ fun AllPersonsSummaryBanner(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.18f)),
+                        .background(Color.White.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -593,7 +570,6 @@ fun AllPersonsSummaryBanner(
                 }
             }
 
-            // Middle: Horizontal dotted progress/route indicator between two status endpoints
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -609,7 +585,7 @@ fun AllPersonsSummaryBanner(
                 Canvas(
                     modifier = Modifier
                         .weight(1f)
-                        .height(14.dp)
+                        .height(12.dp)
                 ) {
                     val y = size.height / 2f
                     val startX = if (isRtl) size.width - 4.dp.toPx() else 4.dp.toPx()
@@ -618,45 +594,32 @@ fun AllPersonsSummaryBanner(
                     val dashStep = 6.dp.toPx()
                     val dashGap = 5.dp.toPx()
 
-                    // Background dotted track
                     drawLine(
-                        color = Color.White.copy(alpha = 0.32f),
+                        color = Color.White.copy(alpha = 0.30f),
                         start = Offset(startX, y),
                         end = Offset(endX, y),
-                        strokeWidth = 2.5.dp.toPx(),
+                        strokeWidth = 2.2.dp.toPx(),
                         cap = StrokeCap.Round,
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashStep, dashGap), 0f)
                     )
 
-                    // Active dotted segment up to onDutyFraction
                     val activeEndX = startX + span * animatedProgress
                     if (animatedProgress > 0.01f) {
                         drawLine(
                             color = Color(0xFF6EE7B7),
                             start = Offset(startX, y),
                             end = Offset(activeEndX, y),
-                            strokeWidth = 3.dp.toPx(),
+                            strokeWidth = 2.8.dp.toPx(),
                             cap = StrokeCap.Round,
                             pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashStep, dashGap), 0f)
                         )
                     }
 
-                    // Progress anchor node
                     drawCircle(
                         color = Color.White,
-                        radius = 4.2.dp.toPx(),
+                        radius = 4.dp.toPx(),
                         center = Offset(activeEndX, y)
                     )
-
-                    // Subtle traveling pulse dot along active route when animations enabled
-                    if (animationsEnabled && animatedProgress > 0.08f) {
-                        val travelX = startX + span * animatedProgress * pulsePhase
-                        drawCircle(
-                            color = Color(0xFFA7F3D0).copy(alpha = 1f - pulsePhase * 0.7f),
-                            radius = 3.dp.toPx(),
-                            center = Offset(travelX, y)
-                        )
-                    }
                 }
 
                 StatusEndpointBadge(
@@ -665,7 +628,6 @@ fun AllPersonsSummaryBanner(
                 )
             }
 
-            // Bottom concise summary description line
             Text(
                 text = summaryDescription,
                 color = Color(0xFFD1FAE5),
@@ -701,7 +663,7 @@ private fun StatusEndpointBadge(
         Text(
             text = "$count",
             color = Color.White,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.Bold,
             fontSize = 11.sp
         )
     }

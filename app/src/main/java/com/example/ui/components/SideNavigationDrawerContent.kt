@@ -201,8 +201,9 @@ fun SideNavigationDrawerContent(
     var showThemeEngineDialog by remember { mutableStateOf(false) }
     val activeThemePreset = LocalThemePreset.current
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
-    val accentCyan = activeThemePreset?.primary ?: Color(0xFF00BCD4)
-    val dividerColor = if (isDarkMode) Color(0x28475569) else Color(0x30CBD5E1)
+    val effectiveDark = activeThemePreset?.isDark ?: isDarkMode
+    val accentCyan = activeThemePreset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+    val dividerColor = if (effectiveDark) Color(0x28475569) else Color(0x30CBD5E1)
 
     if (showThemeEngineDialog) {
         ThemeEnginePickerDialog(
@@ -263,8 +264,7 @@ fun SideNavigationDrawerContent(
                         Spacer(modifier = Modifier.height(topBarClearance))
                     }
                     // SECTION 1: App Identity Header Card
-                    val effectiveDark = activeThemePreset?.isDark ?: isDarkMode
-                    val headerPrimary = activeThemePreset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+                    val headerPrimary = accentCyan
                     val textPrimary = activeThemePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
 
                     Box(
@@ -371,7 +371,7 @@ fun SideNavigationDrawerContent(
                     LiquidGlassSectionHighlight(
                         title = AppStrings.get("settings_sec_appearance", currentLang),
                         icon = Icons.Default.Palette,
-                        accent = Color(0xFF8B5CF6),
+                        accent = headerPrimary,
                         isDark = effectiveDark
                     )
 
@@ -420,7 +420,7 @@ fun SideNavigationDrawerContent(
 
                     DrawerNavigationItem(
                         icon = Icons.Default.Palette,
-                        iconTint = Color(0xFF8B5CF6),
+                        iconTint = headerPrimary,
                         title = AppStrings.get("settings_cat_appearance", currentLang),
                         subtitle = AppStrings.get("settings_cat_appearance_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -479,7 +479,7 @@ fun SideNavigationDrawerContent(
 
                     DrawerNavigationItem(
                         icon = Icons.Default.NotificationsActive,
-                        iconTint = Color(0xFF0284C7),
+                        iconTint = headerPrimary,
                         title = AppStrings.get("settings_cat_notifications", currentLang),
                         subtitle = AppStrings.get("settings_cat_notifications_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -495,8 +495,8 @@ fun SideNavigationDrawerContent(
                                         shape = RoundedCornerShape(50.dp),
                                         cornerRadius = 50.dp,
                                         isDark = effectiveDark,
-                                        accent = Color(0xFF0284C7),
-                                        secondaryAccent = Color(0xFF0284C7),
+                                        accent = headerPrimary,
+                                        secondaryAccent = headerPrimary,
                                         isSelected = true,
                                         softTintWhenSelected = true
                                     )
@@ -505,7 +505,7 @@ fun SideNavigationDrawerContent(
                                         text = "$dutyThreshold ${AppStrings.get("days", currentLang)}",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = if (effectiveDark) Color(0xFF7DD3FC) else Color(0xFF0284C7),
+                                        color = headerPrimary,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
                                 }
@@ -666,7 +666,7 @@ fun SideNavigationDrawerContent(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             SidebarStatBadge(AppStrings.get("stat_total", currentLang), "${stats.total}", headerPrimary, isDarkMode, Modifier.weight(1f))
-                            SidebarStatBadge(AppStrings.get("stat_on_leave", currentLang), "${stats.atHome}", Color(0xFF0284C7), isDarkMode, Modifier.weight(1f))
+                            SidebarStatBadge(AppStrings.get("stat_on_leave", currentLang), "${stats.atHome}", RoyalBlueAccent, isDarkMode, Modifier.weight(1f))
                             SidebarStatBadge(AppStrings.get("stat_returning_today", currentLang), "${stats.returningToday}", AmberWarning, isDarkMode, Modifier.weight(1f))
                             SidebarStatBadge(AppStrings.get("stat_overdue", currentLang), "${stats.overdue}", Color(0xFFDC2626), isDarkMode, Modifier.weight(1f))
                         }
@@ -837,7 +837,7 @@ fun SideNavigationDrawerContent(
                         title = AppStrings.get("settings_cat_appearance", currentLang),
                         subtitle = AppStrings.get("settings_cat_appearance_sub", currentLang),
                         icon = Icons.Default.Palette,
-                        accentColor = Color(0xFF8B5CF6),
+                        accentColor = accentCyan,
                         isDarkMode = isDarkMode,
                         backContentDesc = AppStrings.get("back", currentLang),
                         haptic = haptic,
@@ -879,7 +879,7 @@ fun SideNavigationDrawerContent(
                                 label = AppStrings.get("theme_light_btn", currentLang),
                                 icon = Icons.Default.LightMode,
                                 selected = currentThemeMode == AppThemeMode.LIGHT,
-                                accentColor = Color(0xFFF59E0B),
+                                accentColor = AmberWarning,
                                 isDarkMode = isDarkMode,
                                 haptic = haptic,
                                 onClick = { onSelectThemeMode(AppThemeMode.LIGHT) },
@@ -891,7 +891,7 @@ fun SideNavigationDrawerContent(
                                 label = AppStrings.get("theme_dark_btn", currentLang),
                                 icon = Icons.Default.DarkMode,
                                 selected = currentThemeMode == AppThemeMode.DARK,
-                                accentColor = Color(0xFF38BDF8),
+                                accentColor = accentCyan,
                                 isDarkMode = isDarkMode,
                                 haptic = haptic,
                                 onClick = { onSelectThemeMode(AppThemeMode.DARK) },
@@ -932,7 +932,7 @@ fun SideNavigationDrawerContent(
                                     cornerRadius = 16.dp,
                                     isDark = isDarkMode,
                                     accent = engineAccent,
-                                    secondaryAccent = activeThemePreset?.secondary ?: Color(0xFF8B5CF6),
+                                    secondaryAccent = activeThemePreset?.secondary ?: RoyalBlueAccent,
                                     isSelected = true,
                                     softTintWhenSelected = true
                                 )
@@ -952,16 +952,16 @@ fun SideNavigationDrawerContent(
                                             cornerRadius = 11.dp,
                                             isDark = isDarkMode,
                                             accent = engineAccent,
-                                            secondaryAccent = activeThemePreset?.secondary ?: Color(0xFF8B5CF6),
+                                            secondaryAccent = activeThemePreset?.secondary ?: RoyalBlueAccent,
                                             isSelected = true,
-                                            softTintWhenSelected = false
+                                            softTintWhenSelected = true
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = engineAccent,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -1036,15 +1036,15 @@ fun SideNavigationDrawerContent(
                     CleanSettingsCard(isDarkMode = isDarkMode) {
                         TactileSwitchSettingRow(
                             icon = Icons.Default.Speed,
-                            iconTint = Color(0xFFA855F7),
+                            iconTint = accentCyan,
                             title = AppStrings.get("dynamic_animations_title", currentLang),
                             subtitle = AppStrings.get(
                                 if (isDynamicAnimationsEnabled) "dynamic_animations_active" else "dynamic_animations_disabled",
                                 currentLang
                             ),
-                            subtitleColor = if (isDynamicAnimationsEnabled) Color(0xFF10B981) else Color(0xFFF59E0B),
+                            subtitleColor = if (isDynamicAnimationsEnabled) EmeraldSuccess else AmberWarning,
                             checked = isDynamicAnimationsEnabled,
-                            trackColor = Color(0xFFA855F7),
+                            trackColor = accentCyan,
                             isDarkMode = isDarkMode,
                             haptic = haptic,
                             switchTag = "drawer_dynamic_animations_toggle",
@@ -1072,7 +1072,7 @@ fun SideNavigationDrawerContent(
                         HorizontalDivider(color = dividerColor)
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        val luxuryAccent = activeThemePreset?.primary ?: Color(0xFFF59E0B)
+                        val luxuryAccent = activeThemePreset?.primary ?: AmberWarning
                         TactileSwitchSettingRow(
                             icon = Icons.Default.AutoAwesome,
                             iconTint = luxuryAccent,
@@ -1105,15 +1105,15 @@ fun SideNavigationDrawerContent(
 
                         TactileSwitchSettingRow(
                             icon = Icons.Default.Fullscreen,
-                            iconTint = Color(0xFF38BDF8),
+                            iconTint = RoyalBlueAccent,
                             title = AppStrings.get("fit_to_screen_title", currentLang),
                             subtitle = AppStrings.get(
                                 if (isFitToScreenEnabled) "fit_to_screen_active" else "fit_to_screen_inactive",
                                 currentLang
                             ),
-                            subtitleColor = if (isFitToScreenEnabled) Color(0xFF10B981) else null,
+                            subtitleColor = if (isFitToScreenEnabled) EmeraldSuccess else null,
                             checked = isFitToScreenEnabled,
-                            trackColor = Color(0xFF38BDF8),
+                            trackColor = RoyalBlueAccent,
                             isDarkMode = isDarkMode,
                             haptic = haptic,
                             switchTag = "drawer_fit_to_screen_toggle",
@@ -1280,7 +1280,7 @@ fun SideNavigationDrawerContent(
                         title = AppStrings.get("settings_cat_notifications", currentLang),
                         subtitle = AppStrings.get("settings_cat_notifications_sub", currentLang),
                         icon = Icons.Default.NotificationsActive,
-                        accentColor = Color(0xFF0284C7),
+                        accentColor = accentCyan,
                         isDarkMode = isDarkMode,
                         backContentDesc = AppStrings.get("back", currentLang),
                         haptic = haptic,
@@ -1290,7 +1290,7 @@ fun SideNavigationDrawerContent(
                     // 4.1 Check / Scan Notifications
                     DrawerNavigationItem(
                         icon = Icons.Default.NotificationsActive,
-                        iconTint = Color(0xFF0284C7),
+                        iconTint = accentCyan,
                         title = AppStrings.get("check_notifications", currentLang),
                         subtitle = AppStrings.get("drawer_notif_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -1300,7 +1300,7 @@ fun SideNavigationDrawerContent(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint = Color(0xFF0284C7),
+                                tint = accentCyan,
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -1443,7 +1443,7 @@ fun SideNavigationDrawerContent(
                         title = AppStrings.get("settings_cat_backup", currentLang),
                         subtitle = AppStrings.get("settings_cat_backup_sub", currentLang),
                         icon = Icons.Default.CloudSync,
-                        accentColor = Color(0xFF4285F4),
+                        accentColor = accentCyan,
                         isDarkMode = isDarkMode,
                         backContentDesc = AppStrings.get("back", currentLang),
                         haptic = haptic,
@@ -1453,7 +1453,7 @@ fun SideNavigationDrawerContent(
                     // 6.1 Backup & Data (JSON/CSV)
                     DrawerNavigationItem(
                         icon = Icons.Default.Share,
-                        iconTint = Color(0xFF7C3AED),
+                        iconTint = accentCyan,
                         title = AppStrings.get("export_data", currentLang),
                         subtitle = AppStrings.get("drawer_data_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -1477,7 +1477,7 @@ fun SideNavigationDrawerContent(
                     // 6.3 Export Database to Excel (.xlsx)
                     DrawerNavigationItem(
                         icon = Icons.Default.TableView,
-                        iconTint = Color(0xFF059669),
+                        iconTint = EmeraldSuccess,
                         title = AppStrings.get("room_export_xlsx_btn", currentLang),
                         subtitle = AppStrings.get("excel_export_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -1490,11 +1490,11 @@ fun SideNavigationDrawerContent(
                     CleanSettingsCard(isDarkMode = isDarkMode) {
                         TactileSwitchSettingRow(
                             icon = Icons.Default.CloudSync,
-                            iconTint = Color(0xFF4285F4),
+                            iconTint = RoyalBlueAccent,
                             title = AppStrings.get("drive_backup_title", currentLang),
                             subtitle = "${AppStrings.get("drive_last_backup", currentLang)} ${if (lastDriveBackupTime > 0L) sdf.format(Date(lastDriveBackupTime)) else AppStrings.get("drive_never", currentLang)}",
                             checked = isDriveSyncEnabled,
-                            trackColor = Color(0xFF4285F4),
+                            trackColor = RoyalBlueAccent,
                             isDarkMode = isDarkMode,
                             haptic = haptic,
                             switchTag = "drawer_drive_sync_toggle",
@@ -1510,7 +1510,7 @@ fun SideNavigationDrawerContent(
                             TactileActionPillButton(
                                 text = AppStrings.get("drive_backup_btn", currentLang),
                                 icon = Icons.Default.CloudUpload,
-                                accentColor = Color(0xFF4285F4),
+                                accentColor = RoyalBlueAccent,
                                 isFilled = true,
                                 isDarkMode = isDarkMode,
                                 haptic = haptic,
@@ -1522,7 +1522,7 @@ fun SideNavigationDrawerContent(
                             TactileActionPillButton(
                                 text = AppStrings.get("drive_restore_btn", currentLang),
                                 icon = Icons.Default.CloudDownload,
-                                accentColor = Color(0xFF4285F4),
+                                accentColor = RoyalBlueAccent,
                                 isFilled = false,
                                 isDarkMode = isDarkMode,
                                 haptic = haptic,
@@ -1537,7 +1537,7 @@ fun SideNavigationDrawerContent(
                     // 6.5 Room DB Management
                     DrawerNavigationItem(
                         icon = Icons.Default.Storage,
-                        iconTint = Color(0xFF0284C7),
+                        iconTint = accentCyan,
                         title = AppStrings.get("nav_database", currentLang),
                         subtitle = AppStrings.get("room_db_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -1549,7 +1549,7 @@ fun SideNavigationDrawerContent(
                     // 6.6 Restore Demo Data
                     DrawerNavigationItem(
                         icon = Icons.Default.Refresh,
-                        iconTint = Color(0xFFF59E0B),
+                        iconTint = AmberWarning,
                         title = AppStrings.get("drawer_reset_title", currentLang),
                         subtitle = AppStrings.get("drawer_reset_sub", currentLang),
                         isDarkMode = isDarkMode,
@@ -1897,8 +1897,7 @@ private fun TactileActionPillButton(
         label = "actionPillScale"
     )
     val labelColor = when {
-        isFilled -> Color.White
-        effectiveDark && accentColor == Color(0xFF4285F4) -> Color(0xFF8AB4F8)
+        isFilled -> contrastOnAccent(accentColor)
         else -> accentColor
     }
 

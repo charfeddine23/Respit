@@ -638,11 +638,13 @@ object AppStrings {
         "undo_extended" to "تراجع عن تمديد الإجازة",
         "extend_short_chip" to "تمديد",
         "extend_pick_date_hint" to "أو اختر تاريخ الدخول الجديد مباشرة من التقويم",
-        "all_persons_title" to "جميع الأفراد",
-        "banner_on_duty_short" to "بالخدمة",
-        "banner_on_leave_short" to "في إجازة",
-        "banner_alerts_short" to "عائد/متأخر",
-        "quick_add_leave_desc" to "إضافة إجازة سريعة"
+        "entry_search_hint" to "ابحث عن فرد بالاسم أو الرقم...",
+        "entry_days_served_unit" to "يوم",
+        "entry_days_left_prefix" to "متبقي",
+        "entry_bottom_summary" to "إجمالي %d فرد • %d مستحق للإجازة — اضغط للدخول إلى التطبيق",
+        "entry_empty_title" to "لا يوجد أفراد مسجلون بعد",
+        "entry_empty_sub" to "أضف أول فرد للبدء في متابعة الإجازات والأيام",
+        "entry_no_search_results" to "لا توجد نتائج مطابقة لبحثك"
     )
 
     private val stringsFr = mapOf(
@@ -1260,11 +1262,13 @@ object AppStrings {
         "undo_extended" to "Annuler la prolongation du congé",
         "extend_short_chip" to "Prolonger",
         "extend_pick_date_hint" to "Ou sélectionnez directement la nouvelle date de retour",
-        "all_persons_title" to "Tout le personnel",
-        "banner_on_duty_short" to "en service",
-        "banner_on_leave_short" to "en congé",
-        "banner_alerts_short" to "retour/retard",
-        "quick_add_leave_desc" to "Ajouter un congé rapide"
+        "entry_search_hint" to "Rechercher un personnel...",
+        "entry_days_served_unit" to "j",
+        "entry_days_left_prefix" to "Reste",
+        "entry_bottom_summary" to "%d inscrits • %d éligibles au congé — Appuyez pour entrer",
+        "entry_empty_title" to "Aucun personnel enregistré",
+        "entry_empty_sub" to "Ajoutez un premier membre pour suivre les congés et les jours",
+        "entry_no_search_results" to "Aucun résultat correspondant"
     )
 
     private val stringsEn = mapOf(
@@ -1882,11 +1886,13 @@ object AppStrings {
         "undo_extended" to "Undo leave extension",
         "extend_short_chip" to "Extend",
         "extend_pick_date_hint" to "Or pick the new return date directly from calendar",
-        "all_persons_title" to "All persons",
-        "banner_on_duty_short" to "on duty",
-        "banner_on_leave_short" to "on leave",
-        "banner_alerts_short" to "returning/overdue",
-        "quick_add_leave_desc" to "Quick add leave"
+        "entry_search_hint" to "Search personnel...",
+        "entry_days_served_unit" to "days",
+        "entry_days_left_prefix" to "Left",
+        "entry_bottom_summary" to "%d personnel • %d eligible for leave — Tap to enter the app",
+        "entry_empty_title" to "No personnel registered yet",
+        "entry_empty_sub" to "Add your first member to start tracking leaves and days",
+        "entry_no_search_results" to "No matching personnel found"
     )
 
     private val stringsTzm = mapOf(
@@ -2319,10 +2325,12 @@ object AppStrings {
         "undo_extended" to "Sefsex asiɣzef n yimuras",
         "extend_short_chip" to "Siɣzef",
         "extend_pick_date_hint" to "Neɣ fren azemz amaynut n tuɣalin srid",
-        "all_persons_title" to "Akk imdanen",
-        "banner_on_duty_short" to "deg umahil",
-        "banner_on_leave_short" to "deg yimuras",
-        "banner_alerts_short" to "tuɣalin/aɛeṭṭel",
-        "quick_add_leave_desc" to "Rnu imuras s tɣawla"
+        "entry_search_hint" to "Nadi ɣef umdan...",
+        "entry_days_served_unit" to "n wussan",
+        "entry_days_left_prefix" to "Yeqqim",
+        "entry_bottom_summary" to "%d n yimdanen • %d yuklalen — Senned iwakken ad tkecmeḍ ɣer usnas",
+        "entry_empty_title" to "Ulac imdanen yettwaskelsen",
+        "entry_empty_sub" to "Rnu amdan amezwaru iwakken ad tḍefreḍ imuras",
+        "entry_no_search_results" to "Ulac igemmuḍen yemṣadan"
     )
 }

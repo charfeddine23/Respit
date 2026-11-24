@@ -34,6 +34,11 @@ class TopBannerAndDrawerUiTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.waitForIdle()
 
+            // Verify new Entry Landing Screen opens first, then tap "See more" to enter main app
+            composeRule.onNodeWithTag("entry_landing_screen").assertExists()
+            composeRule.onNodeWithTag("entry_see_more_card").performClick()
+            composeRule.waitForIdle()
+
             // 1. Arabic (RTL): Menu button removed; Top Bar uses Liquid Glass capsule; Left->Right order is [Logo + ريسبيت] ... [Theme] [Notifications (Far Right)]
             composeRule.onNodeWithTag("top_bar_glass_capsule").assertExists()
             composeRule.onNodeWithTag("header_menu_button").assertDoesNotExist()
