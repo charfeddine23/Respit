@@ -6,9 +6,13 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -81,6 +85,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -299,6 +304,21 @@ fun PersonnelCard(
     )
 
     val isLivingLuxury = LocalLivingLuxuryMode.current
+    val isLivingActive = isLivingLuxury && animationsEnabled
+    val cardBreath = if (isLivingActive) {
+        val inf = rememberInfiniteTransition(label = "livingCard_${personnel.id}")
+        val p by inf.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "cardBreath"
+        )
+        p
+    } else 0f
+
     val haptic = LocalHapticFeedback.current
     val holdScope = rememberCoroutineScope()
     val latestOnTogglePin by rememberUpdatedState(onTogglePin)
@@ -358,17 +378,7 @@ fun PersonnelCard(
         label = "trashIconTilt"
     )
 
-    val pinBorderModifier = when {
-        isSwipeArmed || isHorizontalDragging -> Modifier.border(
-            BorderStroke(1.5.dp, CoralRedAccent.copy(alpha = 0.85f)),
-            RoundedCornerShape(20.dp)
-        )
-        personnel.isPinned -> Modifier.border(
-            BorderStroke(1.3.dp, AmberWarning.copy(alpha = 0.65f)),
-            RoundedCornerShape(20.dp)
-        )
-        else -> Modifier
-    }
+    val cardShape = RoundedCornerShape(22.dp)
 
     Box(
         modifier = modifier
@@ -660,14 +670,28 @@ fun PersonnelCard(
         val cardBorderBrush = if (preset != null) {
             Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = if (effectiveDark) 0.18f else 0.85f),
-                    preset.borderAccent.copy(alpha = 0.30f)
+                    Color.White.copy(alpha = if (effectiveDark) (if (isLivingActive) 0.20f + 0.14f * cardBreath else 0.18f) else 0.90f),
+                    if (isLivingActive) {
+                        primaryAccent.copy(alpha = 0.22f + 0.18f * cardBreath)
+                    } else {
+                        preset.borderAccent.copy(alpha = 0.30f)
+                    }
                 )
             )
         } else if (effectiveDark) {
-            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.16f), Color(0xFF233645)))
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = if (isLivingActive) 0.18f + 0.14f * cardBreath else 0.16f),
+                    if (isLivingActive) primaryAccent.copy(alpha = 0.20f + 0.16f * cardBreath) else Color(0xFF233645)
+                )
+            )
         } else {
-            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), Color(0xFFD5E3E2)))
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.96f),
+                    if (isLivingActive) primaryAccent.copy(alpha = 0.18f + 0.14f * cardBreath) else Color(0xFFD5E3E2)
+                )
+            )
         }
 
         val wilayaCodeBadge = remember(personnel.wilaya, currentLang, effectiveDaysSinceDuty) {
@@ -676,25 +700,37 @@ fun PersonnelCard(
             if (digits.isNotEmpty()) digits else "$effectiveDaysSinceDuty"
         }
 
-        val cardShape = RoundedCornerShape(22.dp)
         val neutralChipBg = if (effectiveDark) Color(0xBF172633) else Color(0xE8FFFFFF)
         val neutralChipBorder = if (effectiveDark) Color(0xFF283B4A) else Color(0xFFDDE7E6)
         val dividerColor = if (effectiveDark) Color(0xFF223342) else Color(0xFFE7EFEF)
 
-        Surface(
-            shape = cardShape,
-            color = Color.Transparent,
-            shadowElevation = when {
-                isHorizontalDragging -> 10.dp
-                personnel.isPinned -> 4.dp
-                effectiveDark -> 2.dp
-                else -> 3.dp
-            },
-            border = if (isSwipeArmed || isHorizontalDragging || personnel.isPinned) {
-                null
-            } else {
-                BorderStroke(1.dp, cardBorderBrush)
-            },
+        val resolvedBorder = when {
+            isSwipeArmed || isHorizontalDragging -> BorderStroke(1.5.dp, CoralRedAccent.copy(alpha = 0.85f))
+            personnel.isPinned -> BorderStroke(1.3.dp, AmberWarning.copy(alpha = 0.65f))
+            else -> BorderStroke(if (isLivingActive) 1.15.dp else 1.dp, cardBorderBrush)
+        }
+
+        val luxurySheenModifier = if (isLivingActive) {
+            Modifier.drawWithContent {
+                drawContent()
+                val sheenAlpha = (if (effectiveDark) 0.13f else 0.34f) * (0.55f + 0.45f * cardBreath)
+                drawLine(
+                    brush = Brush.horizontalGradient(
+                        listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = sheenAlpha),
+                            primaryAccent.copy(alpha = sheenAlpha * 0.65f),
+                            Color.Transparent
+                        )
+                    ),
+                    start = Offset(size.width * 0.12f, 1.5.dp.toPx()),
+                    end = Offset(size.width * 0.88f, 1.5.dp.toPx()),
+                    strokeWidth = 1.6.dp.toPx()
+                )
+            }
+        } else Modifier
+
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
@@ -718,9 +754,10 @@ fun PersonnelCard(
                         scaleY = cardPressScale
                     }
                 }
-                .then(pinBorderModifier)
                 .clip(cardShape)
                 .background(cardFillBrush)
+                .then(luxurySheenModifier)
+                .border(resolvedBorder, cardShape)
                 .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     isExpanded = !isExpanded
@@ -827,11 +864,37 @@ fun PersonnelCard(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(visual.color)
-                            )
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(if (isLivingActive) 12.dp else 7.dp)
+                            ) {
+                                if (isLivingActive) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(11.dp)
+                                            .graphicsLayer {
+                                                val haloScale = 0.85f + 0.50f * cardBreath
+                                                scaleX = haloScale
+                                                scaleY = haloScale
+                                                alpha = (1f - cardBreath) * 0.48f
+                                            }
+                                            .clip(CircleShape)
+                                            .background(visual.color)
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .graphicsLayer {
+                                            if (isLivingActive) {
+                                                val s = 1f + 0.16f * cardBreath
+                                                scaleX = s
+                                                scaleY = s
+                                            }
+                                        }
+                                        .clip(CircleShape)
+                                        .background(visual.color)
+                                )
+                            }
                             Text(
                                 text = AppStrings.get(visual.badgeKey, currentLang),
                                 fontSize = 11.5.sp,

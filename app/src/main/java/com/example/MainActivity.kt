@@ -653,6 +653,20 @@ fun LeaveTrackerMainApp(
                                         .testTag("app_title_row")
                                 ) {
                                     val logoTileShape = RoundedCornerShape(13.dp)
+                                    val isLivingHeader = isLivingLuxuryMode && isDynamicAnimationsEnabled
+                                    val headerBreath = if (isLivingHeader) {
+                                        val inf = rememberInfiniteTransition(label = "livingHeaderLogo")
+                                        val p by inf.animateFloat(
+                                            initialValue = 0f,
+                                            targetValue = 1f,
+                                            animationSpec = infiniteRepeatable(
+                                                animation = tween(durationMillis = 3600, easing = FastOutSlowInEasing),
+                                                repeatMode = RepeatMode.Reverse
+                                            ),
+                                            label = "headerLogoBreath"
+                                        )
+                                        p
+                                    } else 0f
                                     val logoGrad = Brush.verticalGradient(
                                         listOf(
                                             topActiveAccent,
@@ -662,17 +676,27 @@ fun LeaveTrackerMainApp(
                                     Box(
                                         modifier = Modifier
                                             .size(44.dp)
+                                            .graphicsLayer {
+                                                if (isLivingHeader) {
+                                                    val s = 1f + 0.042f * headerBreath
+                                                    scaleX = s
+                                                    scaleY = s
+                                                }
+                                            }
                                             .shadow(
-                                                elevation = 4.dp,
+                                                elevation = if (isLivingHeader) (4f + 3f * headerBreath).dp else 4.dp,
                                                 shape = logoTileShape,
                                                 clip = false,
-                                                ambientColor = topActiveAccent.copy(alpha = 0.24f),
-                                                spotColor = topActiveAccent.copy(alpha = 0.34f)
+                                                ambientColor = topActiveAccent.copy(alpha = if (isLivingHeader) 0.30f + 0.15f * headerBreath else 0.24f),
+                                                spotColor = topActiveAccent.copy(alpha = if (isLivingHeader) 0.42f + 0.18f * headerBreath else 0.34f)
                                             )
                                             .clip(logoTileShape)
                                             .background(logoGrad)
                                             .border(
-                                                BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
+                                                BorderStroke(
+                                                    if (isLivingHeader) 1.2.dp else 1.dp,
+                                                    Color.White.copy(alpha = if (isLivingHeader) 0.32f + 0.22f * headerBreath else 0.28f)
+                                                ),
                                                 logoTileShape
                                             ),
                                         contentAlignment = Alignment.Center

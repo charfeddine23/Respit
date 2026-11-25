@@ -3,8 +3,12 @@ package com.example.ui.components
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -86,6 +90,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AuroraCyanTop
 import com.example.ui.theme.AuroraPurpleBottom
 import com.example.ui.theme.CyanGlow
+import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
 import com.example.ui.theme.SlateTextSecondary
@@ -134,12 +139,27 @@ fun AppBottomNavigationPanel(
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
+    val isLivingLuxury = LocalLivingLuxuryMode.current && animationsEnabled
     val density = LocalDensity.current
     val haptic = LocalHapticFeedback.current
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     val activeAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
     val secondaryAccent = preset?.secondary ?: activeAccent
+
+    val dockBreath = if (isLivingLuxury) {
+        val inf = rememberInfiniteTransition(label = "livingDock")
+        val p by inf.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dockBreath"
+        )
+        p
+    } else 0f
 
     val tabBounds = remember { mutableStateMapOf<AppNavPage, Pair<Float, Float>>() }
 
@@ -151,8 +171,8 @@ fun AppBottomNavigationPanel(
         targetValue = targetBounds?.first ?: 0f,
         animationSpec = if (animationsEnabled) {
             spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = 420f
+                dampingRatio = if (isLivingLuxury) 0.78f else Spring.DampingRatioNoBouncy,
+                stiffness = if (isLivingLuxury) 360f else 420f
             )
         } else tween(0),
         label = "cleanNavPillX"
@@ -161,8 +181,8 @@ fun AppBottomNavigationPanel(
         targetValue = targetBounds?.second ?: 0f,
         animationSpec = if (animationsEnabled) {
             spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = 420f
+                dampingRatio = if (isLivingLuxury) 0.78f else Spring.DampingRatioNoBouncy,
+                stiffness = if (isLivingLuxury) 360f else 420f
             )
         } else tween(0),
         label = "cleanNavPillWidth"
@@ -198,7 +218,7 @@ fun AppBottomNavigationPanel(
                 isDarkMode = effectiveDark,
                 activeAccent = activeAccent,
                 secondaryAccent = secondaryAccent,
-                isLiving = false,
+                isLiving = isLivingLuxury,
                 backdropLayer = backdropLayer,
                 backdropOffsetInRoot = backdropOffsetInRoot
             ) {
@@ -210,18 +230,27 @@ fun AppBottomNavigationPanel(
                     if (hasMeasuredBounds && lensWidth > 0f) {
                         val lensWidthDp = with(density) { lensWidth.toDp() }
                         val pillShape = RoundedCornerShape(16.dp)
+                        val pillAlpha = if (effectiveDark) {
+                            if (isLivingLuxury) 0.20f + 0.08f * dockBreath else 0.22f
+                        } else {
+                            if (isLivingLuxury) 0.11f + 0.06f * dockBreath else 0.12f
+                        }
                         Box(
                             modifier = Modifier
                                 .offset { IntOffset(lensX.roundToInt(), 0) }
                                 .width(lensWidthDp)
                                 .fillMaxHeight()
                                 .clip(pillShape)
-                                .background(
-                                    activeAccent.copy(alpha = if (effectiveDark) 0.22f else 0.12f)
-                                )
+                                .background(activeAccent.copy(alpha = pillAlpha))
                                 .border(
-                                    width = 1.dp,
-                                    color = activeAccent.copy(alpha = if (effectiveDark) 0.30f else 0.14f),
+                                    width = if (isLivingLuxury) 1.2.dp else 1.dp,
+                                    color = activeAccent.copy(
+                                        alpha = if (effectiveDark) {
+                                            if (isLivingLuxury) 0.30f + 0.18f * dockBreath else 0.30f
+                                        } else {
+                                            if (isLivingLuxury) 0.16f + 0.14f * dockBreath else 0.14f
+                                        }
+                                    ),
                                     shape = pillShape
                                 )
                         )
@@ -243,6 +272,8 @@ fun AppBottomNavigationPanel(
                                 activeColor = activeAccent,
                                 textSecondary = preset?.textSecondary,
                                 animationsEnabled = animationsEnabled,
+                                isLivingLuxury = isLivingLuxury,
+                                dockBreath = dockBreath,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onSelectPage(tab.page)
@@ -304,20 +335,44 @@ fun LiquidGlassFloatingCapsule(
         Color.White.copy(alpha = if (backdropLayer != null && supportsHardwareBlur) 0.80f else 0.90f)
     }
 
+    val capsuleBreath = if (isLiving) {
+        val inf = rememberInfiniteTransition(label = "livingCapsule")
+        val p by inf.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "capsuleBreath"
+        )
+        p
+    } else 0f
+
     val borderBrush = if (isDarkMode) {
-        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.18f), Color(0xFF253746)))
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = if (isLiving) 0.20f + 0.12f * capsuleBreath else 0.18f),
+                if (isLiving) activeAccent.copy(alpha = 0.20f + 0.14f * capsuleBreath) else Color(0xFF253746)
+            )
+        )
     } else {
-        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), Color(0xFFD5E3E2)))
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.96f),
+                if (isLiving) activeAccent.copy(alpha = 0.18f + 0.12f * capsuleBreath) else Color(0xFFD5E3E2)
+            )
+        )
     }
 
     Box(
         modifier = modifier
             .shadow(
-                elevation = 8.dp,
+                elevation = if (isLiving) 10.dp else 8.dp,
                 shape = capsuleShape,
                 clip = false,
                 ambientColor = if (isDarkMode) Color(0x66000000) else Color(0x160F172A),
-                spotColor = if (isDarkMode) Color(0x77000000) else Color(0x1E0D9488)
+                spotColor = if (isLiving) activeAccent.copy(alpha = 0.28f) else if (isDarkMode) Color(0x77000000) else Color(0x1E0D9488)
             )
             .clip(capsuleShape)
             .onGloballyPositioned { coords ->
@@ -328,7 +383,7 @@ fun LiquidGlassFloatingCapsule(
             Canvas(
                 modifier = Modifier
                     .matchParentSize()
-                    .blur(radius = 18.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                    .blur(radius = if (isLiving) 22.dp else 18.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
             ) {
                 val layerSize = backdropLayer.size
                 if (layerSize.width > 0 && layerSize.height > 0) {
@@ -348,8 +403,29 @@ fun LiquidGlassFloatingCapsule(
                 .matchParentSize()
                 .background(fillColor)
                 .then(
+                    if (isLiving) {
+                        Modifier.drawWithContent {
+                            drawContent()
+                            val sheenAlpha = (if (isDarkMode) 0.14f else 0.36f) * (0.55f + 0.45f * capsuleBreath)
+                            drawLine(
+                                brush = Brush.horizontalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = sheenAlpha),
+                                        activeAccent.copy(alpha = sheenAlpha * 0.65f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                start = Offset(size.width * 0.12f, 1.5.dp.toPx()),
+                                end = Offset(size.width * 0.88f, 1.5.dp.toPx()),
+                                strokeWidth = 1.6.dp.toPx()
+                            )
+                        }
+                    } else Modifier
+                )
+                .then(
                     if (showBorder) {
-                        Modifier.border(1.dp, borderBrush, capsuleShape)
+                        Modifier.border(if (isLiving) 1.2.dp else 1.dp, borderBrush, capsuleShape)
                     } else {
                         Modifier
                     }
@@ -521,6 +597,8 @@ private fun BottomNavItem(
     activeColor: Color,
     textSecondary: Color?,
     animationsEnabled: Boolean,
+    isLivingLuxury: Boolean = false,
+    dockBreath: Float = 0f,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     testTag: String
@@ -537,20 +615,26 @@ private fun BottomNavItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
+    val baseScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else if (isSelected && isLivingLuxury) 1.04f else 1f,
         animationSpec = if (animationsEnabled) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 460f)
+            spring(
+                dampingRatio = if (isLivingLuxury) 0.72f else Spring.DampingRatioNoBouncy,
+                stiffness = 420f
+            )
         } else tween(0),
         label = "navScale"
     )
+    val livingIconScale = if (isSelected && isLivingLuxury && !isPressed) {
+        1f + 0.045f * dockBreath
+    } else 1f
 
     Box(
         modifier = modifier
             .defaultMinSize(minHeight = 48.dp)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                scaleX = baseScale
+                scaleY = baseScale
             }
             .clip(RoundedCornerShape(16.dp))
             .clickable(
@@ -585,7 +669,12 @@ private fun BottomNavItem(
                         imageVector = icon,
                         contentDescription = label,
                         tint = itemColor,
-                        modifier = Modifier.size(21.dp)
+                        modifier = Modifier
+                            .size(21.dp)
+                            .graphicsLayer {
+                                scaleX = livingIconScale
+                                scaleY = livingIconScale
+                            }
                     )
                 }
             } else {
@@ -593,7 +682,12 @@ private fun BottomNavItem(
                     imageVector = icon,
                     contentDescription = label,
                     tint = itemColor,
-                    modifier = Modifier.size(21.dp)
+                    modifier = Modifier
+                        .size(21.dp)
+                        .graphicsLayer {
+                            scaleX = livingIconScale
+                            scaleY = livingIconScale
+                        }
                 )
             }
 
