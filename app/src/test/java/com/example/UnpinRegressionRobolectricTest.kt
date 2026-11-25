@@ -95,9 +95,10 @@ class UnpinRegressionRobolectricTest {
         composeTestRule.onAllNodesWithTag("dashboard_lazy_column").fetchSemanticsNodes().isNotEmpty()
       }
 
-      // Scroll to pinned person 6 at the top of the cards section and tap pin icon to unpin
+      // Unpinned personnel (1..5) must NOT appear on Dashboard; only pinned person 6 appears
       composeTestRule.onNodeWithTag("dashboard_lazy_column")
         .performScrollToNode(hasTestTag("personnel_item_6"))
+      assertEquals(0, composeTestRule.onAllNodesWithTag("personnel_item_1").fetchSemanticsNodes().size)
       composeTestRule.waitUntil(timeoutMillis = 5_000L) {
         composeTestRule.onAllNodesWithTag("pinned_badge_6").fetchSemanticsNodes().isNotEmpty()
       }
@@ -110,8 +111,18 @@ class UnpinRegressionRobolectricTest {
         composeTestRule.onAllNodesWithTag("pinned_badge_6").fetchSemanticsNodes().isEmpty()
       }
 
-      // Person 6 must still exist in the Dashboard list (not dropped by any 4-item cutoff or deleted)
+      // Dashboard now shows ONLY pinned persons: unpinning person 6 removes them from Dashboard
       composeTestRule.onNodeWithTag("dashboard_lazy_column")
+        .performScrollToNode(hasTestTag("dashboard_pinned_empty_card"))
+      composeTestRule.waitForIdle()
+      composeTestRule.onNodeWithTag("dashboard_pinned_empty_card").assertIsDisplayed()
+
+      // Navigating to Personnel tab confirms person 6 is still visible in all records and active in DB
+      composeTestRule.onNodeWithTag("bottom_nav_records").performClick()
+      composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+        composeTestRule.onAllNodesWithTag("records_lazy_column").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeTestRule.onNodeWithTag("records_lazy_column")
         .performScrollToNode(hasTestTag("personnel_item_6"))
       composeTestRule.waitForIdle()
       composeTestRule.onNodeWithTag("personnel_item_6").assertIsDisplayed()

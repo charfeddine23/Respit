@@ -32,6 +32,7 @@ class SettingsManager(context: Context) {
         private const val KEY_LIVING_LUXURY_MODE = "pref_living_luxury_mode"
         private const val KEY_NO_SCREENSHOT_ENABLED = "pref_no_screenshot_enabled"
         private const val KEY_THEME_ENGINE_ID = "pref_theme_engine_id"
+        private const val KEY_LAST_THEME_ENGINE_ID = "pref_last_theme_engine_id"
         private const val KEY_FIT_TO_SCREEN = "pref_fit_to_screen_enabled"
         const val DEFAULT_DUTY_THRESHOLD = 45
     }
@@ -85,6 +86,10 @@ class SettingsManager(context: Context) {
     var selectedThemeEngineId: String
         get() = safeGetString(KEY_THEME_ENGINE_ID, "") ?: ""
         set(value) = prefs.edit().putString(KEY_THEME_ENGINE_ID, value).apply()
+
+    var lastCustomThemeEngineId: String
+        get() = safeGetString(KEY_LAST_THEME_ENGINE_ID, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_THEME_ENGINE_ID, value).apply()
 
     var isBiometricEnabled: Boolean
         get() = safeGetBoolean(KEY_BIOMETRIC_ENABLED, false)

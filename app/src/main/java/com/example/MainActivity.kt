@@ -93,6 +93,7 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -101,6 +102,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -643,16 +645,14 @@ fun LeaveTrackerMainApp(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Start Side: Teal Rounded-Square Logo Tile + Bold Brand Name
+                                // Start Side: Large Frameless App Logo + Bold Brand Name
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(14.dp))
                                         .padding(vertical = 2.dp)
                                         .testTag("app_title_row")
                                 ) {
-                                    val logoTileShape = RoundedCornerShape(13.dp)
                                     val isLivingHeader = isLivingLuxuryMode && isDynamicAnimationsEnabled
                                     val headerBreath = if (isLivingHeader) {
                                         val inf = rememberInfiniteTransition(label = "livingHeaderLogo")
@@ -667,15 +667,14 @@ fun LeaveTrackerMainApp(
                                         )
                                         p
                                     } else 0f
-                                    val logoGrad = Brush.verticalGradient(
-                                        listOf(
-                                            topActiveAccent,
-                                            topActiveAccent.copy(alpha = 0.88f)
-                                        )
-                                    )
-                                    Box(
+
+                                    Image(
+                                        painter = painterResource(id = R.drawable.app_logo),
+                                        contentDescription = AppStrings.get("app_icon_desc", currentLang),
+                                        contentScale = ContentScale.Fit,
+                                        colorFilter = ColorFilter.tint(topActiveAccent),
                                         modifier = Modifier
-                                            .size(44.dp)
+                                            .size(width = 56.dp, height = 46.dp)
                                             .graphicsLayer {
                                                 if (isLivingHeader) {
                                                     val s = 1f + 0.042f * headerBreath
@@ -683,32 +682,8 @@ fun LeaveTrackerMainApp(
                                                     scaleY = s
                                                 }
                                             }
-                                            .shadow(
-                                                elevation = if (isLivingHeader) (4f + 3f * headerBreath).dp else 4.dp,
-                                                shape = logoTileShape,
-                                                clip = false,
-                                                ambientColor = topActiveAccent.copy(alpha = if (isLivingHeader) 0.30f + 0.15f * headerBreath else 0.24f),
-                                                spotColor = topActiveAccent.copy(alpha = if (isLivingHeader) 0.42f + 0.18f * headerBreath else 0.34f)
-                                            )
-                                            .clip(logoTileShape)
-                                            .background(logoGrad)
-                                            .border(
-                                                BorderStroke(
-                                                    if (isLivingHeader) 1.2.dp else 1.dp,
-                                                    Color.White.copy(alpha = if (isLivingHeader) 0.32f + 0.22f * headerBreath else 0.28f)
-                                                ),
-                                                logoTileShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.app_logo),
-                                            contentDescription = AppStrings.get("app_icon_desc", currentLang),
-                                            contentScale = ContentScale.Fit,
-                                            colorFilter = ColorFilter.tint(Color.White),
-                                            modifier = Modifier.size(26.dp)
-                                        )
-                                    }
+                                            .testTag("top_bar_app_logo")
+                                    )
 
                                     val isArabicTitle = currentLang == AppLanguage.ARABIC
                                     Text(
@@ -794,6 +769,7 @@ fun LeaveTrackerMainApp(
                                         }
                                     }
 
+                                    val isCustomThemeActive = topPreset != null
                                     Box(
                                         modifier = Modifier
                                             .size(48.dp)
@@ -803,14 +779,26 @@ fun LeaveTrackerMainApp(
                                                 isDark = effectiveTopDark,
                                                 cornerRadius = 14.dp
                                             )
-                                            .clickable { viewModel.toggleTheme() }
+                                            .clickable { viewModel.cycleTopBarThemeMode() }
                                             .testTag("header_theme_toggle"),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = if (isDarkMode) Icons.Outlined.DarkMode else Icons.Outlined.WbSunny,
-                                            contentDescription = AppStrings.get(if (isDarkMode) "theme_light" else "theme_dark", currentLang),
-                                            tint = if (isDarkMode) AmberWarning else iconInk,
+                                            imageVector = when {
+                                                isCustomThemeActive -> Icons.Outlined.Palette
+                                                isDarkMode -> Icons.Outlined.DarkMode
+                                                else -> Icons.Outlined.WbSunny
+                                            },
+                                            contentDescription = when {
+                                                isCustomThemeActive -> AppStrings.get("theme_custom_mode", currentLang)
+                                                isDarkMode -> AppStrings.get("theme_dark", currentLang)
+                                                else -> AppStrings.get("theme_light", currentLang)
+                                            },
+                                            tint = when {
+                                                isCustomThemeActive -> topPreset!!.primary
+                                                isDarkMode -> AmberWarning
+                                                else -> iconInk
+                                            },
                                             modifier = Modifier.size(21.dp)
                                         )
                                     }
@@ -1192,7 +1180,10 @@ fun LeaveTrackerMainApp(
                                             )
                                         }
 
-                                        // 5. Section Header ("Total personnel (X / Y)" + "View all")
+                                        // 5. Section Header ("Pinned Persons (X / Y)" + "View all")
+                                        val pinnedDashboardList = personnelList.filter { it.isPinned }
+                                        val totalPinnedCount = allPersonnelList.count { it.isPinned }
+
                                         item {
                                             val effectiveDashDark = activeThemePreset?.isDark ?: isDarkMode
                                             val dashTextPrimary = activeThemePreset?.textPrimary
@@ -1205,7 +1196,8 @@ fun LeaveTrackerMainApp(
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                                                    .padding(horizontal = 2.dp, vertical = 2.dp)
+                                                    .testTag("dashboard_pinned_persons_header"),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
@@ -1213,14 +1205,20 @@ fun LeaveTrackerMainApp(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.PushPin,
+                                                        contentDescription = null,
+                                                        tint = AmberWarning,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
                                                     Text(
-                                                        text = AppStrings.get("total_personnel", currentLang),
+                                                        text = AppStrings.get("pinned_persons_title", currentLang),
                                                         fontSize = 16.sp,
                                                         fontWeight = FontWeight.ExtraBold,
                                                         color = dashTextPrimary
                                                     )
                                                     Text(
-                                                        text = "(${personnelList.size} / ${allPersonnelList.size})",
+                                                        text = "(${pinnedDashboardList.size} / $totalPinnedCount)",
                                                         fontSize = 14.sp,
                                                         fontWeight = FontWeight.Medium,
                                                         color = dashTextSecondary
@@ -1229,7 +1227,8 @@ fun LeaveTrackerMainApp(
 
                                                 TextButton(
                                                     onClick = { selectedNavPage = AppNavPage.RECORDS },
-                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                                    modifier = Modifier.testTag("dashboard_view_all_button")
                                                 ) {
                                                     Text(
                                                         text = AppStrings.get("view_all", currentLang),
@@ -1241,46 +1240,74 @@ fun LeaveTrackerMainApp(
                                             }
                                         }
 
-                                        // Filtered / Pinned Records List
-                                        if (personnelList.isEmpty()) {
+                                        // Pinned Records List ONLY
+                                        if (pinnedDashboardList.isEmpty()) {
                                             item {
+                                                val effectiveDashDark = activeThemePreset?.isDark ?: isDarkMode
+                                                val dashAccent = activeThemePreset?.primary
+                                                    ?: if (effectiveDashDark) CyanGlow else VibrantCyan
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
                                                         .liquidGlass(
                                                             shape = LiquidGlassDefaults.CardShape,
                                                             elevation = 4.dp,
-                                                            isDark = isDarkMode
+                                                            isDark = effectiveDashDark
                                                         )
-                                                        .padding(28.dp),
+                                                        .padding(24.dp)
+                                                        .testTag("dashboard_pinned_empty_card"),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
                                                         Icon(
-                                                            imageVector = Icons.Default.FilterList,
+                                                            imageVector = if (totalPinnedCount > 0) Icons.Default.FilterList else Icons.Default.PushPin,
                                                             contentDescription = null,
-                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                                                            modifier = Modifier.size(44.dp)
+                                                            tint = if (totalPinnedCount > 0) {
+                                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                                                            } else {
+                                                                AmberWarning.copy(alpha = 0.85f)
+                                                            },
+                                                            modifier = Modifier.size(40.dp)
                                                         )
-                                                        Spacer(modifier = Modifier.height(10.dp))
+                                                        Spacer(modifier = Modifier.height(2.dp))
                                                         Text(
-                                                            text = AppStrings.get("no_results", currentLang),
+                                                            text = AppStrings.get(
+                                                                if (totalPinnedCount > 0) "no_results" else "no_pinned_persons",
+                                                                currentLang
+                                                            ),
                                                             style = MaterialTheme.typography.titleMedium,
                                                             fontWeight = FontWeight.Bold,
                                                             color = MaterialTheme.colorScheme.onSurface
                                                         )
-                                                        Spacer(modifier = Modifier.height(4.dp))
                                                         Text(
-                                                            text = AppStrings.get("no_results_desc", currentLang),
+                                                            text = AppStrings.get(
+                                                                if (totalPinnedCount > 0) "no_results_desc" else "no_pinned_persons_desc",
+                                                                currentLang
+                                                            ),
                                                             style = MaterialTheme.typography.bodySmall,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
+                                                        if (totalPinnedCount == 0 && allPersonnelList.isNotEmpty()) {
+                                                            TextButton(
+                                                                onClick = { selectedNavPage = AppNavPage.RECORDS },
+                                                                modifier = Modifier.padding(top = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = AppStrings.get("view_all", currentLang),
+                                                                    color = dashAccent,
+                                                                    fontWeight = FontWeight.Bold
+                                                                )
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
                                         } else {
                                             items(
-                                                items = personnelList,
+                                                items = pinnedDashboardList,
                                                 key = { it.id },
                                                 contentType = { "personnel_card" }
                                             ) { person ->

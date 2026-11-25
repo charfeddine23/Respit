@@ -1500,6 +1500,38 @@ class ExampleRobolectricTest {
     assertTrue(upcomingIn3Days.countdownTextAr.contains("3"))
     assertTrue(upcomingIn3Days.getCountdownText(AppLanguage.ENGLISH).contains("3"))
   }
+
+  @Test
+  fun `top bar theme cycle switches Light to Dark to Last Activated Custom Theme and back to Light`() {
+    val app = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val settings = com.example.data.SettingsManager(app)
+    settings.themeMode = com.example.data.AppThemeMode.LIGHT
+    settings.selectedThemeEngineId = ""
+    settings.lastCustomThemeEngineId = ""
+
+    val vm = com.example.ui.PersonnelViewModel(app)
+
+    // Activate a custom theme first ("monokai_pro")
+    vm.setThemeEngine("monokai_pro")
+    assertEquals("monokai_pro", vm.selectedThemeEngineId.value)
+    assertEquals("monokai_pro", vm.lastCustomThemeEngineId.value)
+
+    // Cycle 1: From Custom Theme -> Light Mode (preserving lastCustomThemeEngineId)
+    vm.cycleTopBarThemeMode()
+    assertEquals("", vm.selectedThemeEngineId.value)
+    assertEquals(false, vm.isDarkMode.value)
+    assertEquals("monokai_pro", vm.lastCustomThemeEngineId.value)
+
+    // Cycle 2: From Light Mode -> Dark Mode
+    vm.cycleTopBarThemeMode()
+    assertEquals("", vm.selectedThemeEngineId.value)
+    assertEquals(true, vm.isDarkMode.value)
+    assertEquals("monokai_pro", vm.lastCustomThemeEngineId.value)
+
+    // Cycle 3: From Dark Mode -> Restores Last Activated Custom Theme ("monokai_pro")
+    vm.cycleTopBarThemeMode()
+    assertEquals("monokai_pro", vm.selectedThemeEngineId.value)
+  }
 }
 
 

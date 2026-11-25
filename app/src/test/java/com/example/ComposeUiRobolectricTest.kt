@@ -1506,4 +1506,44 @@ class ComposeUiRobolectricTest {
       .performScrollTo()
       .assertIsDisplayed()
   }
+
+  @Test
+  fun `InAppUpdateDialog renders What's New release notes toggle and download CTA`() {
+    var downloadStarted = false
+    val availableState = com.example.util.AppUpdateState.UpdateAvailable(
+      versionName = "9.9.9",
+      releaseTitle = "v9.9.9",
+      releaseNotes = "- Improved stability\n- Restored counter accuracy",
+      downloadUrl = "https://github.com/charfeddine23/Respit/releases/download/v9.9.9/app.apk",
+      fileName = "RespitePulse.v9.9.9.apk",
+      fileSizeBytes = 12_582_912L
+    )
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        com.example.ui.components.InAppUpdateDialog(
+          updateState = availableState,
+          isDarkMode = false,
+          isNeumorphic = false,
+          animationsEnabled = false,
+          currentLang = AppLanguage.ENGLISH,
+          onStartDownload = { downloadStarted = true },
+          onCancelDownload = {},
+          onInstallApk = {},
+          onRetryCheck = {},
+          onDismiss = {}
+        )
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("in_app_update_dialog").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("update_dialog_whats_new_button").performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("update_dialog_whats_new_panel").performScrollTo().assertIsDisplayed()
+    composeTestRule.onNodeWithText("- Improved stability\n- Restored counter accuracy").assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag("update_dialog_start_button").performScrollTo().performClick()
+    assertTrue(downloadStarted)
+  }
 }

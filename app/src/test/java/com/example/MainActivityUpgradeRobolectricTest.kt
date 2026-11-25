@@ -99,6 +99,16 @@ class MainActivityUpgradeRobolectricTest {
         composeTestRule.onAllNodesWithTag("dashboard_lazy_column").fetchSemanticsNodes().isNotEmpty()
       }
       composeTestRule.onNodeWithTag("dashboard_lazy_column")
+        .performScrollToNode(hasTestTag("dashboard_pinned_persons_header"))
+      composeTestRule.waitForIdle()
+      composeTestRule.onNodeWithTag("dashboard_pinned_persons_header").assertIsDisplayed()
+
+      // Switch to Personnel tab where all (including unpinned) upgraded records are listed
+      composeTestRule.onNodeWithTag("bottom_nav_records").performClick()
+      composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+        composeTestRule.onAllNodesWithTag("records_lazy_column").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeTestRule.onNodeWithTag("records_lazy_column")
         .performScrollToNode(hasTestTag("personnel_item_1"))
       composeTestRule.waitForIdle()
       composeTestRule.onNodeWithText("رشيد بن علي").assertIsDisplayed()

@@ -105,6 +105,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     // User preferences & settings state
     val currentThemeMode = MutableStateFlow(settingsManager.themeMode)
     val selectedThemeEngineId = MutableStateFlow(settingsManager.selectedThemeEngineId)
+    val lastCustomThemeEngineId = MutableStateFlow(
+        settingsManager.lastCustomThemeEngineId.ifBlank { settingsManager.selectedThemeEngineId }
+    )
     val isDarkMode = MutableStateFlow(
         com.example.ui.theme.ThemeEngine.findById(settingsManager.selectedThemeEngineId)?.isDark
             ?: settingsManager.isDarkMode
@@ -403,6 +406,28 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         setThemeMode(nextMode)
     }
 
+    /**
+     * Cycles the top-bar theme button across 3 modes:
+     * Light Mode -> Dark Mode -> Last Activated Custom Theme -> Light Mode.
+     */
+    fun cycleTopBarThemeMode() {
+        val currentPresetId = selectedThemeEngineId.value
+        when {
+            currentPresetId.isNotBlank() -> {
+                setThemeMode(AppThemeMode.LIGHT)
+            }
+            !isDarkMode.value -> {
+                setThemeMode(AppThemeMode.DARK)
+            }
+            else -> {
+                val targetId = lastCustomThemeEngineId.value
+                    .takeIf { it.isNotBlank() && com.example.ui.theme.ThemeEngine.findById(it) != null }
+                    ?: "aurora_borealis_glass"
+                setThemeEngine(targetId)
+            }
+        }
+    }
+
     fun setThemeMode(mode: AppThemeMode) {
         selectedThemeEngineId.value = ""
         settingsManager.selectedThemeEngineId = ""
@@ -424,6 +449,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         }
         selectedThemeEngineId.value = preset.id
         settingsManager.selectedThemeEngineId = preset.id
+        lastCustomThemeEngineId.value = preset.id
+        settingsManager.lastCustomThemeEngineId = preset.id
         val mode = if (preset.isDark) AppThemeMode.DARK else AppThemeMode.LIGHT
         currentThemeMode.value = mode
         settingsManager.themeMode = mode

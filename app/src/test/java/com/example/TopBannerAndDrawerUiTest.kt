@@ -2,11 +2,13 @@ package com.example
 
 import android.content.Context
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -39,6 +41,11 @@ class TopBannerAndDrawerUiTest {
             composeRule.onNodeWithTag("top_bar_glass_capsule").assertExists()
             composeRule.onNodeWithTag("header_menu_button").assertDoesNotExist()
             composeRule.onNodeWithText("ريسبيت").assertExists()
+            val logoBoundsAr = composeRule.onNodeWithTag("top_bar_app_logo", useUnmergedTree = true).getBoundsInRoot()
+            assertTrue(
+                "Expected enlarged top bar logo width >= 50.dp (was ${logoBoundsAr.right - logoBoundsAr.left})",
+                (logoBoundsAr.right - logoBoundsAr.left) >= 50.dp
+            )
             val titleBoundsAr = composeRule.onNodeWithTag("app_title_row").getBoundsInRoot()
             val themeBoundsAr = composeRule.onNodeWithTag("header_theme_toggle").getBoundsInRoot()
             val notifBoundsAr = composeRule.onNodeWithTag("header_notifications_button").getBoundsInRoot()
@@ -81,6 +88,14 @@ class TopBannerAndDrawerUiTest {
                 "Expected notifications (${notifBoundsEn.right}) left of theme (${themeBoundsEn.left}) in English",
                 notifBoundsEn.right <= themeBoundsEn.left + 1.dp
             )
+
+            // 5. Return to Dashboard and verify Pinned Persons section header renders in English
+            composeRule.onNodeWithTag("bottom_nav_dashboard").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag("dashboard_lazy_column")
+                .performScrollToNode(hasTestTag("dashboard_pinned_persons_header"))
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Pinned Persons").assertExists()
         }
 
         settings.language = "ar"
