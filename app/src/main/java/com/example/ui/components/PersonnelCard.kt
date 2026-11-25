@@ -124,6 +124,7 @@ import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
 import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.SkyLeaveBlue
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
@@ -247,12 +248,15 @@ fun PersonnelCard(
     )
 
     val visual = when {
-        status == LeaveStatus.AT_HOME -> StatusVisual(
-            color = primaryAccent,
-            bgTint = primaryAccent.copy(alpha = if (effectiveDark) 0.16f else 0.10f),
-            icon = Icons.Default.Home,
-            badgeKey = "badge_at_home"
-        )
+        status == LeaveStatus.AT_HOME -> {
+            val atHomeAccent = if (effectiveDark) Color(0xFF38BDF8) else SkyLeaveBlue
+            StatusVisual(
+                color = atHomeAccent,
+                bgTint = atHomeAccent.copy(alpha = if (effectiveDark) 0.16f else 0.12f),
+                icon = Icons.Default.Home,
+                badgeKey = "badge_at_home"
+            )
+        }
         status == LeaveStatus.RETURNING_TODAY -> StatusVisual(
             color = AmberWarning,
             bgTint = if (effectiveDark) Color(0x29D97706) else Color(0xFFFEF3C7),
@@ -694,10 +698,8 @@ fun PersonnelCard(
             )
         }
 
-        val wilayaCodeBadge = remember(personnel.wilaya, currentLang, effectiveDaysSinceDuty) {
-            val formattedWithCode = formatWilaya(personnel.wilaya, currentLang, includeCode = true)
-            val digits = formattedWithCode.takeWhile { it.isDigit() }
-            if (digits.isNotEmpty()) digits else "$effectiveDaysSinceDuty"
+        val daysBadgeText = remember(effectiveDaysSinceDuty) {
+            if (effectiveDaysSinceDuty < 0L) "\u200E$effectiveDaysSinceDuty\u200E" else "$effectiveDaysSinceDuty"
         }
 
         val neutralChipBg = if (effectiveDark) Color(0xBF172633) else Color(0xE8FFFFFF)
@@ -770,7 +772,7 @@ fun PersonnelCard(
                     .padding(horizontal = 16.dp, vertical = 15.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 1. Header Row: [Wilaya Code Mint Tile] [Name + Rank] [Status Dot Pill]
+                // 1. Header Row: [Days Counter Mint Tile] [Name + Rank] [Status Dot Pill]
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -778,19 +780,25 @@ fun PersonnelCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(15.dp),
-                        color = primaryAccent.copy(alpha = if (effectiveDark) 0.20f else 0.11f),
+                        color = visual.color.copy(alpha = if (effectiveDark) 0.20f else 0.11f),
                         border = BorderStroke(
                             1.dp,
-                            primaryAccent.copy(alpha = if (effectiveDark) 0.30f else 0.16f)
+                            visual.color.copy(alpha = if (effectiveDark) 0.34f else 0.22f)
                         ),
-                        modifier = Modifier.size(50.dp)
+                        modifier = Modifier
+                            .size(50.dp)
+                            .testTag("personnel_days_counter_${personnel.id}")
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = wilayaCodeBadge,
+                                text = daysBadgeText,
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = if (wilayaCodeBadge.length >= 3) 14.sp else 17.5.sp,
-                                color = primaryAccent,
+                                fontSize = when {
+                                    daysBadgeText.length >= 4 -> 12.5.sp
+                                    daysBadgeText.length == 3 -> 14.5.sp
+                                    else -> 17.5.sp
+                                },
+                                color = visual.color,
                                 maxLines = 1
                             )
                         }
@@ -969,6 +977,49 @@ fun PersonnelCard(
                                     fontSize = 11.5.sp,
                                     color = textPrimary,
                                     fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    if (lastShortLeaveInfo != null) {
+                        val shortAccent = when {
+                            lastShortLeaveInfo.isCurrentlyOnShortLeave -> if (effectiveDark) CyanGlow else SkyLeaveBlue
+                            lastShortLeaveInfo.isReturningToday -> AmberWarning
+                            else -> primaryAccent
+                        }
+                        val shortCounterText = if (lastShortLeaveInfo.daysCounter < 0L) {
+                            "\u200E${lastShortLeaveInfo.daysCounter}\u200E"
+                        } else {
+                            "${lastShortLeaveInfo.daysCounter}"
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = shortAccent.copy(alpha = if (effectiveDark) 0.18f else 0.10f),
+                            border = BorderStroke(
+                                1.dp,
+                                shortAccent.copy(alpha = if (effectiveDark) 0.34f else 0.22f)
+                            ),
+                            modifier = Modifier.testTag("personnel_short_leave_badge_${personnel.id}")
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = AppStrings.get("last_short_leave_counter", currentLang),
+                                    tint = shortAccent,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "${AppStrings.get("short_leave_compact_label", currentLang)}: $shortCounterText",
+                                    fontSize = 11.5.sp,
+                                    color = shortAccent,
+                                    fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -1197,6 +1248,67 @@ fun PersonnelCard(
                                                 fontSize = 10.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = AmberWarning
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (lastShortLeaveInfo != null) {
+                                    val shortAccent = when {
+                                        lastShortLeaveInfo.isCurrentlyOnShortLeave -> if (effectiveDark) CyanGlow else SkyLeaveBlue
+                                        lastShortLeaveInfo.isReturningToday -> AmberWarning
+                                        else -> primaryAccent
+                                    }
+                                    val shortCounterDisplay = if (lastShortLeaveInfo.daysCounter < 0L) {
+                                        "\u200E${lastShortLeaveInfo.daysCounter}\u200E"
+                                    } else {
+                                        "${lastShortLeaveInfo.daysCounter}"
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = tileBg,
+                                        border = BorderStroke(
+                                            1.dp,
+                                            shortAccent.copy(alpha = if (effectiveDark) 0.32f else 0.22f)
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("personnel_short_leave_detail_${personnel.id}")
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = AppStrings.get("last_short_leave_counter", currentLang),
+                                                    fontSize = 10.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = shortAccent
+                                                )
+                                                Text(
+                                                    text = shortCounterDisplay,
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = shortAccent
+                                                )
+                                            }
+                                            Text(
+                                                text = lastShortLeaveInfo.getCounterStatusText(currentLang),
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = textPrimary
+                                            )
+                                            Text(
+                                                text = "${lastShortLeaveInfo.record.formattedStartDate} → ${lastShortLeaveInfo.record.formattedReturnDate}",
+                                                fontSize = 10.sp,
+                                                color = textSecondary
                                             )
                                         }
                                     }

@@ -1469,6 +1469,37 @@ class ExampleRobolectricTest {
     )
     assertEquals("كريم أوقاسي", personArabicOnly.getLocalizedName(tzm))
   }
+
+  @Test
+  fun `computeDutyReferenceInfo guards zero returnDateMillis when not returned and UPCOMING countdown uses calendar days`() {
+    val added5DaysAgo = getOffsetDateMillis(-5)
+    val zeroDateUnreturned = Personnel(
+      id = 77L,
+      fullName = "سفيان بوزيد",
+      rank = "جندي - Djoundi / Soldat",
+      registrationNumber = "DZ-770077",
+      startDateMillis = 0L,
+      returnDateMillis = 0L,
+      isReturnedToDuty = false,
+      addedAtMillis = added5DaysAgo
+    )
+    val refInfo = zeroDateUnreturned.computeDutyReferenceInfo(emptyList(), getOffsetDateMillis(0))
+    assertEquals(5L, refInfo.daysSinceReference)
+    assertEquals(com.example.data.ReferenceDateSource.PERSONNEL_ADDED_DATE, refInfo.source)
+
+    val upcomingIn3Days = Personnel(
+      id = 78L,
+      fullName = "وليد بن يحيى",
+      rank = "رقيب - Sergent",
+      registrationNumber = "DZ-780078",
+      startDateMillis = getOffsetDateMillis(3),
+      returnDateMillis = getOffsetDateMillis(10),
+      isReturnedToDuty = false
+    )
+    assertEquals(LeaveStatus.UPCOMING, upcomingIn3Days.status)
+    assertTrue(upcomingIn3Days.countdownTextAr.contains("3"))
+    assertTrue(upcomingIn3Days.getCountdownText(AppLanguage.ENGLISH).contains("3"))
+  }
 }
 
 

@@ -24,7 +24,6 @@ import com.example.data.Personnel
 import com.example.data.formatLeaveType
 import com.example.data.formatRank
 import com.example.data.formatWilaya
-import java.util.concurrent.TimeUnit
 
 object LeaveNotificationHelper {
     const val CHANNEL_ID = "channel_leave_notifications_v1"
@@ -247,10 +246,11 @@ object LeaveNotificationHelper {
         val summaryLines = mutableListOf<String>()
 
         list.forEach { p ->
-            val startDay = Personnel.toStartOfDay(p.startDateMillis)
-            val returnDay = Personnel.toStartOfDay(p.returnDateMillis)
-            val daysUntilStart = TimeUnit.MILLISECONDS.toDays(startDay - today)
-            val daysUntilReturn = TimeUnit.MILLISECONDS.toDays(returnDay - today)
+            val hasValidDates = p.startDateMillis > 0L && p.returnDateMillis > 0L
+            val startDay = if (hasValidDates) Personnel.toStartOfDay(p.startDateMillis) else 0L
+            val returnDay = if (hasValidDates) Personnel.toStartOfDay(p.returnDateMillis) else 0L
+            val daysUntilStart = if (hasValidDates) Personnel.signedDaysBetween(today, startDay) else Long.MIN_VALUE
+            val daysUntilReturn = if (hasValidDates) Personnel.signedDaysBetween(today, returnDay) else Long.MIN_VALUE
 
             when {
                 !p.isReturnedToDuty && p.status == LeaveStatus.OVERDUE -> {
@@ -261,11 +261,11 @@ object LeaveNotificationHelper {
                     sendReturningTodayNotification(context, p, appLang)
                     summaryLines.add("${formatRank(p.rank, appLang)} ${p.getLocalizedName(appLang)} — ${p.formattedReturnDate}")
                 }
-                !p.isReturnedToDuty && daysUntilStart in 0..2 && today <= startDay -> {
+                hasValidDates && !p.isReturnedToDuty && daysUntilStart in 0..2 && today <= startDay -> {
                     sendApproachingStartNotification(context, p, daysUntilStart, appLang)
                     summaryLines.add("${formatRank(p.rank, appLang)} ${p.getLocalizedName(appLang)} — ${p.formattedStartDate}")
                 }
-                !p.isReturnedToDuty && daysUntilReturn in 1..2 -> {
+                hasValidDates && !p.isReturnedToDuty && daysUntilReturn in 1..2 -> {
                     sendApproachingReturnNotification(context, p, daysUntilReturn, appLang)
                     summaryLines.add("${formatRank(p.rank, appLang)} ${p.getLocalizedName(appLang)} — ${p.formattedReturnDate}")
                 }

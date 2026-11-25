@@ -458,10 +458,11 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
         list.forEach { p ->
-            val startDay = Personnel.toStartOfDay(p.startDateMillis)
-            val returnDay = Personnel.toStartOfDay(p.returnDateMillis)
-            val daysUntilStart = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(startDay - today)
-            val daysUntilReturn = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(returnDay - today)
+            val hasValidDates = p.startDateMillis > 0L && p.returnDateMillis > 0L
+            val startDay = if (hasValidDates) Personnel.toStartOfDay(p.startDateMillis) else 0L
+            val returnDay = if (hasValidDates) Personnel.toStartOfDay(p.returnDateMillis) else 0L
+            val daysUntilStart = if (hasValidDates) Personnel.signedDaysBetween(today, startDay) else Long.MIN_VALUE
+            val daysUntilReturn = if (hasValidDates) Personnel.signedDaysBetween(today, returnDay) else Long.MIN_VALUE
             val localizedRank = formatRank(p.rank, lang)
             val localizedLeaveType = formatLeaveType(p.leaveType, lang)
             val displayName = p.getLocalizedName(lang)
@@ -529,7 +530,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             // 3. Approaching return (1 or 2 days left)
-            if (!p.isReturnedToDuty && daysUntilReturn in 1..2) {
+            if (hasValidDates && !p.isReturnedToDuty && daysUntilReturn in 1..2) {
                 val notifId = "appr_ret_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
@@ -563,7 +564,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             // 4. Approaching start of leave (starts within 0..2 days)
-            if (!p.isReturnedToDuty && daysUntilStart in 0..2 && today <= startDay) {
+            if (hasValidDates && !p.isReturnedToDuty && daysUntilStart in 0..2 && today <= startDay) {
                 val notifId = "appr_start_${p.id}"
                 if (notifId !in dismissed) {
                     val title = when (lang) {
@@ -1379,20 +1380,38 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 var startMillis = obj.optLong("startDateMillis", 0L)
                 if (startMillis == 0L) {
                     val dateStr = obj.optString("startDate", "")
-                    startMillis = if (dateStr.isNotBlank()) {
-                        sdf.parse(dateStr)?.time ?: System.currentTimeMillis()
-                    } else {
-                        System.currentTimeMillis()
+                        .replace("\u200E", "")
+                        .replace("\u200F", "")
+                        .trim()
+                    val parsedStart = if (dateStr.isNotBlank() && dateStr != "-") {
+                        sdf.parse(dateStr)?.time ?: 0L
+                    } else 0L
+                    startMillis = when {
+                        parsedStart > 0L -> parsedStart
+                        !isReturnedToDuty -> Personnel.toStartOfDay(System.currentTimeMillis())
+                        else -> 0L
                     }
                 }
 
                 var returnMillis = obj.optLong("returnDateMillis", 0L)
                 if (returnMillis == 0L) {
                     val dateStr = obj.optString("returnDate", "")
-                    returnMillis = if (dateStr.isNotBlank()) {
-                        sdf.parse(dateStr)?.time ?: (startMillis + 10 * 86400000L)
-                    } else {
-                        startMillis + 10 * 86400000L
+                        .replace("\u200E", "")
+                        .replace("\u200F", "")
+                        .trim()
+                    val parsedReturn = if (dateStr.isNotBlank() && dateStr != "-") {
+                        sdf.parse(dateStr)?.time ?: 0L
+                    } else 0L
+                    returnMillis = when {
+                        parsedReturn > 0L -> parsedReturn
+                        startMillis > 0L -> {
+                            val cal = Calendar.getInstance().apply {
+                                timeInMillis = Personnel.toStartOfDay(startMillis)
+                                add(Calendar.DAY_OF_YEAR, 9)
+                            }
+                            cal.timeInMillis
+                        }
+                        else -> 0L
                     }
                 }
 

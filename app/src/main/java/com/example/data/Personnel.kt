@@ -8,7 +8,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 enum class LeaveStatus(
     val labelAr: String,
@@ -165,14 +164,14 @@ data class Personnel(
         )
         val todayStart = toStartOfDay(todayMillis)
 
-        if (!isReturnedToDuty) {
+        if (!isReturnedToDuty && returnDateMillis > 0L) {
             val activeReturnStart = toStartOfDay(returnDateMillis)
             val signedDays = signedDaysBetween(activeReturnStart, todayStart)
             return DutyReferenceInfo(
                 referenceDateMillis = activeReturnStart,
                 source = ReferenceDateSource.LAST_LEAVE_RETURN,
                 daysSinceReference = signedDays,
-                lastLeaveStartMillis = toStartOfDay(startDateMillis),
+                lastLeaveStartMillis = if (startDateMillis > 0L) toStartOfDay(startDateMillis) else null,
                 lastLeaveReturnMillis = activeReturnStart
             )
         }
@@ -354,7 +353,7 @@ data class Personnel(
                 LeaveStatus.UPCOMING -> {
                     val today = toStartOfDay(System.currentTimeMillis())
                     val start = toStartOfDay(startDateMillis)
-                    val daysUntil = TimeUnit.MILLISECONDS.toDays(start - today)
+                    val daysUntil = signedDaysBetween(today, start).coerceAtLeast(0L)
                     "تبدأ الإجازة بعد $daysUntil يوم"
                 }
                 LeaveStatus.ON_DUTY -> "حاضر بالخدمة (منقضي $daysSinceDutyReturn يوم)"
@@ -412,7 +411,7 @@ data class Personnel(
             LeaveStatus.UPCOMING -> {
                 val today = toStartOfDay(System.currentTimeMillis())
                 val start = toStartOfDay(startDateMillis)
-                val daysUntil = TimeUnit.MILLISECONDS.toDays(start - today)
+                val daysUntil = signedDaysBetween(today, start).coerceAtLeast(0L)
                 when (lang) {
                     AppLanguage.TAMAZIGHT -> "Tazwara n yimuras deg $daysUntil n wussan"
                     AppLanguage.FRENCH -> "Début du congé dans $daysUntil jour(s)"
@@ -450,9 +449,9 @@ data class Personnel(
             val end = toStartOfDay(returnDateMillis)
             if (today <= start) return 0f
             if (today >= end) return 1f
-            val total = (end - start).toFloat()
+            val total = signedDaysBetween(start, end).toFloat()
             if (total <= 0f) return 1f
-            val elapsed = (today - start).toFloat()
+            val elapsed = signedDaysBetween(start, today).toFloat()
             return (elapsed / total).coerceIn(0f, 1f)
         }
 }

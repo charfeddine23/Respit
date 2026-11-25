@@ -1415,4 +1415,95 @@ class ComposeUiRobolectricTest {
     composeTestRule.onNodeWithTag("personnel_quick_action_502").performScrollTo().assertIsDisplayed().performClick()
     assertTrue(confirmDutyTriggered)
   }
+
+  @Test
+  fun `PersonnelCard displays effectiveDaysSinceDuty counter tile instead of wilaya code and shows lastShortLeaveInfo`() {
+    val personOnDuty = Personnel(
+      id = 601L,
+      fullName = "شرف الدين قحلسنان",
+      fullNameLatin = "Charfeddine Kahlessenane",
+      rank = "عريف أول - Caporal-Chef",
+      registrationNumber = "2014.430.01219",
+      wilaya = "43 - ميلة (Mila)",
+      startDateMillis = getOffsetDateMillis(-29),
+      returnDateMillis = getOffsetDateMillis(-19),
+      isReturnedToDuty = true
+    )
+    val shortLeaveRecord = com.example.data.LeaveRecord(
+      id = 91L,
+      personnelId = 601L,
+      personnelName = "شرف الدين قحلسنان",
+      rank = "عريف أول - Caporal-Chef",
+      registrationNumber = "2014.430.01219",
+      leaveType = "إجازة قصيرة",
+      startDateMillis = getOffsetDateMillis(-10),
+      returnDateMillis = getOffsetDateMillis(-7),
+      durationDays = 4L,
+      statusText = "منتهية",
+      destinationWilaya = "43 - ميلة"
+    )
+    val shortLeaveInfo = com.example.data.LastShortLeaveInfo(
+      record = shortLeaveRecord,
+      daysCounter = 7L,
+      isCurrentlyOnShortLeave = false,
+      isReturningToday = false
+    )
+    val personOnLeave = Personnel(
+      id = 602L,
+      fullName = "كريم بن ناصر",
+      fullNameLatin = "Karim Bennacer",
+      rank = "رقيب - Sergent",
+      registrationNumber = "2018.160.00441",
+      wilaya = "16 - الجزائر - Alger",
+      startDateMillis = getOffsetDateMillis(-5),
+      returnDateMillis = getOffsetDateMillis(5),
+      isReturnedToDuty = false
+    )
+
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        androidx.compose.foundation.layout.Column(
+          modifier = Modifier.verticalScroll(rememberScrollState())
+        ) {
+          PersonnelCard(
+            personnel = personOnDuty,
+            dutyThresholdDays = 45,
+            onConfirmDuty = {},
+            onEdit = {},
+            onDelete = {},
+            animationsEnabled = false,
+            currentLang = AppLanguage.ENGLISH,
+            effectiveDaysSinceDuty = 19L,
+            lastShortLeaveInfo = shortLeaveInfo
+          )
+          PersonnelCard(
+            personnel = personOnLeave,
+            dutyThresholdDays = 45,
+            onConfirmDuty = {},
+            onEdit = {},
+            onDelete = {},
+            animationsEnabled = false,
+            currentLang = AppLanguage.ENGLISH,
+            effectiveDaysSinceDuty = -5L
+          )
+        }
+      }
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("personnel_days_counter_601", useUnmergedTree = true)
+      .assert(androidx.compose.ui.test.hasAnyDescendant(hasText("19")))
+    composeTestRule.onNodeWithTag("personnel_short_leave_badge_601", useUnmergedTree = true)
+      .assertIsDisplayed()
+      .assert(androidx.compose.ui.test.hasAnyDescendant(hasText("Short: 7")))
+    composeTestRule.onNodeWithTag("personnel_days_counter_602", useUnmergedTree = true)
+      .assert(androidx.compose.ui.test.hasAnyDescendant(hasText("\u200E-5\u200E")))
+
+    // Expand first card to verify last short leave detail row renders
+    composeTestRule.onNodeWithTag("personnel_item_601").performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("personnel_short_leave_detail_601", useUnmergedTree = true)
+      .performScrollTo()
+      .assertIsDisplayed()
+  }
 }
