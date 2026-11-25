@@ -34,7 +34,8 @@ class TopBannerAndDrawerUiTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.waitForIdle()
 
-            // 1. Arabic (RTL): Menu button removed; Top Bar uses Liquid Glass capsule; Left->Right order is [Logo + ريسبيت] ... [Theme] [Notifications (Far Right)]
+            // 1. Arabic (RTL): Menu button removed; Top Bar places Logo+Title on Start (Right) and [Theme] [Notifications] on End (Left).
+            // Left->Right physical order in Arabic: [Theme] [Notifications] ... [Logo + ريسبيت]
             composeRule.onNodeWithTag("top_bar_glass_capsule").assertExists()
             composeRule.onNodeWithTag("header_menu_button").assertDoesNotExist()
             composeRule.onNodeWithText("ريسبيت").assertExists()
@@ -42,27 +43,27 @@ class TopBannerAndDrawerUiTest {
             val themeBoundsAr = composeRule.onNodeWithTag("header_theme_toggle").getBoundsInRoot()
             val notifBoundsAr = composeRule.onNodeWithTag("header_notifications_button").getBoundsInRoot()
             assertTrue(
-                "Expected app_title_row (${titleBoundsAr.right}) left of theme (${themeBoundsAr.left}) in Arabic",
-                titleBoundsAr.right <= themeBoundsAr.left + 1.dp
-            )
-            assertTrue(
                 "Expected theme (${themeBoundsAr.right}) left of notifications (${notifBoundsAr.left}) in Arabic",
                 themeBoundsAr.right <= notifBoundsAr.left + 1.dp
             )
+            assertTrue(
+                "Expected notifications (${notifBoundsAr.right}) left of app_title_row (${titleBoundsAr.left}) in Arabic",
+                notifBoundsAr.right <= titleBoundsAr.left + 1.dp
+            )
 
-            // 2. Dashboard StatisticsSection shows Analytics button in place of "Registered in system"
+            // 2. Dashboard StatisticsSection shows Analytics button
             composeRule.onNodeWithTag("dashboard_analytics_button").assertExists().performClick()
             composeRule.waitForIdle()
             composeRule.onNodeWithTag("analytics_dashboard_screen").assertExists()
             composeRule.onNodeWithTag("analytics_back_button").performClick()
             composeRule.waitForIdle()
 
-            // 3. Settings is now accessed via the bottom dock 4th tab (bottom_nav_settings)
+            // 3. Settings is accessed via the bottom dock 4th tab (bottom_nav_settings)
             composeRule.onNodeWithTag("bottom_nav_settings").performClick()
             composeRule.waitForIdle()
             composeRule.onNodeWithTag("side_navigation_drawer").assertExists()
 
-            // 4. Open Language Settings, scroll to English, and switch -> Top Banner mirrors to LTR: [Notifications (Far Left)] [Theme] ... [Respite + Logo]
+            // 4. Open Language Settings, scroll to English, and switch -> Top Bar mirrors to LTR: [Logo + Respite (Left)] ... [Notifications] [Theme (Right)]
             composeRule.onNodeWithTag("settings_nav_language").performClick()
             composeRule.waitForIdle()
             composeRule.onNodeWithTag("lang_option_en").performScrollTo().performClick()
@@ -73,12 +74,12 @@ class TopBannerAndDrawerUiTest {
             val themeBoundsEn = composeRule.onNodeWithTag("header_theme_toggle").getBoundsInRoot()
             val notifBoundsEn = composeRule.onNodeWithTag("header_notifications_button").getBoundsInRoot()
             assertTrue(
-                "Expected notifications (${notifBoundsEn.right}) left of theme (${themeBoundsEn.left}) in English",
-                notifBoundsEn.right <= themeBoundsEn.left + 1.dp
+                "Expected app_title_row (${titleBoundsEn.right}) left of notifications (${notifBoundsEn.left}) in English",
+                titleBoundsEn.right <= notifBoundsEn.left + 1.dp
             )
             assertTrue(
-                "Expected theme (${themeBoundsEn.right}) left of app_title_row (${titleBoundsEn.left}) in English",
-                themeBoundsEn.right <= titleBoundsEn.left + 1.dp
+                "Expected notifications (${notifBoundsEn.right}) left of theme (${themeBoundsEn.left}) in English",
+                notifBoundsEn.right <= themeBoundsEn.left + 1.dp
             )
         }
 

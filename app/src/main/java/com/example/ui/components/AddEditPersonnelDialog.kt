@@ -263,7 +263,7 @@ fun AddEditPersonnelDialog(
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val primaryColor = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
-    val secondaryColor = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else RoyalBlueAccent
+    val secondaryColor = preset?.secondary ?: RoyalBlueAccent
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else Color(0xFF0F172A)
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF475569)
     val glassDividerColor = if (effectiveDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.65f)

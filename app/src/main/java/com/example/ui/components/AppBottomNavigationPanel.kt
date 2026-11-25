@@ -3,12 +3,8 @@ package com.example.ui.components
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -37,10 +33,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -57,17 +56,13 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -84,7 +79,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -92,9 +86,9 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AuroraCyanTop
 import com.example.ui.theme.AuroraPurpleBottom
 import com.example.ui.theme.CyanGlow
-import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
-import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.RedDanger
+import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
@@ -112,16 +106,17 @@ enum class AppNavPage {
 
 private data class DockTabSpec(
     val page: AppNavPage,
-    val icon: ImageVector,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
     val labelKey: String,
     val testTag: String
 )
 
 private val dockTabs = listOf(
-    DockTabSpec(AppNavPage.DASHBOARD, Icons.Default.GridView, "nav_dashboard", "bottom_nav_dashboard"),
-    DockTabSpec(AppNavPage.RECORDS, Icons.Default.People, "nav_records", "bottom_nav_records"),
-    DockTabSpec(AppNavPage.DATABASE, Icons.Default.Storage, "nav_database", "bottom_nav_database"),
-    DockTabSpec(AppNavPage.SETTINGS, Icons.Default.Settings, "nav_settings", "bottom_nav_settings")
+    DockTabSpec(AppNavPage.DASHBOARD, Icons.Filled.GridView, Icons.Outlined.GridView, "nav_dashboard", "bottom_nav_dashboard"),
+    DockTabSpec(AppNavPage.RECORDS, Icons.Filled.Group, Icons.Outlined.Group, "nav_records", "bottom_nav_records"),
+    DockTabSpec(AppNavPage.DATABASE, Icons.AutoMirrored.Filled.FormatListBulleted, Icons.AutoMirrored.Filled.FormatListBulleted, "nav_database", "bottom_nav_database"),
+    DockTabSpec(AppNavPage.SETTINGS, Icons.Filled.Settings, Icons.Outlined.Settings, "nav_settings", "bottom_nav_settings")
 )
 
 @Composable
@@ -138,14 +133,13 @@ fun AppBottomNavigationPanel(
     backdropOffsetInRoot: Offset = Offset.Zero
 ) {
     val preset = LocalThemePreset.current
-    val isLiving = LocalLivingLuxuryMode.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val density = LocalDensity.current
     val haptic = LocalHapticFeedback.current
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
-    val activeAccent = preset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
-    val secondaryAccent = preset?.secondary ?: if (effectiveDark) Color(0xFF8B5CF6) else VibrantCyan
+    val activeAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
+    val secondaryAccent = preset?.secondary ?: activeAccent
 
     val tabBounds = remember { mutableStateMapOf<AppNavPage, Pair<Float, Float>>() }
 
@@ -157,28 +151,23 @@ fun AppBottomNavigationPanel(
         targetValue = targetBounds?.first ?: 0f,
         animationSpec = if (animationsEnabled) {
             spring(
-                dampingRatio = 0.78f,
-                stiffness = 380f
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = 420f
             )
         } else tween(0),
-        label = "liquidGlassLensX"
+        label = "cleanNavPillX"
     )
     val lensWidth by animateFloatAsState(
         targetValue = targetBounds?.second ?: 0f,
         animationSpec = if (animationsEnabled) {
             spring(
-                dampingRatio = 0.80f,
-                stiffness = 400f
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = 420f
             )
         } else tween(0),
-        label = "liquidGlassLensWidth"
+        label = "cleanNavPillWidth"
     )
 
-    // Subtle liquid droplet stretch while gliding between tabs
-    val glideDelta = if (targetBounds != null) abs(lensX - targetBounds.first) else 0f
-    val stretchFactor = (1f + (glideDelta / 380f).coerceIn(0f, 0.14f))
-
-    // Outer wrapper keeps exact dock spacing while layering Fade-to-Blur smoothly behind & below the dock
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -197,142 +186,98 @@ fun AppBottomNavigationPanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 10.dp),
+                .padding(horizontal = 18.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center
         ) {
             LiquidGlassFloatingCapsule(
-            modifier = Modifier
-                .widthIn(max = 520.dp)
-                .fillMaxWidth()
-                .height(66.dp)
-                .testTag("bottom_nav_panel"),
-            isDarkMode = effectiveDark,
-            activeAccent = activeAccent,
-            secondaryAccent = secondaryAccent,
-            isLiving = isLiving,
-            backdropLayer = backdropLayer,
-            backdropOffsetInRoot = backdropOffsetInRoot
-        ) {
-            // 3. Tabs Row + Fluid Sliding Liquid Glass Lens Pill
-            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 6.dp, vertical = 5.dp)
+                    .widthIn(max = 520.dp)
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .testTag("bottom_nav_panel"),
+                isDarkMode = effectiveDark,
+                activeAccent = activeAccent,
+                secondaryAccent = secondaryAccent,
+                isLiving = false,
+                backdropLayer = backdropLayer,
+                backdropOffsetInRoot = backdropOffsetInRoot
             ) {
-                if (hasMeasuredBounds && lensWidth > 0f) {
-                    val lensWidthDp = with(density) { lensWidth.toDp() }
-                    Box(
-                        modifier = Modifier
-                            .offset { IntOffset(lensX.roundToInt(), 0) }
-                            .width(lensWidthDp)
-                            .fillMaxHeight()
-                            .graphicsLayer {
-                                scaleX = stretchFactor
-                                scaleY = if (glideDelta > 4f) 1.03f else 1f
-                            }
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    if (effectiveDark) {
-                                        listOf(
-                                            Color.White.copy(alpha = 0.20f),
-                                            activeAccent.copy(alpha = 0.16f),
-                                            Color.White.copy(alpha = 0.09f)
-                                        )
-                                    } else {
-                                        listOf(
-                                            Color.White.copy(alpha = 0.82f),
-                                            Color.White.copy(alpha = 0.56f),
-                                            activeAccent.copy(alpha = 0.14f)
-                                        )
-                                    }
-                                )
-                            )
-                            .drawBehind {
-                                // Crisp lens top specular highlight
-                                drawRoundRect(
-                                    brush = Brush.verticalGradient(
-                                        listOf(
-                                            Color.White.copy(alpha = if (effectiveDark) 0.24f else 0.72f),
-                                            Color.Transparent
-                                        ),
-                                        startY = 0f,
-                                        endY = size.height * 0.45f
-                                    ),
-                                    cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
-                                )
-                                // Delicate specular rim around the sliding glass lens
-                                drawRoundRect(
-                                    brush = Brush.linearGradient(
-                                        if (effectiveDark) {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.42f),
-                                                activeAccent.copy(alpha = 0.50f),
-                                                Color.White.copy(alpha = 0.14f)
-                                            )
-                                        } else {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.98f),
-                                                activeAccent.copy(alpha = 0.34f),
-                                                Color.White.copy(alpha = 0.75f)
-                                            )
-                                        }
-                                    ),
-                                    cornerRadius = CornerRadius(size.height / 2f, size.height / 2f),
-                                    style = Stroke(width = 1.15.dp.toPx())
-                                )
-                            }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
                 ) {
-                    dockTabs.forEach { tab ->
-                        val isSelected = selectedPage == tab.page
-                        BottomNavItem(
-                            icon = tab.icon,
-                            label = AppStrings.get(tab.labelKey, currentLang),
-                            isSelected = isSelected,
-                            badgeCount = if (tab.page == AppNavPage.NOTIFICATIONS) notificationsCount else 0,
-                            isDarkMode = effectiveDark,
-                            activeColor = activeAccent,
-                            textSecondary = preset?.textSecondary,
-                            animationsEnabled = animationsEnabled,
-                            isLiving = isLiving,
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelectPage(tab.page)
-                            },
+                    if (hasMeasuredBounds && lensWidth > 0f) {
+                        val lensWidthDp = with(density) { lensWidth.toDp() }
+                        val pillShape = RoundedCornerShape(16.dp)
+                        Box(
                             modifier = Modifier
-                                .weight(1f)
+                                .offset { IntOffset(lensX.roundToInt(), 0) }
+                                .width(lensWidthDp)
                                 .fillMaxHeight()
-                                .onGloballyPositioned { coords ->
-                                    val rawX = coords.positionInParent().x
-                                    val w = coords.size.width.toFloat()
-                                    val parentW = coords.parentLayoutCoordinates?.size?.width?.toFloat() ?: 0f
-                                    val startRelativeX = if (isRtl && parentW > 0f) {
-                                        (parentW - (rawX + w)).coerceAtLeast(0f)
-                                    } else {
-                                        rawX
-                                    }
-                                    val existing = tabBounds[tab.page]
-                                    if (existing == null || abs(existing.first - startRelativeX) > 0.5f || abs(existing.second - w) > 0.5f) {
-                                        tabBounds[tab.page] = startRelativeX to w
-                                    }
-                                },
-                            testTag = tab.testTag
+                                .clip(pillShape)
+                                .background(
+                                    activeAccent.copy(alpha = if (effectiveDark) 0.22f else 0.12f)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = activeAccent.copy(alpha = if (effectiveDark) 0.30f else 0.14f),
+                                    shape = pillShape
+                                )
                         )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        dockTabs.forEach { tab ->
+                            val isSelected = selectedPage == tab.page
+                            BottomNavItem(
+                                icon = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                label = AppStrings.get(tab.labelKey, currentLang),
+                                isSelected = isSelected,
+                                badgeCount = if (tab.page == AppNavPage.NOTIFICATIONS) notificationsCount else 0,
+                                isDarkMode = effectiveDark,
+                                activeColor = activeAccent,
+                                textSecondary = preset?.textSecondary,
+                                animationsEnabled = animationsEnabled,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectPage(tab.page)
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .onGloballyPositioned { coords ->
+                                        val rawX = coords.positionInParent().x
+                                        val w = coords.size.width.toFloat()
+                                        val parentW = coords.parentLayoutCoordinates?.size?.width?.toFloat() ?: 0f
+                                        val startRelativeX = if (isRtl && parentW > 0f) {
+                                            (parentW - (rawX + w)).coerceAtLeast(0f)
+                                        } else {
+                                            rawX
+                                        }
+                                        val existing = tabBounds[tab.page]
+                                        if (existing == null || abs(existing.first - startRelativeX) > 0.5f || abs(existing.second - w) > 0.5f) {
+                                            tabBounds[tab.page] = startRelativeX to w
+                                        }
+                                    },
+                                testTag = tab.testTag
+                            )
+                        }
                     }
                 }
             }
         }
-        }
     }
 }
 
+/**
+ * Clean frosted floating capsule bar with subtle optional Android 12+ backdrop blur
+ * and neutral hairline border (zero chromatic tint wash or lens distortion).
+ */
 @Composable
 fun LiquidGlassFloatingCapsule(
     modifier: Modifier = Modifier,
@@ -345,7 +290,7 @@ fun LiquidGlassFloatingCapsule(
     backdropOffsetInRoot: Offset = Offset.Zero,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val capsuleShape = CircleShape
+    val capsuleShape = RoundedCornerShape(24.dp)
     var capsulePositionInRoot by remember { mutableStateOf(Offset.Zero) }
 
     val supportsHardwareBlur = remember {
@@ -353,43 +298,43 @@ fun LiquidGlassFloatingCapsule(
             !Build.FINGERPRINT.equals("robolectric", ignoreCase = true)
     }
 
+    val fillColor = if (isDarkMode) {
+        Color(0xFF13202B).copy(alpha = if (backdropLayer != null && supportsHardwareBlur) 0.78f else 0.92f)
+    } else {
+        Color.White.copy(alpha = if (backdropLayer != null && supportsHardwareBlur) 0.80f else 0.90f)
+    }
+
+    val borderBrush = if (isDarkMode) {
+        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.18f), Color(0xFF253746)))
+    } else {
+        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), Color(0xFFD5E3E2)))
+    }
+
     Box(
         modifier = modifier
             .shadow(
-                elevation = if (isLiving) 18.dp else 14.dp,
+                elevation = 8.dp,
                 shape = capsuleShape,
                 clip = false,
-                ambientColor = if (isDarkMode) Color(0x99000000) else Color(0x380F172A),
-                spotColor = if (isDarkMode) {
-                    activeAccent.copy(alpha = 0.35f)
-                } else {
-                    activeAccent.copy(alpha = 0.22f)
-                }
+                ambientColor = if (isDarkMode) Color(0x66000000) else Color(0x160F172A),
+                spotColor = if (isDarkMode) Color(0x77000000) else Color(0x1E0D9488)
             )
             .clip(capsuleShape)
             .onGloballyPositioned { coords ->
                 capsulePositionInRoot = coords.positionInRoot()
             }
     ) {
-        // 1. Live Optical Backdrop Refraction & Frosted Blur (Real content flowing underneath)
-        if (backdropLayer != null) {
-            val blurModifier = if (supportsHardwareBlur) {
-                Modifier.blur(radius = 22.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
-            } else {
-                Modifier
-            }
+        if (backdropLayer != null && supportsHardwareBlur) {
             Canvas(
                 modifier = Modifier
                     .matchParentSize()
-                    .then(blurModifier)
+                    .blur(radius = 18.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
             ) {
                 val layerSize = backdropLayer.size
                 if (layerSize.width > 0 && layerSize.height > 0) {
                     val dx = backdropOffsetInRoot.x - capsulePositionInRoot.x
                     val dy = backdropOffsetInRoot.y - capsulePositionInRoot.y
                     withTransform({
-                        // Subtle convex lens magnification of the underlying content
-                        scale(scaleX = 1.045f, scaleY = 1.045f, pivot = center)
                         translate(left = dx, top = dy)
                     }) {
                         drawLayer(backdropLayer)
@@ -398,88 +343,13 @@ fun LiquidGlassFloatingCapsule(
             }
         }
 
-        // 2. iOS 26 Liquid Glass Translucent Medium + Specular Dome Gloss + Caustic Rim
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        if (isDarkMode) {
-                            listOf(
-                                Color(0xFF1E293B).copy(alpha = if (backdropLayer != null) 0.44f else 0.72f),
-                                Color(0xFF0F172A).copy(alpha = if (backdropLayer != null) 0.34f else 0.64f),
-                                Color(0xFF1E293B).copy(alpha = if (backdropLayer != null) 0.42f else 0.70f)
-                            )
-                        } else {
-                            listOf(
-                                Color.White.copy(alpha = if (backdropLayer != null) 0.44f else 0.72f),
-                                Color(0xFFF8FAFC).copy(alpha = if (backdropLayer != null) 0.24f else 0.56f),
-                                Color.White.copy(alpha = if (backdropLayer != null) 0.36f else 0.66f)
-                            )
-                        }
-                    )
-                )
-                .drawBehind {
-                    // Subtle chromatic glass tint wash
-                    drawRoundRect(
-                        brush = Brush.horizontalGradient(
-                            listOf(
-                                activeAccent.copy(alpha = if (isDarkMode) 0.08f else 0.05f),
-                                Color.Transparent,
-                                secondaryAccent.copy(alpha = if (isDarkMode) 0.07f else 0.04f)
-                            )
-                        ),
-                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
-                    )
-                    // Top curved specular dome gloss (signature iOS Liquid Glass highlight)
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = if (isDarkMode) 0.16f else 0.54f),
-                                Color.White.copy(alpha = if (isDarkMode) 0.04f else 0.14f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = size.height * 0.48f
-                        ),
-                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
-                    )
-                    // Subtle bottom internal caustic bounce
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.White.copy(alpha = if (isDarkMode) 0.06f else 0.22f)
-                            ),
-                            startY = size.height * 0.72f,
-                            endY = size.height
-                        ),
-                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
-                    )
-                }
+                .background(fillColor)
                 .then(
                     if (showBorder) {
-                        Modifier.border(
-                            width = 1.25.dp,
-                            brush = Brush.linearGradient(
-                                colors = if (isDarkMode) {
-                                    listOf(
-                                        Color.White.copy(alpha = 0.48f),
-                                        activeAccent.copy(alpha = 0.34f),
-                                        Color.White.copy(alpha = 0.10f),
-                                        Color.White.copy(alpha = 0.26f)
-                                    )
-                                } else {
-                                    listOf(
-                                        Color.White.copy(alpha = 0.95f),
-                                        activeAccent.copy(alpha = 0.26f),
-                                        Color.White.copy(alpha = 0.42f),
-                                        Color.White.copy(alpha = 0.85f)
-                                    )
-                                }
-                            ),
-                            shape = capsuleShape
-                        )
+                        Modifier.border(1.dp, borderBrush, capsuleShape)
                     } else {
                         Modifier
                     }
@@ -495,11 +365,6 @@ private enum class FadeBlurEdge {
     BOTTOM
 }
 
-/**
- * Progressive Fade-to-Blur atmospheric curtain rendered above and behind the floating Top Bar:
- * - Above the top bar (status bar / top margin), scrolling content smoothly fades into a 24.dp frosted blur.
- * - Moving downward behind the floating capsule, the blur and mist feather cleanly down to 0% opacity with no hard edge.
- */
 @Composable
 fun TopBarFadeToBlurOverlay(
     modifier: Modifier = Modifier,
@@ -516,11 +381,6 @@ fun TopBarFadeToBlurOverlay(
     )
 }
 
-/**
- * Progressive Fade-to-Blur atmospheric curtain rendered behind and below the floating Bottom Dock:
- * - Below the bottom dock (navigation / gesture bar zone), scrolling content smoothly fades into a 24.dp frosted blur.
- * - Moving upward behind and above the floating dock capsule, the blur and mist feather cleanly to 0% opacity.
- */
 @Composable
 fun BottomDockFadeToBlurOverlay(
     modifier: Modifier = Modifier,
@@ -548,8 +408,8 @@ private fun EdgeFadeToBlurOverlay(
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val mistColor = when (edge) {
-        FadeBlurEdge.TOP -> preset?.backgroundTop ?: if (effectiveDark) Color(0xFF090D1A) else AuroraCyanTop
-        FadeBlurEdge.BOTTOM -> preset?.backgroundBottom ?: if (effectiveDark) Color(0xFF1E293B) else AuroraPurpleBottom
+        FadeBlurEdge.TOP -> preset?.backgroundTop ?: if (effectiveDark) Color(0xFF0B1220) else AuroraCyanTop
+        FadeBlurEdge.BOTTOM -> preset?.backgroundBottom ?: if (effectiveDark) Color(0xFF111B2E) else AuroraPurpleBottom
     }
 
     var overlayPositionInRoot by remember { mutableStateOf(Offset.Zero) }
@@ -562,17 +422,15 @@ private fun EdgeFadeToBlurOverlay(
         if (edge == FadeBlurEdge.TOP) {
             Brush.verticalGradient(
                 0.00f to Color.Black,
-                0.38f to Color.Black.copy(alpha = 0.96f),
-                0.68f to Color.Black.copy(alpha = 0.56f),
-                0.88f to Color.Black.copy(alpha = 0.16f),
+                0.42f to Color.Black.copy(alpha = 0.92f),
+                0.72f to Color.Black.copy(alpha = 0.48f),
                 1.00f to Color.Transparent
             )
         } else {
             Brush.verticalGradient(
                 0.00f to Color.Transparent,
-                0.12f to Color.Black.copy(alpha = 0.16f),
-                0.32f to Color.Black.copy(alpha = 0.56f),
-                0.62f to Color.Black.copy(alpha = 0.96f),
+                0.28f to Color.Black.copy(alpha = 0.48f),
+                0.58f to Color.Black.copy(alpha = 0.92f),
                 1.00f to Color.Black
             )
         }
@@ -580,32 +438,25 @@ private fun EdgeFadeToBlurOverlay(
 
     val atmosphericVeil = remember(edge, mistColor, effectiveDark, supportsHardwareBlur) {
         val peakAlpha = if (supportsHardwareBlur) {
-            if (effectiveDark) 0.40f else 0.34f
+            if (effectiveDark) 0.44f else 0.38f
         } else {
-            if (effectiveDark) 0.78f else 0.72f
+            if (effectiveDark) 0.80f else 0.76f
         }
         val midAlpha = if (supportsHardwareBlur) {
             if (effectiveDark) 0.22f else 0.18f
         } else {
-            if (effectiveDark) 0.48f else 0.42f
-        }
-        val tailAlpha = if (supportsHardwareBlur) {
-            if (effectiveDark) 0.06f else 0.04f
-        } else {
-            if (effectiveDark) 0.14f else 0.10f
+            if (effectiveDark) 0.46f else 0.42f
         }
         if (edge == FadeBlurEdge.TOP) {
             Brush.verticalGradient(
                 0.00f to mistColor.copy(alpha = peakAlpha),
-                0.38f to mistColor.copy(alpha = midAlpha),
-                0.78f to mistColor.copy(alpha = tailAlpha),
+                0.45f to mistColor.copy(alpha = midAlpha),
                 1.00f to Color.Transparent
             )
         } else {
             Brush.verticalGradient(
                 0.00f to Color.Transparent,
-                0.22f to mistColor.copy(alpha = tailAlpha),
-                0.62f to mistColor.copy(alpha = midAlpha),
+                0.55f to mistColor.copy(alpha = midAlpha),
                 1.00f to mistColor.copy(alpha = peakAlpha)
             )
         }
@@ -636,7 +487,7 @@ private fun EdgeFadeToBlurOverlay(
                 Canvas(
                     modifier = Modifier
                         .matchParentSize()
-                        .blur(radius = 24.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                        .blur(radius = 20.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
                 ) {
                     val layerSize = backdropLayer.size
                     if (layerSize.width > 0 && layerSize.height > 0) {
@@ -670,44 +521,26 @@ private fun BottomNavItem(
     activeColor: Color,
     textSecondary: Color?,
     animationsEnabled: Boolean,
-    isLiving: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     testTag: String
 ) {
     val inactiveColor = textSecondary
-        ?: if (isDarkMode) Color(0xFFD1D5DB).copy(alpha = 0.78f) else Color(0xFF334155)
+        ?: if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
 
     val itemColor by animateColorAsState(
         targetValue = if (isSelected) activeColor else inactiveColor,
-        animationSpec = if (animationsEnabled || isLiving) tween(200, easing = FastOutSlowInEasing) else tween(0),
+        animationSpec = if (animationsEnabled) tween(180, easing = FastOutSlowInEasing) else tween(0),
         label = "navColor"
     )
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val livingPulse = if (isLiving && isSelected) {
-        val t = rememberInfiniteTransition(label = "navLivingPulse")
-        t.animateFloat(
-            initialValue = 1.02f,
-            targetValue = 1.07f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "navBreathScale"
-        ).value
-    } else 1f
-
     val scale by animateFloatAsState(
-        targetValue = when {
-            isPressed -> 0.92f
-            isSelected -> 1.04f
-            else -> 1f
-        },
-        animationSpec = if (animationsEnabled || isLiving) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 420f)
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = if (animationsEnabled) {
+            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 460f)
         } else tween(0),
         label = "navScale"
     )
@@ -716,11 +549,10 @@ private fun BottomNavItem(
         modifier = modifier
             .defaultMinSize(minHeight = 48.dp)
             .graphicsLayer {
-                val s = if (isLiving && isSelected && !isPressed) livingPulse else scale
-                scaleX = s
-                scaleY = s
+                scaleX = scale
+                scaleY = scale
             }
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -738,7 +570,7 @@ private fun BottomNavItem(
                 BadgedBox(
                     badge = {
                         Badge(
-                            containerColor = Color(0xFFEF4444),
+                            containerColor = RedDanger,
                             contentColor = Color.White
                         ) {
                             Text(
@@ -753,7 +585,7 @@ private fun BottomNavItem(
                         imageVector = icon,
                         contentDescription = label,
                         tint = itemColor,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(21.dp)
                     )
                 }
             } else {
@@ -761,7 +593,7 @@ private fun BottomNavItem(
                     imageVector = icon,
                     contentDescription = label,
                     tint = itemColor,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(21.dp)
                 )
             }
 
@@ -770,7 +602,7 @@ private fun BottomNavItem(
             Text(
                 text = label,
                 fontSize = 10.5.sp,
-                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 color = itemColor,
                 textAlign = TextAlign.Center,
                 maxLines = 1,

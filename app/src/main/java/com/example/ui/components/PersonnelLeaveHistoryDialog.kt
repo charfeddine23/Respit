@@ -264,7 +264,7 @@ fun PersonnelLeaveHistoryDialog(
                                 val shortAccent = when {
                                     lastShortLeaveInfo.isCurrentlyOnShortLeave -> if (effectiveDark) CyanGlow else VibrantCyan
                                     lastShortLeaveInfo.isReturningToday -> Color(0xFFF59E0B)
-                                    else -> if (effectiveDark) Color(0xFFC4B5FD) else Color(0xFF7C3AED)
+                                    else -> primaryColor
                                 }
                                 val formattedCounter = if (lastShortLeaveInfo.daysCounter < 0L) {
                                     "\u200E${lastShortLeaveInfo.daysCounter}\u200E"

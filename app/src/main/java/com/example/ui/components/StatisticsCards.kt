@@ -1,15 +1,8 @@
 package com.example.ui.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,9 +20,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,14 +32,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,10 +44,9 @@ import com.example.ui.DashboardStats
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
-import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
-import com.example.ui.theme.RoyalBlueAccent
+import com.example.ui.theme.SkyLeaveBlue
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
@@ -82,99 +71,35 @@ fun StatisticsSection(
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
-    val secondaryAccent = preset?.secondary ?: RoyalBlueAccent
+    val leaveAccent = if (effectiveDark) Color(0xFF38BDF8) else SkyLeaveBlue
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
 
     val total = if (stats.total > 0) stats.total.toFloat() else 1f
-    val onDutyFraction = (stats.onDuty / total).coerceIn(0f, 1f)
-    val atHomeFraction = (stats.atHome / total).coerceIn(0f, 1f)
-    val overdueFraction = ((stats.overdue + stats.returningToday) / total).coerceIn(0f, 1f)
+    val onDutyPct = ((stats.onDuty / total).coerceIn(0f, 1f) * 100f).roundToInt()
+    val atHomePct = ((stats.atHome / total).coerceIn(0f, 1f) * 100f).roundToInt()
+    val urgentCount = stats.returningToday + stats.overdue
 
-    val animatedOnDuty = if (animationsEnabled) {
-        animateFloatAsState(
-            targetValue = onDutyFraction,
-            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-            label = "onDutyAnim"
-        ).value
-    } else onDutyFraction
-
-    val animatedAtHome = if (animationsEnabled) {
-        animateFloatAsState(
-            targetValue = atHomeFraction,
-            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-            label = "atHomeAnim"
-        ).value
-    } else atHomeFraction
-
-    val animatedOverdue = if (animationsEnabled) {
-        animateFloatAsState(
-            targetValue = overdueFraction,
-            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-            label = "overdueAnim"
-        ).value
-    } else overdueFraction
-
-    val isLivingLuxury = LocalLivingLuxuryMode.current
-
-    val pulseAlpha: Float
-    val livingBreathScale: Float
-    if (animationsEnabled || isLivingLuxury) {
-        val infiniteTransition = rememberInfiniteTransition(label = "pulseInfinite")
-        pulseAlpha = infiniteTransition.animateFloat(
-            initialValue = 0.35f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = if (isLivingLuxury) 950 else 1100, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulseAlpha"
-        ).value
-        livingBreathScale = if (isLivingLuxury) {
-            infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 1.032f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 2800, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "livingRingBreath"
-            ).value
-        } else 1f
-    } else {
-        pulseAlpha = 1f
-        livingBreathScale = 1f
-    }
-
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .testTag("statistics_section"),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .liquidGlass(
+                shape = RoundedCornerShape(24.dp),
+                elevation = 4.dp,
+                isDark = effectiveDark,
+                cornerRadius = 24.dp
+            )
+            .testTag("statistics_section")
     ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlass(
-                    shape = RoundedCornerShape(26.dp),
-                    elevation = 7.dp,
-                    borderAlpha = 0.92f,
-                    isDark = effectiveDark,
-                    isNeumorphic = isNeumorphic,
-                    cornerRadius = 26.dp
-                )
                 .padding(16.dp)
         ) {
             val isWide = maxWidth >= 500.dp
-            val isCompact = maxWidth < 340.dp
-            val ringSize = if (isWide) 132.dp else if (isCompact) 102.dp else 118.dp
-            val canvasSize = if (isWide) 122.dp else if (isCompact) 94.dp else 110.dp
-            val strokeWidthDp = if (isWide) 11.dp else if (isCompact) 8.5.dp else 10.dp
-            val centerTotalSp = if (isWide) 24.sp else if (isCompact) 19.sp else 22.sp
-            val centerLabelSp = if (isWide) 10.sp else if (isCompact) 8.sp else 9.sp
 
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                // Top Header Row: Pulsing Dashboard Indicator & Analytics Entry Pill
+                // Header Row: [Grid Icon + Overview] .... [Analytics > pill]
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -182,34 +107,28 @@ fun StatisticsSection(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.weight(1f, fill = false)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(30.dp)
-                                .liquidGlassPanel(
-                                    shape = RoundedCornerShape(10.dp),
-                                    cornerRadius = 10.dp,
-                                    isDark = effectiveDark,
-                                    accent = primaryAccent,
-                                    secondaryAccent = secondaryAccent,
-                                    isSelected = true,
-                                    softTintWhenSelected = true
-                                ),
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(primaryAccent.copy(alpha = if (effectiveDark) 0.18f else 0.11f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(9.dp)
-                                    .clip(CircleShape)
-                                    .background(primaryAccent.copy(alpha = pulseAlpha))
+                            Icon(
+                                imageVector = Icons.Outlined.GridView,
+                                contentDescription = null,
+                                tint = primaryAccent,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                         Text(
-                            text = AppStrings.get("dashboard_title", currentLang),
+                            text = AppStrings.get("overview_title", currentLang),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.5.sp,
+                            fontWeight = FontWeight.Bold,
                             color = textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -218,164 +137,114 @@ fun StatisticsSection(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Interactive Liquid Glass Analytics Entry Pill
-                    Surface(
-                        onClick = onOpenAnalytics,
-                        shape = RoundedCornerShape(50.dp),
-                        color = Color.Transparent,
+                    // Accessible 48dp touch target around crisp frosted Analytics pill
+                    Box(
                         modifier = Modifier
                             .defaultMinSize(minHeight = 48.dp)
-                            .liquidGlassPanel(
-                                shape = RoundedCornerShape(50.dp),
-                                cornerRadius = 25.dp,
-                                isDark = effectiveDark,
-                                accent = primaryAccent,
-                                secondaryAccent = secondaryAccent,
-                                isSelected = true,
-                                softTintWhenSelected = true
-                            )
-                            .testTag("dashboard_analytics_button")
+                            .clip(CircleShape)
+                            .clickable(onClick = onOpenAnalytics)
+                            .testTag("dashboard_analytics_button"),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp)
+                        Surface(
+                            shape = CircleShape,
+                            color = primaryAccent.copy(alpha = if (effectiveDark) 0.18f else 0.11f),
+                            border = BorderStroke(1.dp, primaryAccent.copy(alpha = if (effectiveDark) 0.30f else 0.18f))
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.BarChart,
-                                contentDescription = AppStrings.get("dashboard_analytics_label", currentLang),
-                                tint = primaryAccent,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = AppStrings.get("dashboard_analytics_label", currentLang),
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 12.sp,
-                                color = textPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = primaryAccent,
-                                modifier = Modifier.size(15.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BarChart,
+                                    contentDescription = AppStrings.get("dashboard_analytics_label", currentLang),
+                                    tint = primaryAccent,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = AppStrings.get("dashboard_analytics_label", currentLang),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp,
+                                    color = primaryAccent,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = primaryAccent,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
                         }
                     }
                 }
 
-                // Central Visualization Row: Ring Chart + Interactive Liquid Glass Metrics
+                // Body: Left Tall Total Personnel Glass Card + Right 3 Stacked Metric Rows
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
+                    val totalTileBg = if (effectiveDark) {
+                        Color(0xB8182734)
+                    } else {
+                        Color(0xCCF3F8F8)
+                    }
+                    val totalTileBorder = if (selectedStatus == "ALL") {
+                        primaryAccent.copy(alpha = if (effectiveDark) 0.45f else 0.25f)
+                    } else if (effectiveDark) {
+                        Color(0xFF253746)
+                    } else {
+                        Color(0xFFE1ECEB)
+                    }
+
+                    Surface(
+                        onClick = { onSelectStatus("ALL") },
+                        shape = RoundedCornerShape(18.dp),
+                        color = totalTileBg,
+                        border = BorderStroke(1.dp, totalTileBorder),
                         modifier = Modifier
-                            .size(ringSize)
-                            .graphicsLayer {
-                                scaleX = livingBreathScale
-                                scaleY = livingBreathScale
-                            }
-                            .padding(4.dp),
-                        contentAlignment = Alignment.Center
+                            .weight(if (isWide) 0.34f else 0.37f)
+                            .defaultMinSize(minHeight = 148.dp)
                     ) {
-                        Canvas(modifier = Modifier.size(canvasSize)) {
-                            if (size.minDimension <= 0f) return@Canvas
-                            val strokeWidth = strokeWidthDp.toPx()
-                            val trackColor = if (effectiveDark) Color(0x2E334155) else Color(0x36CBD5E1)
-
-                            if (isLivingLuxury) {
-                                val haloRadius = (size.minDimension * 0.62f).coerceAtLeast(1f)
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        listOf(
-                                            primaryAccent.copy(alpha = 0.22f * pulseAlpha),
-                                            EmeraldSuccess.copy(alpha = 0.12f * pulseAlpha),
-                                            Color.Transparent
-                                        ),
-                                        radius = haloRadius
-                                    ),
-                                    radius = haloRadius
-                                )
-                            }
-
-                            drawCircle(
-                                color = trackColor,
-                                style = Stroke(width = strokeWidth)
-                            )
-
-                            val dutySweep = animatedOnDuty * 360f
-                            val homeSweep = animatedAtHome * 360f
-                            val overdueSweep = animatedOverdue * 360f
-
-                            var startAngle = -90f
-
-                            if (dutySweep > 0f) {
-                                drawArc(
-                                    color = EmeraldSuccess,
-                                    startAngle = startAngle,
-                                    sweepAngle = dutySweep.coerceAtLeast(4f),
-                                    useCenter = false,
-                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                                )
-                                startAngle += dutySweep
-                            }
-
-                            if (homeSweep > 0f) {
-                                drawArc(
-                                    color = primaryAccent,
-                                    startAngle = startAngle,
-                                    sweepAngle = homeSweep.coerceAtLeast(4f),
-                                    useCenter = false,
-                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                                )
-                                startAngle += homeSweep
-                            }
-
-                            if (overdueSweep > 0f) {
-                                drawArc(
-                                    color = if (stats.overdue > 0) RedDanger else AmberWarning,
-                                    startAngle = startAngle,
-                                    sweepAngle = overdueSweep.coerceAtLeast(4f),
-                                    useCenter = false,
-                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                                )
-                            }
-                        }
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 18.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(
                                 text = stats.total.toString(),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Black,
-                                color = textPrimary,
-                                fontSize = centerTotalSp
+                                fontSize = if (isWide) 36.sp else 33.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = primaryAccent,
+                                lineHeight = 38.sp,
+                                maxLines = 1
                             )
+                            Spacer(modifier = Modifier.size(5.dp))
                             Text(
                                 text = AppStrings.get("total_personnel", currentLang),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = centerLabelSp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
                                 color = textSecondary,
-                                maxLines = 1,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(if (isWide) 18.dp else 12.dp))
-
                     Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(if (isWide) 9.dp else 7.dp)
+                        modifier = Modifier.weight(if (isWide) 0.66f else 0.63f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         DashboardMetricRow(
                             icon = Icons.Default.Shield,
                             label = AppStrings.get("on_duty_present", currentLang),
-                            count = stats.onDuty.toString(),
-                            percent = (onDutyFraction * 100f).roundToInt(),
+                            trailingValue = "${stats.onDuty} · $onDutyPct%",
                             accentColor = EmeraldSuccess,
                             isSelected = selectedStatus == "ON_DUTY",
                             isDarkMode = effectiveDark,
@@ -385,29 +254,26 @@ fun StatisticsSection(
 
                         DashboardMetricRow(
                             icon = Icons.Default.Home,
-                            label = AppStrings.get("on_leave_home", currentLang),
-                            count = stats.atHome.toString(),
-                            percent = (atHomeFraction * 100f).roundToInt(),
-                            accentColor = primaryAccent,
+                            label = AppStrings.get("on_leave_short", currentLang),
+                            trailingValue = "${stats.atHome} · $atHomePct%",
+                            accentColor = leaveAccent,
                             isSelected = selectedStatus == "AT_HOME",
                             isDarkMode = effectiveDark,
                             isWide = isWide,
                             onClick = { onSelectStatus(if (selectedStatus == "AT_HOME") "ALL" else "AT_HOME") }
                         )
 
-                        val urgentCount = stats.returningToday + stats.overdue
                         DashboardMetricRow(
-                            icon = if (stats.overdue > 0) Icons.Default.Warning else Icons.Default.NotificationsActive,
+                            icon = if (stats.overdue > 0) Icons.Default.Warning else Icons.Default.Notifications,
                             label = AppStrings.get("delayed_overdue", currentLang),
-                            count = urgentCount.toString(),
-                            percent = (overdueFraction * 100f).roundToInt(),
+                            trailingValue = urgentCount.toString(),
                             accentColor = if (stats.overdue > 0) RedDanger else AmberWarning,
                             isSelected = selectedStatus == "OVERDUE" || selectedStatus == "RETURNING_TODAY",
                             isDarkMode = effectiveDark,
                             isWide = isWide,
                             onClick = {
                                 onSelectStatus(
-                                    if (selectedStatus == "OVERDUE") "ALL"
+                                    if (selectedStatus == "OVERDUE" || selectedStatus == "RETURNING_TODAY") "ALL"
                                     else if (stats.overdue > 0) "OVERDUE"
                                     else "RETURNING_TODAY"
                                 )
@@ -424,8 +290,7 @@ fun StatisticsSection(
 private fun DashboardMetricRow(
     icon: ImageVector,
     label: String,
-    count: String,
-    percent: Int,
+    trailingValue: String,
     accentColor: Color,
     isSelected: Boolean,
     isDarkMode: Boolean,
@@ -435,29 +300,26 @@ private fun DashboardMetricRow(
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color(0xFFE2E8F0) else SlateTextPrimary
-    val rowShape = RoundedCornerShape(16.dp)
 
-    Surface(
-        onClick = onClick,
-        shape = rowShape,
-        color = Color.Transparent,
+    val rowShape = RoundedCornerShape(15.dp)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp)
             .liquidGlassPanel(
                 shape = rowShape,
-                cornerRadius = 16.dp,
+                cornerRadius = 15.dp,
                 isDark = effectiveDark,
                 accent = accentColor,
-                secondaryAccent = accentColor,
-                isSelected = isSelected,
-                softTintWhenSelected = true
+                isSelected = isSelected
             )
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = if (isWide) 12.dp else 10.dp, vertical = if (isWide) 9.dp else 8.dp),
+                .padding(horizontal = if (isWide) 12.dp else 10.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -467,71 +329,38 @@ private fun DashboardMetricRow(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (isWide) 32.dp else 28.dp)
-                        .liquidGlassPanel(
-                            shape = RoundedCornerShape(10.dp),
-                            cornerRadius = 10.dp,
-                            isDark = effectiveDark,
-                            accent = accentColor,
-                            secondaryAccent = accentColor,
-                            isSelected = true,
-                            softTintWhenSelected = true
-                        ),
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = if (effectiveDark) 0.20f else 0.13f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(if (isWide) 17.dp else 15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f, fill = false)) {
-                    Text(
-                        text = label,
-                        fontSize = if (isWide) 12.sp else 11.sp,
-                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                        color = textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = label,
+                    fontSize = if (isWide) 12.5.sp else 11.5.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    color = textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Text(
-                    text = "$percent%",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accentColor.copy(alpha = 0.85f)
-                )
-                Box(
-                    modifier = Modifier
-                        .liquidGlassPanel(
-                            shape = RoundedCornerShape(50.dp),
-                            cornerRadius = 50.dp,
-                            isDark = effectiveDark,
-                            accent = accentColor,
-                            secondaryAccent = accentColor,
-                            isSelected = true,
-                            softTintWhenSelected = true
-                        )
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = count,
-                        fontSize = if (isWide) 14.sp else 13.sp,
-                        fontWeight = FontWeight.Black,
-                        color = accentColor
-                    )
-                }
-            }
+            Text(
+                text = trailingValue,
+                fontSize = if (isWide) 13.5.sp else 12.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = accentColor,
+                maxLines = 1
+            )
         }
     }
 }
