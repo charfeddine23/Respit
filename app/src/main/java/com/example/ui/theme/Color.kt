@@ -55,9 +55,22 @@ val SlateTextPrimary = Color(0xFF0F172A)      // Deep ink slate for high contras
 val SlateTextSecondary = Color(0xFF64748B)    // Muted slate for subtitles & metadata
 
 // ==========================================
-// Dark Theme Surfaces
+// Dark Theme Surfaces & Compatibility Tokens
 // ==========================================
 val DarkNavyBg = Color(0xFF0A141A)
 val DarkSurface = Color(0xCC13212B)
 val DarkTextPrimary = Color(0xFFF1F5F9)
 val DarkTextSecondary = Color(0xFF94A3B8)
+
+val TealPrimary = VibrantCyan
+val TealPrimaryDark = CyanGlow
+val MintSoftBg = Color(0xFFE6F6F3)
+val DarkMintSoftBg = Color(0xFF0F2E2C)
+val SkyLeaveBg = Color(0xFFE0F2FE)
+val IceCanvasMid = AuroraWhiteMid
+val SubtleTileBgLight = Color(0xFFF1F5F9)
+val CardHairlineLight = GlassCardBorder
+val DarkTealCanvas = DarkNavyBg
+val DarkTealSurface = Color(0xFF13212B)
+val DarkTealBorder = Color(0xFF1F3640)
+
