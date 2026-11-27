@@ -298,7 +298,6 @@ class ComposeUiRobolectricTest {
         com.example.ui.components.AppBottomNavigationPanel(
           selectedPage = selectedPage,
           onSelectPage = { selectedPage = it },
-          notificationsCount = 2,
           isDarkMode = false,
           animationsEnabled = false,
           currentLang = AppLanguage.ENGLISH

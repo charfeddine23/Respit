@@ -55,7 +55,7 @@ interface PersonnelDao {
     @Query("UPDATE personnel SET isPinned = :pinned, pinnedAtMillis = :pinnedAt WHERE id = :id")
     suspend fun setPinned(id: Long, pinned: Boolean, pinnedAt: Long)
 
-    @Query("DELETE FROM personnel WHERE isDeleted = 0")
+    @Query("DELETE FROM personnel")
     suspend fun clearAll()
 
     @Query("SELECT COUNT(*) FROM personnel WHERE isDeleted = 0")

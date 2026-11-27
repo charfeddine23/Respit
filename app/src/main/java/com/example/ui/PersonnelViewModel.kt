@@ -31,14 +31,17 @@ import com.example.util.InstallLaunchResult
 import com.example.util.LeaveNotificationHelper
 import com.example.util.PdfExporter
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -98,7 +101,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     val searchQuery = MutableStateFlow("")
     val selectedRank = MutableStateFlow("ALL")
     val selectedStatus = MutableStateFlow("ALL")
-    val selectedWilaya = MutableStateFlow("ALL")
     val sortOption = MutableStateFlow(SortOption.RETURN_SOON)
 
     // User preferences & settings state
@@ -228,6 +230,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private val dayRefreshTrigger = MutableStateFlow(Personnel.toStartOfDay(System.currentTimeMillis()))
+    val todayMillis: StateFlow<Long> = dayRefreshTrigger.asStateFlow()
 
     fun refreshDateSensitiveState() {
         val todayStart = Personnel.toStartOfDay(System.currentTimeMillis())
@@ -290,7 +293,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         val query: String,
         val rank: String,
         val status: String,
-        val wilaya: String,
         val sort: SortOption,
         val threshold: Int,
         val lang: AppLanguage
@@ -300,10 +302,9 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         searchQuery,
         selectedRank,
         selectedStatus,
-        selectedWilaya,
         combine(sortOption, dutyThresholdDays, currentLanguage) { s, t, l -> Triple(s, t, l) }
-    ) { query, rankFilter, statusFilter, wilayaFilter, (sort, threshold, lang) ->
-        FilterParams(query, rankFilter, statusFilter, wilayaFilter, sort, threshold, lang)
+    ) { query, rankFilter, statusFilter, (sort, threshold, lang) ->
+        FilterParams(query, rankFilter, statusFilter, sort, threshold, lang)
     }
 
     val filteredPersonnel: StateFlow<List<Personnel>> = combine(
@@ -340,11 +341,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
             } else {
                 list = list.filter { it.status.name == params.status }
             }
-        }
-
-        // Wilaya filter
-        if (params.wilaya != "ALL") {
-            list = list.filter { it.wilaya == params.wilaya }
         }
 
         // Sorting: Pinned personnel always rise to the top (most recently pinned first)
@@ -391,12 +387,8 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardStats())
 
-    val uniqueRanks: StateFlow<List<String>> = allPersonnel.combine(allPersonnel) { list, _ ->
+    val uniqueRanks: StateFlow<List<String>> = allPersonnel.map { list ->
         list.map { it.rank }.distinct().sorted()
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val uniqueWilayas: StateFlow<List<String>> = allPersonnel.combine(allPersonnel) { list, _ ->
-        list.map { it.wilaya }.distinct().sorted()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun toggleTheme() {
@@ -668,10 +660,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                 .thenByDescending { it.timestamp }
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val unreadNotificationsCount: StateFlow<Int> = notifications
-        .combine(pinnedNotificationIds) { list, _ -> list.size }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     fun togglePinNotification(id: String) {
         val current = settingsManager.pinnedNotificationIds.toMutableSet()
@@ -1217,7 +1205,23 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun exportPdf(context: Context) {
         val list = if (filteredPersonnel.value.isNotEmpty()) filteredPersonnel.value else allPersonnel.value
-        PdfExporter.generateAndSharePdf(context, list, currentLanguage.value)
+        val lang = currentLanguage.value
+        viewModelScope.launch {
+            try {
+                val pdfFile = withContext(Dispatchers.IO) {
+                    PdfExporter.buildPdfFile(context, list, lang)
+                }
+                PdfExporter.sharePdfFile(context, pdfFile, lang)
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(
+                    context,
+                    e.localizedMessage ?: AppStrings.get("pdf_share_chooser", lang),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
     fun resetToSampleData() {
@@ -1311,28 +1315,43 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun generateCsvContent(): String {
+        fun csvCell(value: String): String = "\"${value.replace("\"", "\"\"")}\""
         val lang = currentLanguage.value
         val list = allPersonnel.value
         val sb = StringBuilder()
         sb.append('\uFEFF')
-        val hRank = AppStrings.get("pdf_col_rank", lang)
-        val hName = AppStrings.get("pdf_col_name", lang)
-        val hWilaya = AppStrings.get("pdf_col_wilaya", lang)
-        val hReg = AppStrings.get("pdf_col_reg", lang)
-        val hStart = AppStrings.get("pdf_col_start", lang)
-        val hReturn = AppStrings.get("pdf_col_return", lang)
-        val hDuration = "${AppStrings.get("leave_duration", lang).trimEnd(':', ' ')} (${AppStrings.get("days", lang)})"
-        val hStatus = AppStrings.get("status_col_header", lang).trimEnd(':', ' ')
-        val hCountdown = AppStrings.get("pdf_col_status", lang)
-        val hNotes = AppStrings.get("notes_plain", lang)
-        sb.append("\"$hRank\",\"$hName\",\"$hWilaya\",\"$hReg\",\"$hStart\",\"$hReturn\",\"$hDuration\",\"$hStatus\",\"$hCountdown\",\"$hNotes\"\r\n")
+        val headers = listOf(
+            AppStrings.get("pdf_col_rank", lang),
+            AppStrings.get("pdf_col_name", lang),
+            AppStrings.get("pdf_col_wilaya", lang),
+            AppStrings.get("pdf_col_reg", lang),
+            AppStrings.get("pdf_col_start", lang),
+            AppStrings.get("pdf_col_return", lang),
+            "${AppStrings.get("leave_duration", lang).trimEnd(':', ' ')} (${AppStrings.get("days", lang)})",
+            AppStrings.get("status_col_header", lang).trimEnd(':', ' '),
+            AppStrings.get("pdf_col_status", lang),
+            AppStrings.get("notes_plain", lang)
+        )
+        sb.append(headers.joinToString(",") { csvCell(it) }).append("\r\n")
         list.forEach { p ->
-            val notesClean = p.notes.replace("\"", "\"\"")
             val rFormatted = formatRank(p.rank, lang)
             val wFormatted = formatWilaya(p.wilaya, lang, includeCode = false)
             val sFormatted = p.status.getCompactBadgeLabel(lang)
             val cFormatted = p.getCountdownText(lang)
-            sb.append("\"$rFormatted\",\"${p.getLocalizedName(lang)}\",\"$wFormatted\",\"${p.registrationNumber}\",\"${p.formattedStartDate}\",\"${p.formattedReturnDate}\",${p.totalLeaveDays},\"$sFormatted\",\"$cFormatted\",\"$notesClean\"\r\n")
+            sb.append(
+                listOf(
+                    csvCell(rFormatted),
+                    csvCell(p.getLocalizedName(lang)),
+                    csvCell(wFormatted),
+                    csvCell(p.registrationNumber),
+                    csvCell(p.formattedStartDate),
+                    csvCell(p.formattedReturnDate),
+                    p.totalLeaveDays.toString(),
+                    csvCell(sFormatted),
+                    csvCell(cFormatted),
+                    csvCell(p.notes)
+                ).joinToString(",")
+            ).append("\r\n")
         }
         return sb.toString()
     }
@@ -1359,65 +1378,76 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
         )
     }
 
-    fun importPersonnelFromJson(jsonString: String, replaceAll: Boolean = false): Pair<Boolean, String> {
+    fun importPersonnelFromJson(
+        jsonString: String,
+        replaceAll: Boolean = false,
+        onComplete: ((Boolean, String) -> Unit)? = null
+    ): Pair<Boolean, String> {
         val lang = currentLanguage.value
         return try {
             val parsed = FullBackupCodec.parseFullBackupJson(jsonString, replaceAll)
             if (parsed.personnelList.isEmpty() && parsed.leaveRecords.isEmpty()) {
-                return Pair(false, AppStrings.get("import_empty_error", lang))
+                val emptyMsg = AppStrings.get("import_empty_error", lang)
+                onComplete?.invoke(false, emptyMsg)
+                return Pair(false, emptyMsg)
             }
+
+            val successMsg = "${AppStrings.get("import_success_prefix", lang)} ${parsed.personnelList.size} ${AppStrings.get("import_records_unit", lang)}"
 
             viewModelScope.launch {
                 try {
                     val current = allPersonnel.value
                     lastUndoAction.value = UndoAction.Imported(current)
-                    if (replaceAll) {
-                        repository.clearPersonnel()
-                    }
 
-                    val oldIdToNewId = mutableMapOf<Long, Long>()
-                    val regToNewId = mutableMapOf<String, Long>()
-                    val insertedPersonnel = mutableListOf<Personnel>()
-
-                    parsed.personnelList.forEach { p ->
-                        val entityToInsert = if (replaceAll && p.id > 0L) p else p.copy(id = 0L)
-                        val newId = repository.insert(entityToInsert)
-                        if (p.id > 0L) {
-                            oldIdToNewId[p.id] = newId
+                    withContext(Dispatchers.IO) {
+                        if (replaceAll) {
+                            repository.clearPersonnel()
                         }
-                        val normReg = p.registrationNumber.trim()
-                        if (normReg.isNotBlank()) {
-                            regToNewId[normReg.lowercase(Locale.getDefault())] = newId
-                        }
-                        val inserted = entityToInsert.copy(id = newId)
-                        insertedPersonnel.add(inserted)
-                    }
 
-                    // Restore archived leave records when present, deduplicating by regNo + dates
-                    if (parsed.leaveRecords.isNotEmpty()) {
-                        parsed.leaveRecords.forEach { leave ->
-                            val mappedPersonnelId = oldIdToNewId[leave.personnelId]
-                                ?: regToNewId[leave.registrationNumber.trim().lowercase(Locale.getDefault())]
-                                ?: leave.personnelId
-                            if (leave.startDateMillis > 0L && leave.returnDateMillis > 0L) {
-                                val existsById = mappedPersonnelId > 0L &&
-                                    repository.countExactLeave(mappedPersonnelId, leave.startDateMillis, leave.returnDateMillis) > 0
-                                val existsByReg = leave.registrationNumber.isNotBlank() &&
-                                    repository.countExactLeaveByReg(leave.registrationNumber, leave.startDateMillis, leave.returnDateMillis) > 0
-                                if (!existsById && !existsByReg) {
-                                    repository.insertLeave(leave.copy(id = 0L, personnelId = mappedPersonnelId))
+                        val oldIdToNewId = mutableMapOf<Long, Long>()
+                        val regToNewId = mutableMapOf<String, Long>()
+                        val insertedPersonnel = mutableListOf<Personnel>()
+
+                        parsed.personnelList.forEach { p ->
+                            val entityToInsert = if (replaceAll && p.id > 0L) p else p.copy(id = 0L)
+                            val newId = repository.insert(entityToInsert)
+                            if (p.id > 0L) {
+                                oldIdToNewId[p.id] = newId
+                            }
+                            val normReg = p.registrationNumber.trim()
+                            if (normReg.isNotBlank()) {
+                                regToNewId[normReg.lowercase(Locale.getDefault())] = newId
+                            }
+                            val inserted = entityToInsert.copy(id = newId)
+                            insertedPersonnel.add(inserted)
+                        }
+
+                        // Restore archived leave records when present, deduplicating by regNo + dates
+                        if (parsed.leaveRecords.isNotEmpty()) {
+                            parsed.leaveRecords.forEach { leave ->
+                                val mappedPersonnelId = oldIdToNewId[leave.personnelId]
+                                    ?: regToNewId[leave.registrationNumber.trim().lowercase(Locale.getDefault())]
+                                    ?: leave.personnelId
+                                if (leave.startDateMillis > 0L && leave.returnDateMillis > 0L) {
+                                    val existsById = mappedPersonnelId > 0L &&
+                                        repository.countExactLeave(mappedPersonnelId, leave.startDateMillis, leave.returnDateMillis) > 0
+                                    val existsByReg = leave.registrationNumber.isNotBlank() &&
+                                        repository.countExactLeaveByReg(leave.registrationNumber, leave.startDateMillis, leave.returnDateMillis) > 0
+                                    if (!existsById && !existsByReg) {
+                                        repository.insertLeave(leave.copy(id = 0L, personnelId = mappedPersonnelId))
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Ensure current active/completed leaves for imported personnel are recorded when valid
-                    insertedPersonnel.forEach { p ->
-                        if (p.startDateMillis > 0L && p.returnDateMillis > 0L) {
-                            if (!p.isReturnedToDuty) {
-                                autoRecordLeaveIfNeeded(p)
-                            } else {
-                                markLeaveRecordCompleted(p)
+                        // Ensure current active/completed leaves for imported personnel are recorded when valid
+                        insertedPersonnel.forEach { p ->
+                            if (p.startDateMillis > 0L && p.returnDateMillis > 0L) {
+                                if (!p.isReturnedToDuty) {
+                                    autoRecordLeaveIfNeeded(p)
+                                } else {
+                                    markLeaveRecordCompleted(p)
+                                }
                             }
                         }
                     }
@@ -1450,14 +1480,20 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                             }
                         }
                     }
-                } catch (_: Exception) {
-                    // Safely ignore unexpected DB write error after validation
+                    onComplete?.invoke(true, successMsg)
+                } catch (ce: CancellationException) {
+                    throw ce
+                } catch (e: Exception) {
+                    val errMsg = "${AppStrings.get("import_json_error", lang)} ${e.localizedMessage ?: AppStrings.get("import_invalid_data", lang)}"
+                    onComplete?.invoke(false, errMsg)
                 }
             }
 
-            Pair(true, "${AppStrings.get("import_success_prefix", lang)} ${parsed.personnelList.size} ${AppStrings.get("import_records_unit", lang)}")
+            Pair(true, successMsg)
         } catch (e: Exception) {
-            Pair(false, "${AppStrings.get("import_json_error", lang)} ${e.localizedMessage ?: AppStrings.get("import_invalid_data", lang)}")
+            val errMsg = "${AppStrings.get("import_json_error", lang)} ${e.localizedMessage ?: AppStrings.get("import_invalid_data", lang)}"
+            onComplete?.invoke(false, errMsg)
+            Pair(false, errMsg)
         }
     }
 

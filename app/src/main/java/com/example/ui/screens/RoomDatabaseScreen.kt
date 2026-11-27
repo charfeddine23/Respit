@@ -1133,7 +1133,7 @@ private fun RoomLeaveRecordRowCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = leave.personnelName,
+                        text = Personnel.resolveLocalizedName(leave.personnelName, leave.personnelNameLatin, currentLang),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary
@@ -1281,7 +1281,7 @@ private fun RoomDiagnosticsCard(
             Spacer(modifier = Modifier.height(14.dp))
 
             DiagnosticRow(AppStrings.get("room_diag_db_file", currentLang), "personnel_leaves_db", textPrimary, textSecondary)
-            DiagnosticRow(AppStrings.get("room_diag_version", currentLang), "4 (WAL Mode)", textPrimary, textSecondary)
+            DiagnosticRow(AppStrings.get("room_diag_version", currentLang), "9 (WAL Mode)", textPrimary, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_orm", currentLang), "AndroidX Room 2.7.0 (KSP)", textPrimary, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_concurrency", currentLang), "Coroutines & Flow (IO)", textPrimary, textSecondary)
             DiagnosticRow(AppStrings.get("room_diag_pattern", currentLang), "Repository Pattern", textPrimary, textSecondary)
@@ -1390,8 +1390,7 @@ private fun ClearPersonnelConfirmationDialog(
     val haptic = LocalHapticFeedback.current
     var authError by remember { mutableStateOf<String?>(null) }
 
-    val enterState = remember { MutableTransitionState(false).apply { targetState = true } }
-    val pulseScale = 1f
+    val enterState = remember { MutableTransitionState(!animationsEnabled).apply { targetState = true } }
 
     fun launchBiometricVerification() {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1438,10 +1437,12 @@ private fun ClearPersonnelConfirmationDialog(
         ) {
             AnimatedVisibility(
                 visibleState = enterState,
-                enter = fadeIn(tween(240)) + scaleIn(
-                    initialScale = 0.88f,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)
-                )
+                enter = if (animationsEnabled) {
+                    fadeIn(tween(240)) + scaleIn(
+                        initialScale = 0.88f,
+                        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)
+                    )
+                } else androidx.compose.animation.EnterTransition.None
             ) {
                 Surface(
                     shape = cardShape,
@@ -1464,12 +1465,7 @@ private fun ClearPersonnelConfirmationDialog(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(68.dp)
-                                .graphicsLayer {
-                                    scaleX = pulseScale
-                                    scaleY = pulseScale
-                                },
+                            modifier = Modifier.size(68.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Box(

@@ -228,12 +228,12 @@ fun AddEditPersonnelDialog(
     var hasLeaveDetails by remember { mutableStateOf(hasInitialLeave) }
     var startDateMillis by remember {
         mutableLongStateOf(
-            if (hasInitialLeave) personnelToEdit!!.startDateMillis else Personnel.toStartOfDay(now)
+            if (hasInitialLeave) personnelToEdit.startDateMillis else Personnel.toStartOfDay(now)
         )
     }
     var returnDateMillis by remember {
         mutableLongStateOf(
-            if (hasInitialLeave) personnelToEdit!!.returnDateMillis else getOffsetMillis(Personnel.toStartOfDay(now), 9)
+            if (hasInitialLeave) personnelToEdit.returnDateMillis else getOffsetMillis(Personnel.toStartOfDay(now), 9)
         )
     }
     var leaveType by remember {
@@ -533,7 +533,7 @@ fun AddEditPersonnelDialog(
                                                     if (fullName.isNotEmpty()) {
                                                         IconButton(
                                                             onClick = { fullName = "" },
-                                                            modifier = Modifier.size(40.dp)
+                                                            modifier = Modifier.size(48.dp)
                                                         ) {
                                                             Icon(
                                                                 imageVector = Icons.Default.Clear,
@@ -591,7 +591,7 @@ fun AddEditPersonnelDialog(
                                                         if (fullNameLatin.isNotEmpty()) {
                                                             IconButton(
                                                                 onClick = { fullNameLatin = "" },
-                                                                modifier = Modifier.size(40.dp)
+                                                                modifier = Modifier.size(48.dp)
                                                             ) {
                                                                 Icon(
                                                                     imageVector = Icons.Default.Clear,
@@ -744,7 +744,7 @@ fun AddEditPersonnelDialog(
                                                 if (regNumber.isNotEmpty()) {
                                                     IconButton(
                                                         onClick = { regNumber = "" },
-                                                        modifier = Modifier.size(40.dp)
+                                                        modifier = Modifier.size(48.dp)
                                                     ) {
                                                         Icon(
                                                             imageVector = Icons.Default.Clear,
@@ -1054,7 +1054,7 @@ fun AddEditPersonnelDialog(
                                                         if (!isEdit) isReturnedToDuty = true
                                                     },
                                                     modifier = Modifier
-                                                        .size(40.dp)
+                                                        .size(48.dp)
                                                         .testTag("clear_optional_leave_btn")
                                                 ) {
                                                     Icon(

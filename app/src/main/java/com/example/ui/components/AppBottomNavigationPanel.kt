@@ -127,7 +127,6 @@ private val dockTabs = listOf(
 fun AppBottomNavigationPanel(
     selectedPage: AppNavPage,
     onSelectPage: (AppNavPage) -> Unit,
-    notificationsCount: Int,
     isDarkMode: Boolean,
     animationsEnabled: Boolean,
     currentLang: AppLanguage,
@@ -143,7 +142,6 @@ fun AppBottomNavigationPanel(
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     val activeAccent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
-    val secondaryAccent = preset?.secondary ?: activeAccent
 
     val dockBreath = if (isLivingLuxury) {
         val inf = rememberInfiniteTransition(label = "livingDock")
@@ -215,7 +213,6 @@ fun AppBottomNavigationPanel(
                     .testTag("bottom_nav_panel"),
                 isDarkMode = effectiveDark,
                 activeAccent = activeAccent,
-                secondaryAccent = secondaryAccent,
                 isLiving = isLivingLuxury,
                 backdropLayer = backdropLayer,
                 backdropOffsetInRoot = backdropOffsetInRoot
@@ -265,7 +262,7 @@ fun AppBottomNavigationPanel(
                                 icon = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                                 label = AppStrings.get(tab.labelKey, currentLang),
                                 isSelected = isSelected,
-                                badgeCount = if (tab.page == AppNavPage.NOTIFICATIONS) notificationsCount else 0,
+                                badgeCount = 0,
                                 isDarkMode = effectiveDark,
                                 activeColor = activeAccent,
                                 textSecondary = preset?.textSecondary,
@@ -312,7 +309,6 @@ fun LiquidGlassFloatingCapsule(
     modifier: Modifier = Modifier,
     isDarkMode: Boolean,
     activeAccent: Color,
-    secondaryAccent: Color,
     isLiving: Boolean = false,
     showBorder: Boolean = true,
     backdropLayer: GraphicsLayer? = null,

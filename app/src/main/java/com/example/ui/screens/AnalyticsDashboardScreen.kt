@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -353,7 +352,7 @@ fun AnalyticsDashboardScreen(
                                         shape = RoundedCornerShape(50.dp),
                                         color = Color.Transparent,
                                         modifier = Modifier
-                                            .defaultMinSize(minHeight = 42.dp)
+                                            .defaultMinSize(minHeight = 48.dp)
                                             .liquidGlassPanel(
                                                 shape = RoundedCornerShape(50.dp),
                                                 cornerRadius = 50.dp,
@@ -624,7 +623,7 @@ fun AnalyticsDashboardScreen(
                                         shape = RoundedCornerShape(50.dp),
                                         color = Color.Transparent,
                                         modifier = Modifier
-                                            .defaultMinSize(minHeight = 42.dp)
+                                            .defaultMinSize(minHeight = 48.dp)
                                             .liquidGlassPanel(
                                                 shape = RoundedCornerShape(50.dp),
                                                 cornerRadius = 50.dp,
@@ -692,10 +691,6 @@ fun AnalyticsDashboardScreen(
                         )
                     }
                 }
-
-                item {
-                    Spacer(modifier = Modifier.navigationBarsPadding().height(112.dp))
-                }
             }
         }
     }
@@ -711,13 +706,18 @@ private fun AnalyticsKpiCard(
     isDarkMode: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val cardTextPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val cardTextSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
+
     Box(
         modifier = modifier
             .liquidGlass(
                 shape = RoundedCornerShape(20.dp),
                 elevation = 4.dp,
                 borderAlpha = 0.85f,
-                isDark = isDarkMode,
+                isDark = effectiveDark,
                 cornerRadius = 20.dp
             )
             .padding(14.dp)
@@ -732,7 +732,7 @@ private fun AnalyticsKpiCard(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(accent.copy(alpha = if (isDarkMode) 0.22f else 0.14f)),
+                        .background(accent.copy(alpha = if (effectiveDark) 0.22f else 0.14f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -745,7 +745,7 @@ private fun AnalyticsKpiCard(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                    color = cardTextSecondary,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1
                 )
@@ -762,7 +762,7 @@ private fun AnalyticsKpiCard(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkMode) Color.White else SlateTextPrimary,
+                color = cardTextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -783,8 +783,10 @@ private fun MonthlyLeavesChartCard(
     isDarkMode: Boolean,
     animationsEnabled: Boolean
 ) {
-    val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
 
     val values = remember(monthlyStats, metric) {
         monthlyStats.map { stat ->
@@ -871,7 +873,7 @@ private fun MonthlyLeavesChartCard(
                                 shape = RoundedCornerShape(50.dp),
                                 color = Color.Transparent,
                                 modifier = Modifier
-                                    .defaultMinSize(minHeight = 38.dp)
+                                    .defaultMinSize(minHeight = 48.dp)
                                     .liquidGlassPanel(
                                         shape = RoundedCornerShape(50.dp),
                                         cornerRadius = 50.dp,
@@ -1155,8 +1157,10 @@ private fun RankDistributionChartCard(
     animationsEnabled: Boolean,
     isTablet: Boolean
 ) {
-    val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
 
     val sweepFraction by animateFloatAsState(
         targetValue = 1f,
@@ -1433,8 +1437,10 @@ private fun DecisionInsightsCard(
     currentLang: AppLanguage,
     isDarkMode: Boolean
 ) {
-    val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+    val preset = LocalThemePreset.current
+    val effectiveDark = preset?.isDark ?: isDarkMode
+    val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
+    val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
     val monthNames = remember(currentLang) { getLocalizedMonthFullNames(currentLang) }
 
     Box(
@@ -1540,11 +1546,15 @@ private fun InsightMiniTile(
     isDarkMode: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val tilePreset = LocalThemePreset.current
+    val effectiveTileDark = tilePreset?.isDark ?: isDarkMode
+    val tileTextSecondary = tilePreset?.textSecondary ?: if (effectiveTileDark) Color(0xFF94A3B8) else SlateTextSecondary
+
     Box(
         modifier = modifier.liquidGlassPanel(
             shape = RoundedCornerShape(14.dp),
             cornerRadius = 14.dp,
-            isDark = isDarkMode,
+            isDark = effectiveTileDark,
             accent = accent,
             secondaryAccent = accent,
             isSelected = true,
@@ -1559,7 +1569,7 @@ private fun InsightMiniTile(
                 text = label,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary,
+                color = tileTextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1585,8 +1595,10 @@ private fun PersonnelAnnualStatCard(
     isDarkMode: Boolean,
     onClick: (() -> Unit)?
 ) {
-    val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
-    val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
+    val cardPreset = LocalThemePreset.current
+    val effectiveCardDark = cardPreset?.isDark ?: isDarkMode
+    val textPrimary = cardPreset?.textPrimary ?: if (effectiveCardDark) Color.White else SlateTextPrimary
+    val textSecondary = cardPreset?.textSecondary ?: if (effectiveCardDark) Color(0xFF94A3B8) else SlateTextSecondary
     val refColor = if (stat.referenceSource == ReferenceDateSource.LAST_LEAVE_RETURN) EmeraldSuccess else AmberWarning
     val refSourceLabel = AppStrings.get(
         if (stat.referenceSource == ReferenceDateSource.LAST_LEAVE_RETURN) {

@@ -40,7 +40,6 @@ import kotlin.math.sqrt
 
 object LiquidGlassDefaults {
     val CardShape = RoundedCornerShape(20.dp)
-    val PillShape = RoundedCornerShape(50.dp)
     val SmallShape = RoundedCornerShape(14.dp)
     val DialogShape = RoundedCornerShape(24.dp)
 }
@@ -205,7 +204,7 @@ fun Modifier.liquidGlass(
 ): Modifier {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDark
-    val isLivingLuxury = LocalLivingLuxuryMode.current
+    val isLivingLuxury = LocalLivingLuxuryMode.current && LocalAnimationsEnabled.current
     val accent = preset?.primary ?: if (effectiveDark) CyanGlow else VibrantCyan
 
     val breathPhase = if (isLivingLuxury) {

@@ -27,12 +27,14 @@ data class LeaveRecord(
 
     val formattedStartDate: String
         get() {
+            if (startDateMillis <= 0L) return "-"
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(startDateMillis))}\u200E"
         }
 
     val formattedReturnDate: String
         get() {
+            if (returnDateMillis <= 0L) return "-"
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             return "\u200E${sdf.format(Date(returnDateMillis))}\u200E"
         }

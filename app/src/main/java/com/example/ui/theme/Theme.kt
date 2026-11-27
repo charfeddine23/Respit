@@ -9,6 +9,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 val LocalLivingLuxuryMode = staticCompositionLocalOf { false }
+val LocalAnimationsEnabled = staticCompositionLocalOf { true }
 
 private val DarkColorScheme = darkColorScheme(
     primary = TealPrimaryDark,
@@ -65,6 +66,7 @@ fun MyApplicationTheme(
     darkTheme: Boolean = false,
     themePreset: AppThemePreset? = null,
     livingLuxuryMode: Boolean = false,
+    animationsEnabled: Boolean = true,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -124,7 +126,8 @@ fun MyApplicationTheme(
 
     CompositionLocalProvider(
         LocalThemePreset provides themePreset,
-        LocalLivingLuxuryMode provides livingLuxuryMode
+        LocalLivingLuxuryMode provides livingLuxuryMode,
+        LocalAnimationsEnabled provides animationsEnabled
     ) {
         MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
     }

@@ -61,7 +61,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -105,7 +110,8 @@ fun ExportDialog(
     csvContent: String,
     jsonContent: String,
     onExportPdf: () -> Unit,
-    onImportJson: (jsonString: String, replaceAll: Boolean) -> Pair<Boolean, String>,
+    onImportJson: (jsonString: String, replaceAll: Boolean) -> Pair<Boolean, String> = { _, _ -> false to "" },
+    onImportJsonAsync: ((jsonString: String, replaceAll: Boolean, onComplete: (Boolean, String) -> Unit) -> Unit)? = null,
     onDismiss: () -> Unit,
     currentLang: AppLanguage = AppLanguage.ARABIC,
     isDarkMode: Boolean? = null,
@@ -114,6 +120,7 @@ fun ExportDialog(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableIntStateOf(0) }
     var importJsonText by remember { mutableStateOf("") }
     var replaceAllMode by remember { mutableStateOf(false) }
@@ -329,14 +336,16 @@ fun ExportDialog(
                                         isPrimaryFill = true,
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            shareBackupFile(
-                                                context = context,
-                                                content = csvContent,
-                                                fileExtension = "csv",
-                                                mimeType = "text/csv",
-                                                title = AppStrings.get("export_share_csv", currentLang)
-                                            )
-                                            onDismiss()
+                                            scope.launch {
+                                                shareBackupFile(
+                                                    context = context,
+                                                    content = csvContent,
+                                                    fileExtension = "csv",
+                                                    mimeType = "text/csv",
+                                                    title = AppStrings.get("export_share_csv", currentLang)
+                                                )
+                                                onDismiss()
+                                            }
                                         }
                                     )
 
@@ -350,14 +359,16 @@ fun ExportDialog(
                                         isPrimaryFill = false,
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            shareBackupFile(
-                                                context = context,
-                                                content = jsonContent,
-                                                fileExtension = "json",
-                                                mimeType = "application/json",
-                                                title = AppStrings.get("export_share_json", currentLang)
-                                            )
-                                            onDismiss()
+                                            scope.launch {
+                                                shareBackupFile(
+                                                    context = context,
+                                                    content = jsonContent,
+                                                    fileExtension = "json",
+                                                    mimeType = "application/json",
+                                                    title = AppStrings.get("export_share_json", currentLang)
+                                                )
+                                                onDismiss()
+                                            }
                                         }
                                     )
 
@@ -414,8 +425,8 @@ fun ExportDialog(
                                             secondaryAccent = primaryColor,
                                             isPrimary = false,
                                             onClick = {
-                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                                val clip = clipboard.primaryClip
+                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                                val clip = clipboard?.primaryClip
                                                 if (clip != null && clip.itemCount > 0) {
                                                     val text = clip.getItemAt(0).text?.toString() ?: ""
                                                     importJsonText = text
@@ -529,10 +540,19 @@ fun ExportDialog(
                                                 ).show()
                                                 return@LiquidGlassActionButton
                                             }
-                                            val (success, message) = onImportJson(importJsonText, replaceAllMode)
-                                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                                            if (success) {
-                                                onDismiss()
+                                            if (onImportJsonAsync != null) {
+                                                onImportJsonAsync(importJsonText, replaceAllMode) { success, message ->
+                                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                                    if (success) {
+                                                        onDismiss()
+                                                    }
+                                                }
+                                            } else {
+                                                val (success, message) = onImportJson(importJsonText, replaceAllMode)
+                                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                                if (success) {
+                                                    onDismiss()
+                                                }
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth()
@@ -695,7 +715,7 @@ private fun ExportOptionGlassRow(
     }
 }
 
-private fun shareBackupFile(
+private suspend fun shareBackupFile(
     context: Context,
     content: String,
     fileExtension: String,
@@ -704,10 +724,16 @@ private fun shareBackupFile(
 ) {
     val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
     val fileName = "RespitePulse_FullBackup_$stamp.$fileExtension"
-    val fileResult = runCatching {
-        val outFile = File(context.cacheDir, fileName)
-        outFile.writeText(content, Charsets.UTF_8)
-        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", outFile)
+    val fileResult = try {
+        withContext(Dispatchers.IO) {
+            val outFile = File(context.cacheDir, fileName)
+            outFile.writeText(content, Charsets.UTF_8)
+            Result.success(FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", outFile))
+        }
+    } catch (ce: CancellationException) {
+        throw ce
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 
     val sendIntent = fileResult.fold(
@@ -731,11 +757,19 @@ private fun shareBackupFile(
             }
         }
     )
-    context.startActivity(Intent.createChooser(sendIntent, title))
+    runCatching {
+        val chooser = Intent.createChooser(sendIntent, title)
+        if (context !is android.app.Activity) {
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(chooser)
+    }.onFailure { err ->
+        Toast.makeText(context, err.localizedMessage ?: title, Toast.LENGTH_SHORT).show()
+    }
 }
 
 private fun copyToClipboard(context: Context, text: String, label: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
     val clip = ClipData.newPlainText(label, text)
     clipboard.setPrimaryClip(clip)
 }

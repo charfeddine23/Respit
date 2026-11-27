@@ -249,6 +249,7 @@ class MainActivity : FragmentActivity() {
             val themeMode by viewModel.currentThemeMode.collectAsState()
             val selectedThemeEngineId by viewModel.selectedThemeEngineId.collectAsState()
             val isLivingLuxuryMode by viewModel.isLivingLuxuryMode.collectAsState()
+            val isDynamicAnimationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
             val activeThemePreset = remember(selectedThemeEngineId) {
                 com.example.ui.theme.ThemeEngine.findById(selectedThemeEngineId)
             }
@@ -263,7 +264,8 @@ class MainActivity : FragmentActivity() {
             MyApplicationTheme(
                 darkTheme = isDarkTheme,
                 themePreset = activeThemePreset,
-                livingLuxuryMode = isLivingLuxuryMode
+                livingLuxuryMode = isLivingLuxuryMode,
+                animationsEnabled = isDynamicAnimationsEnabled
             ) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
@@ -343,29 +345,38 @@ fun LeaveTrackerMainApp(
     val recentSearches by viewModel.recentSearches.collectAsState()
     val selectedRank by viewModel.selectedRank.collectAsState()
     val selectedStatus by viewModel.selectedStatus.collectAsState()
-    val selectedWilaya by viewModel.selectedWilaya.collectAsState()
-    val uniqueWilayas by viewModel.uniqueWilayas.collectAsState()
     val currentSort by viewModel.sortOption.collectAsState()
 
-    val notificationsCount by viewModel.unreadNotificationsCount.collectAsState()
+    val notificationsList by viewModel.notifications.collectAsState()
+    val notificationsCount = notificationsList.size
+    val todayMillis by viewModel.todayMillis.collectAsState()
     val isDriveSyncEnabled by viewModel.isDriveSyncEnabled.collectAsState()
     val lastDriveBackupTime by viewModel.lastDriveBackupTime.collectAsState()
     val appUpdateState by viewModel.appUpdateState.collectAsState()
     val showUpdateDialog by viewModel.showUpdateDialog.collectAsState()
+
+    val scope = rememberCoroutineScope()
 
     // Google Drive SAF Document Launchers
     val driveBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) {
-            try {
-                context.contentResolver.openOutputStream(uri)?.use { stream ->
-                    stream.write(viewModel.generateJsonContent().toByteArray(Charsets.UTF_8))
+            scope.launch {
+                val jsonPayload = viewModel.generateJsonContent()
+                val writeResult = runCatching {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openOutputStream(uri)?.use { stream ->
+                            stream.write(jsonPayload.toByteArray(Charsets.UTF_8))
+                        } ?: error("Cannot open output stream")
+                    }
                 }
-                viewModel.updateLastDriveBackup()
-                Toast.makeText(context, AppStrings.get("drive_backup_success", currentLang), Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, "${AppStrings.get("drive_backup_failed", currentLang)}: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                writeResult.onSuccess {
+                    viewModel.updateLastDriveBackup()
+                    Toast.makeText(context, AppStrings.get("drive_backup_success", currentLang), Toast.LENGTH_LONG).show()
+                }.onFailure { e ->
+                    Toast.makeText(context, "${AppStrings.get("drive_backup_failed", currentLang)}: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -374,24 +385,29 @@ fun LeaveTrackerMainApp(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            try {
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val json = stream.bufferedReader(Charsets.UTF_8).readText()
-                    val result = viewModel.importPersonnelFromJson(json, replaceAll = false)
-                    if (result.first) {
-                        viewModel.updateLastDriveBackup()
-                        Toast.makeText(context, AppStrings.get("drive_restore_success", currentLang), Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(context, "${AppStrings.get("drive_restore_failed", currentLang)}: ${result.second}", Toast.LENGTH_LONG).show()
+            scope.launch {
+                val readResult = runCatching {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { stream ->
+                            stream.bufferedReader(Charsets.UTF_8).readText()
+                        } ?: error("Cannot open input stream")
                     }
                 }
-            } catch (e: Exception) {
-                Toast.makeText(context, "${AppStrings.get("drive_restore_failed", currentLang)}: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                readResult.onSuccess { json ->
+                    viewModel.importPersonnelFromJson(json, replaceAll = false) { ok, msg ->
+                        if (ok) {
+                            viewModel.updateLastDriveBackup()
+                            Toast.makeText(context, AppStrings.get("drive_restore_success", currentLang), Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "${AppStrings.get("drive_restore_failed", currentLang)}: $msg", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }.onFailure { e ->
+                    Toast.makeText(context, "${AppStrings.get("drive_restore_failed", currentLang)}: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
-
-    val scope = rememberCoroutineScope()
 
     val excelExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument(
@@ -484,6 +500,7 @@ fun LeaveTrackerMainApp(
         }
     }
 
+    var resumeRefreshCount by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, isLocked) {
         val observer = LifecycleEventObserver { _, event ->
@@ -494,6 +511,7 @@ fun LeaveTrackerMainApp(
                     }
                 }
                 Lifecycle.Event.ON_RESUME -> {
+                    resumeRefreshCount++
                     viewModel.refreshDateSensitiveState()
                     viewModel.refreshInstallPermissionState()
                 }
@@ -562,7 +580,6 @@ fun LeaveTrackerMainApp(
                     val topPreset = LocalThemePreset.current
                     val effectiveTopDark = topPreset?.isDark ?: isDarkMode
                     val topActiveAccent = topPreset?.primary ?: if (effectiveTopDark) CyanGlow else VibrantCyan
-                    val topSecondaryAccent = topPreset?.secondary ?: topActiveAccent
 
                     // Keep exact status bar top spacing even when system status bar is hidden (Fit to Screen)
                     val localDensity = androidx.compose.ui.platform.LocalDensity.current
@@ -764,7 +781,7 @@ fun LeaveTrackerMainApp(
                                                 else -> AppStrings.get("theme_light", currentLang)
                                             },
                                             tint = when {
-                                                isCustomThemeActive -> topPreset!!.primary
+                                                isCustomThemeActive -> topPreset.primary
                                                 isDarkMode -> AmberWarning
                                                 else -> iconInk
                                             },
@@ -817,7 +834,6 @@ fun LeaveTrackerMainApp(
                             AppBottomNavigationPanel(
                                 selectedPage = selectedNavPage,
                                 onSelectPage = { selectedNavPage = it },
-                                notificationsCount = notificationsCount,
                                 isDarkMode = isDarkMode,
                                 animationsEnabled = isDynamicAnimationsEnabled,
                                 currentLang = currentLang,
@@ -967,7 +983,7 @@ fun LeaveTrackerMainApp(
                                                     },
                                                     drawerIsOpen = (selectedNavPage == AppNavPage.SETTINGS),
                                                     onCheckUpdate = { viewModel.checkForAppUpdate(manual = true) },
-                                                    availableUpdateVersion = null,
+                                                    availableUpdateVersion = (appUpdateState as? AppUpdateState.UpdateAvailable)?.versionName,
                                                     isFullScreenPage = true,
                                                     topBarClearance = topBarClearance,
                                                     bottomDockClearance = bottomDockClearance
@@ -995,7 +1011,7 @@ fun LeaveTrackerMainApp(
                                                 ?: if (effectiveDashDark) Color.White else SlateTextPrimary
                                             val dashTextSecondary = activeThemePreset?.textSecondary
                                                 ?: if (effectiveDashDark) Color(0xFF94A3B8) else SlateTextSecondary
-                                            val greetingKey = remember {
+                                            val greetingKey = remember(todayMillis, resumeRefreshCount) {
                                                 val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                                                 when {
                                                     hour < 12 -> "greeting_morning"
@@ -1003,7 +1019,7 @@ fun LeaveTrackerMainApp(
                                                     else -> "greeting_evening"
                                                 }
                                             }
-                                            val formattedDatePill = remember(currentLang) {
+                                            val formattedDatePill = remember(currentLang, todayMillis, resumeRefreshCount) {
                                                 val locale = when (currentLang) {
                                                     AppLanguage.ARABIC -> Locale.forLanguageTag("ar")
                                                     AppLanguage.FRENCH -> Locale.FRENCH
@@ -1371,6 +1387,17 @@ fun LeaveTrackerMainApp(
                                                     }
                                                 },
                                                 onOpenFilter = { showFilterSortDialog = true },
+                                                recentSearches = recentSearches,
+                                                onSelectRecentSearch = { queryItem ->
+                                                    viewModel.searchQuery.value = queryItem
+                                                    viewModel.addRecentSearch(queryItem)
+                                                },
+                                                onRemoveRecentSearch = { queryItem ->
+                                                    viewModel.removeRecentSearch(queryItem)
+                                                },
+                                                onClearRecentSearches = {
+                                                    viewModel.clearRecentSearches()
+                                                },
                                                 activeFilterCount = activeFilterCount,
                                                 isDarkMode = isDarkMode,
                                                 currentLang = currentLang,
@@ -1463,7 +1490,7 @@ fun LeaveTrackerMainApp(
                                                     }
                                                 }
 
-                                                if (activeFilterCount > 0 || selectedWilaya != "ALL") {
+                                                if (activeFilterCount > 0) {
                                                     Box(
                                                         modifier = Modifier
                                                             .defaultMinSize(minHeight = 42.dp)
@@ -1477,7 +1504,6 @@ fun LeaveTrackerMainApp(
                                                             .clickable {
                                                                 viewModel.selectedStatus.value = "ALL"
                                                                 viewModel.selectedRank.value = "ALL"
-                                                                viewModel.selectedWilaya.value = "ALL"
                                                                 viewModel.sortOption.value = SortOption.RETURN_SOON
                                                             }
                                                             .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -1623,11 +1649,13 @@ fun LeaveTrackerMainApp(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
                                                         .animateItem(
-                                                            placementSpec = spring(
-                                                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                                                stiffness = 380f,
-                                                                visibilityThreshold = IntOffset.VisibilityThreshold
-                                                            )
+                                                            placementSpec = if (isDynamicAnimationsEnabled) {
+                                                                spring(
+                                                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                                                    stiffness = 380f,
+                                                                    visibilityThreshold = IntOffset.VisibilityThreshold
+                                                                )
+                                                            } else null
                                                         ),
                                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                                                 ) {
@@ -1698,11 +1726,13 @@ fun LeaveTrackerMainApp(
                                                     personnel = person,
                                                     dutyThresholdDays = dutyThreshold,
                                                     modifier = Modifier.animateItem(
-                                                        placementSpec = spring(
-                                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                                            stiffness = 380f,
-                                                            visibilityThreshold = IntOffset.VisibilityThreshold
-                                                        )
+                                                        placementSpec = if (isDynamicAnimationsEnabled) {
+                                                            spring(
+                                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                                stiffness = 380f,
+                                                                visibilityThreshold = IntOffset.VisibilityThreshold
+                                                            )
+                                                        } else null
                                                     ),
                                                     isDarkMode = isDarkMode,
                                                     animationsEnabled = isDynamicAnimationsEnabled,
@@ -2052,8 +2082,7 @@ fun LeaveTrackerMainApp(
     }
 
     // Delete Confirmation Dialog (Liquid Glass)
-    if (personnelToDelete != null) {
-        val target = personnelToDelete!!
+    personnelToDelete?.let { target ->
         val qMark = if (currentLang == AppLanguage.ARABIC) "؟" else "?"
         LiquidGlassConfirmDialog(
             title = AppStrings.get("confirm_delete_title", currentLang),
@@ -2093,7 +2122,6 @@ fun LeaveTrackerMainApp(
             onResetFilters = {
                 viewModel.selectedStatus.value = "ALL"
                 viewModel.selectedRank.value = "ALL"
-                viewModel.selectedWilaya.value = "ALL"
                 viewModel.sortOption.value = SortOption.RETURN_SOON
             },
             onDismiss = { showFilterSortDialog = false },
@@ -2123,8 +2151,8 @@ fun LeaveTrackerMainApp(
             onExportPdf = {
                 viewModel.exportPdf(context)
             },
-            onImportJson = { jsonStr, replaceAll ->
-                viewModel.importPersonnelFromJson(jsonStr, replaceAll)
+            onImportJsonAsync = { jsonStr, replaceAll, onComplete ->
+                viewModel.importPersonnelFromJson(jsonStr, replaceAll, onComplete)
             },
             onDismiss = { showExportDialog = false },
             currentLang = currentLang,
@@ -2229,7 +2257,11 @@ private fun HeaderUpdateDownloadButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
         targetValue = if (isPressed) 0.88f else 1f,
-        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium),
+        animationSpec = if (animationsEnabled) {
+            spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium)
+        } else {
+            tween(durationMillis = 0)
+        },
         label = "headerDownloadScale"
     )
 

@@ -30,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -100,8 +99,6 @@ fun BiometricLockScreen(
     val secondaryAccent = preset?.secondary ?: RoyalBlueAccent
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = preset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF475569)
-
-    val pulseScale = 1f
 
     CompositionLocalProvider(
         LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
@@ -178,7 +175,6 @@ fun BiometricLockScreen(
                             Box(
                                 modifier = Modifier
                                     .size(104.dp)
-                                    .scale(pulseScale)
                                     .liquidGlassPanel(
                                         shape = CircleShape,
                                         cornerRadius = 52.dp,

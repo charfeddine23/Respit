@@ -281,7 +281,7 @@ fun ThemeEnginePickerDialog(
                                             shape = RoundedCornerShape(14.dp),
                                             color = Color.Transparent,
                                             modifier = Modifier
-                                                .defaultMinSize(minHeight = 42.dp)
+                                                .defaultMinSize(minHeight = 48.dp)
                                                 .liquidGlassPanel(
                                                     shape = RoundedCornerShape(14.dp),
                                                     cornerRadius = 14.dp,

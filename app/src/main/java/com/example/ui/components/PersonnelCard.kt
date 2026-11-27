@@ -274,7 +274,6 @@ fun PersonnelCard(
     val localizedWilaya = formatWilaya(personnel.wilaya, currentLang, includeCode = false)
     val localizedLeaveType = formatLeaveType(personnel.leaveType, currentLang)
 
-    val avatarShape = CircleShape
     var isExpanded by rememberSaveable(personnel.id) { mutableStateOf(false) }
 
     val arrowRotation by animateFloatAsState(
@@ -806,23 +805,32 @@ fun PersonnelCard(
                                 modifier = Modifier.weight(1f, fill = false)
                             )
                             if (personnel.isPinned) {
-                                Surface(
-                                    onClick = onTogglePin,
-                                    shape = CircleShape,
-                                    color = AmberWarning.copy(alpha = if (effectiveDark) 0.18f else 0.12f),
+                                Box(
                                     modifier = Modifier
-                                        .size(24.dp)
-                                        .testTag("pinned_badge_${personnel.id}")
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.PushPin,
-                                            contentDescription = AppStrings.get("unpin_action", currentLang),
-                                            tint = AmberWarning,
-                                            modifier = Modifier
-                                                .size(12.dp)
-                                                .rotate(30f)
+                                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                        .clip(CircleShape)
+                                        .clickable(
+                                            onClickLabel = AppStrings.get("unpin_action", currentLang),
+                                            onClick = onTogglePin
                                         )
+                                        .testTag("pinned_badge_${personnel.id}"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = AmberWarning.copy(alpha = if (effectiveDark) 0.18f else 0.12f),
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.PushPin,
+                                                contentDescription = AppStrings.get("unpin_action", currentLang),
+                                                tint = AmberWarning,
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .rotate(30f)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1313,7 +1321,8 @@ fun PersonnelCard(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (!personnel.isReturnedToDuty) {
-                                val canExtendActiveLeave = onExtendLeave != null &&
+                                val extendCallback = onExtendLeave
+                                val canExtendActiveLeave = extendCallback != null &&
                                     personnel.startDateMillis > 0L &&
                                     personnel.returnDateMillis > 0L
                                 if (canExtendActiveLeave) {
@@ -1334,7 +1343,7 @@ fun PersonnelCard(
                                                 .testTag("personnel_quick_action_${personnel.id}")
                                         )
                                         Surface(
-                                            onClick = onExtendLeave!!,
+                                            onClick = extendCallback,
                                             shape = RoundedCornerShape(14.dp),
                                             color = primaryAccent.copy(alpha = if (effectiveDark) 0.16f else 0.10f),
                                             border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.38f)),

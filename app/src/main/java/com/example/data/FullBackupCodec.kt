@@ -143,7 +143,7 @@ object FullBackupCodec {
                     put("startDate", if (p.startDateMillis > 0L) dateFmt.format(Date(p.startDateMillis)) else "-")
                     put("returnDate", if (p.returnDateMillis > 0L) dateFmt.format(Date(p.returnDateMillis)) else "-")
                     put("addedAtMillis", p.addedAtMillis)
-                    put("addedAtDate", dateTimeFmt.format(Date(p.addedAtMillis)))
+                    put("addedAtDate", if (p.addedAtMillis > 0L) dateTimeFmt.format(Date(p.addedAtMillis)) else "-")
                     put("isReturnedToDuty", p.isReturnedToDuty)
                     put("isPinned", p.isPinned)
                     put("pinnedAtMillis", p.pinnedAtMillis)
@@ -199,7 +199,7 @@ object FullBackupCodec {
                     put("destinationWilaya", leave.destinationWilaya)
                     put("notes", leave.notes)
                     put("createdAtMillis", leave.createdAtMillis)
-                    put("createdAtDate", dateTimeFmt.format(Date(leave.createdAtMillis)))
+                    put("createdAtDate", if (leave.createdAtMillis > 0L) dateTimeFmt.format(Date(leave.createdAtMillis)) else "-")
                 }
             )
         }
@@ -340,8 +340,23 @@ object FullBackupCodec {
             val rank = normalizeRank(obj.optString("rank", "جندي - Djoundi / Soldat"))
             val regNumber = obj.optString("registrationNumber", "DZ-000000")
             val leaveType = obj.optString("leaveType", "عطلة سنوية")
-            val startMillis = obj.optLong("startDateMillis", fallbackNowMillis)
-            val returnMillis = obj.optLong("returnDateMillis", startMillis + 86400000L)
+            var startMillis = obj.optLong("startDateMillis", 0L)
+            if (startMillis <= 0L) {
+                val dateStr = obj.optString("startDate", "").replace("\u200E", "").replace("\u200F", "").trim()
+                val parsedStart = if (dateStr.isNotBlank() && dateStr != "-") {
+                    runCatching { sdf.parse(dateStr)?.time }.getOrNull() ?: 0L
+                } else 0L
+                startMillis = if (parsedStart > 0L) parsedStart else fallbackNowMillis
+            }
+
+            var returnMillis = obj.optLong("returnDateMillis", 0L)
+            if (returnMillis <= 0L) {
+                val dateStr = obj.optString("returnDate", "").replace("\u200E", "").replace("\u200F", "").trim()
+                val parsedReturn = if (dateStr.isNotBlank() && dateStr != "-") {
+                    runCatching { sdf.parse(dateStr)?.time }.getOrNull() ?: 0L
+                } else 0L
+                returnMillis = if (parsedReturn > 0L) parsedReturn else startMillis + 86_400_000L
+            }
             val durationDays = obj.optLong("durationDays", 1L).coerceAtLeast(1L)
             val statusText = obj.optString("statusText", "جارية")
             val destinationWilaya = normalizeWilaya(obj.optString("destinationWilaya", "16 - الجزائر - Alger"))

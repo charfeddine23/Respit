@@ -173,7 +173,7 @@ fun DashboardPillSearchBar(
                         if (searchQuery.isNotEmpty()) {
                             IconButton(
                                 onClick = { onSearchQueryChange("") },
-                                modifier = Modifier.size(38.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
@@ -271,29 +271,28 @@ fun DashboardPillSearchBar(
                             if (isMatched) primaryAccent.copy(alpha = 0.55f) else chipBorder
                         ),
                         onClick = { onSelectRecentSearch(queryItem) },
-                        modifier = Modifier.height(30.dp)
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp)
+                            modifier = Modifier.padding(start = 12.dp, end = 2.dp)
                         ) {
                             Text(
                                 text = queryItem,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = if (isMatched) primaryAccent else textPrimary,
-                                fontSize = 11.sp
+                                fontSize = 11.5.sp
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
                             IconButton(
                                 onClick = { onRemoveRecentSearch(queryItem) },
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = AppStrings.get("delete", currentLang),
                                     tint = textSecondary,
-                                    modifier = Modifier.size(11.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
                             }
                         }
@@ -301,8 +300,8 @@ fun DashboardPillSearchBar(
                 }
                 TextButton(
                     onClick = onClearRecentSearches,
-                    modifier = Modifier.height(30.dp),
-                    contentPadding = PaddingValues(horizontal = 6.dp)
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp)
                 ) {
                     Text(
                         text = AppStrings.get("clear_btn", currentLang),

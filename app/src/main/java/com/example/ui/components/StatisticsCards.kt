@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -191,13 +194,15 @@ fun StatisticsSection(
                     } else {
                         Color(0xCCF3F8F8)
                     }
-                    val totalTileBorder = if (selectedStatus == "ALL") {
-                        primaryAccent.copy(alpha = if (effectiveDark) 0.45f else 0.25f)
-                    } else if (effectiveDark) {
-                        Color(0xFF253746)
-                    } else {
-                        Color(0xFFE1ECEB)
-                    }
+                    val totalTileBorder by animateColorAsState(
+                        targetValue = when {
+                            selectedStatus == "ALL" -> primaryAccent.copy(alpha = if (effectiveDark) 0.45f else 0.25f)
+                            effectiveDark -> Color(0xFF253746)
+                            else -> Color(0xFFE1ECEB)
+                        },
+                        animationSpec = tween(durationMillis = if (animationsEnabled) 220 else 0),
+                        label = "totalTileBorder"
+                    )
 
                     Surface(
                         onClick = { onSelectStatus("ALL") },
@@ -248,6 +253,7 @@ fun StatisticsSection(
                             isSelected = selectedStatus == "ON_DUTY",
                             isDarkMode = effectiveDark,
                             isWide = isWide,
+                            animationsEnabled = animationsEnabled,
                             onClick = { onSelectStatus(if (selectedStatus == "ON_DUTY") "ALL" else "ON_DUTY") }
                         )
 
@@ -259,6 +265,7 @@ fun StatisticsSection(
                             isSelected = selectedStatus == "AT_HOME",
                             isDarkMode = effectiveDark,
                             isWide = isWide,
+                            animationsEnabled = animationsEnabled,
                             onClick = { onSelectStatus(if (selectedStatus == "AT_HOME") "ALL" else "AT_HOME") }
                         )
 
@@ -270,6 +277,7 @@ fun StatisticsSection(
                             isSelected = selectedStatus == "OVERDUE" || selectedStatus == "RETURNING_TODAY",
                             isDarkMode = effectiveDark,
                             isWide = isWide,
+                            animationsEnabled = animationsEnabled,
                             onClick = {
                                 onSelectStatus(
                                     if (selectedStatus == "OVERDUE" || selectedStatus == "RETURNING_TODAY") "ALL"
@@ -294,10 +302,16 @@ private fun DashboardMetricRow(
     isSelected: Boolean,
     isDarkMode: Boolean,
     isWide: Boolean = false,
+    animationsEnabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val preset = LocalThemePreset.current
     val effectiveDark = preset?.isDark ?: isDarkMode
+    val animatedAccent by animateColorAsState(
+        targetValue = accentColor,
+        animationSpec = tween(durationMillis = if (animationsEnabled) 200 else 0),
+        label = "metricRowAccent"
+    )
     val textPrimary = preset?.textPrimary ?: if (effectiveDark) Color(0xFFE2E8F0) else SlateTextPrimary
 
     val rowShape = RoundedCornerShape(15.dp)
@@ -310,7 +324,7 @@ private fun DashboardMetricRow(
                 shape = rowShape,
                 cornerRadius = 15.dp,
                 isDark = effectiveDark,
-                accent = accentColor,
+                accent = animatedAccent,
                 isSelected = isSelected
             )
             .clickable(onClick = onClick)

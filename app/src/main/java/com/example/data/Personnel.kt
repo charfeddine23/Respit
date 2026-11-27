@@ -10,15 +10,13 @@ import java.util.Date
 import java.util.Locale
 
 enum class LeaveStatus(
-    val labelAr: String,
-    val hexColor: Long,
-    val bgHexColor: Long
+    val hexColor: Long
 ) {
-    AT_HOME("في إجازة بالبيت 🏠", 0xFF0284C7, 0xFFE0F2FE),
-    RETURNING_TODAY("الدخول اليوم 🔔", 0xFFD97706, 0xFFFEF3C7),
-    OVERDUE("متأخر عن الدخول ⚠️", 0xFFDC2626, 0xFFFEE2E2),
-    UPCOMING("إجازة مبرمجة ⏳", 0xFF7C3AED, 0xFFEDE9FE),
-    ON_DUTY("حاضر بالخدمة 🎖️", 0xFF059669, 0xFFD1FAE5);
+    AT_HOME(0xFF0284C7),
+    RETURNING_TODAY(0xFFD97706),
+    OVERDUE(0xFFDC2626),
+    UPCOMING(0xFF7C3AED),
+    ON_DUTY(0xFF059669);
 
     fun getCompactBadgeLabel(lang: AppLanguage): String = when (this) {
         AT_HOME -> AppStrings.get("badge_at_home", lang)

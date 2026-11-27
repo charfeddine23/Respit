@@ -458,12 +458,18 @@ object ExcelXlsxExporter {
             val isCompleted = record.statusText.contains("منتهية") ||
                 record.statusText.contains("مكتملة") ||
                 record.statusText.contains("Termin", ignoreCase = true) ||
-                record.statusText.contains("Complet", ignoreCase = true)
+                record.statusText.contains("Complet", ignoreCase = true) ||
+                record.statusText.contains("Yemmed", ignoreCase = true)
             val statusStyle = if (isCompleted) 8 else 9
 
             sb.append("""<row r="$rowNum" ht="23" customHeight="1">""")
             appendNumberCell(sb, "A$rowNum", (index + 1).toLong(), styleId = centerStyle)
-            appendTextCell(sb, "B$rowNum", record.personnelName, styleId = textStyle)
+            appendTextCell(
+                sb,
+                "B$rowNum",
+                Personnel.resolveLocalizedName(record.personnelName, record.personnelNameLatin, lang),
+                styleId = textStyle
+            )
             appendTextCell(sb, "C$rowNum", formatRank(record.rank, lang), styleId = centerStyle)
             appendTextCell(sb, "D$rowNum", record.registrationNumber, styleId = centerStyle)
             appendTextCell(sb, "E$rowNum", formatLeaveType(record.leaveType, lang), styleId = centerStyle)

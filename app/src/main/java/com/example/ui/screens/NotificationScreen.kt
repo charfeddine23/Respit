@@ -3,6 +3,9 @@ package com.example.ui.screens
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -553,11 +556,8 @@ fun NotificationScreen(
                                                 onBack()
                                             }
                                         },
-                                        modifier = Modifier.animateItem()
+                                        modifier = if (isDynamicAnimationsEnabled) Modifier.animateItem() else Modifier
                                     )
-                                }
-                                item {
-                                    Spacer(modifier = Modifier.height(16.dp))
                                 }
                             }
                         }
@@ -1146,7 +1146,8 @@ private fun NotificationCard(
                 // Footer Quick Actions
                 if (notification.personnelId != null) {
                     val quickPreviewAccent = visual.primaryColor
-                    val viewRecordAccent = MaterialTheme.colorScheme.primary
+                    val cardPreset = LocalThemePreset.current
+                    val viewRecordAccent = cardPreset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
@@ -1160,7 +1161,7 @@ private fun NotificationCard(
                             shape = RoundedCornerShape(50.dp),
                             color = Color.Transparent,
                             modifier = Modifier
-                                .defaultMinSize(minHeight = 40.dp)
+                                .defaultMinSize(minHeight = 48.dp)
                                 .liquidGlassPanel(
                                     shape = RoundedCornerShape(50.dp),
                                     cornerRadius = 50.dp,
@@ -1199,13 +1200,13 @@ private fun NotificationCard(
                             shape = RoundedCornerShape(50.dp),
                             color = Color.Transparent,
                             modifier = Modifier
-                                .defaultMinSize(minHeight = 40.dp)
+                                .defaultMinSize(minHeight = 48.dp)
                                 .liquidGlassPanel(
                                     shape = RoundedCornerShape(50.dp),
                                     cornerRadius = 50.dp,
                                     isDark = effectiveDark,
                                     accent = viewRecordAccent,
-                                    secondaryAccent = RoyalBlueAccent,
+                                    secondaryAccent = cardPreset?.secondary ?: RoyalBlueAccent,
                                     isSelected = true,
                                     softTintWhenSelected = true
                                 )
@@ -1263,18 +1264,22 @@ private fun NotificationDetailPopup(
         SyncDialogSecureWindow(enabled = isNoScreenshotEnabled)
         SyncDialogLiquidGlassWindow()
 
+        val entranceState = remember(notification.id) {
+            MutableTransitionState(!animationsEnabled).apply { targetState = true }
+        }
+
         CompositionLocalProvider(
             LocalLayoutDirection provides (if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
         ) {
             AnimatedVisibility(
-                visible = true,
+                visibleState = entranceState,
                 enter = if (animationsEnabled) {
                     fadeIn(tween(200)) + scaleIn(
                         initialScale = 0.92f,
                         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 420f)
                     )
-                } else androidx.compose.animation.EnterTransition.None,
-                exit = fadeOut(tween(150))
+                } else EnterTransition.None,
+                exit = if (animationsEnabled) fadeOut(tween(150)) else ExitTransition.None
             ) {
                 Box(
                     modifier = Modifier
@@ -1533,8 +1538,8 @@ private fun NotificationDetailPopup(
                                             text = AppStrings.get("edit", currentLang),
                                             onClick = onEditRecord,
                                             isDark = effectiveDark,
-                                            primaryAccent = if (effectiveDark) CyanGlow else RoyalBlueAccent,
-                                            secondaryAccent = VibrantCyan,
+                                            primaryAccent = preset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent,
+                                            secondaryAccent = preset?.secondary ?: VibrantCyan,
                                             icon = Icons.Default.Edit,
                                             isPrimary = false,
                                             modifier = Modifier.weight(1f)
