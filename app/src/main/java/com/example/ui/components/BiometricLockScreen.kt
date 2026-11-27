@@ -1,11 +1,5 @@
 package com.example.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -74,7 +67,6 @@ fun BiometricLockScreen(
     isDarkMode: Boolean = false,
     currentLang: AppLanguage = AppLanguage.ARABIC,
     modifier: Modifier = Modifier,
-    isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true
 ) {
     val context = LocalContext.current
@@ -123,7 +115,6 @@ fun BiometricLockScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 DynamicAuroraBackground(
                     isDark = effectiveDark,
-                    isNeumorphic = isNeumorphic,
                     animationsEnabled = animationsEnabled
                 )
 
@@ -142,7 +133,6 @@ fun BiometricLockScreen(
                                 elevation = 8.dp,
                                 borderAlpha = 0.92f,
                                 isDark = effectiveDark,
-                                isNeumorphic = isNeumorphic,
                                 cornerRadius = 30.dp
                             )
                             .padding(horizontal = 24.dp, vertical = 28.dp)

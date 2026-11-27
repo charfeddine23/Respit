@@ -88,10 +88,6 @@ class PersonnelRepository(
         return leaveRecordDao.insert(leave)
     }
 
-    suspend fun insertAllLeaves(leaves: List<LeaveRecord>) {
-        leaveRecordDao.insertAll(leaves)
-    }
-
     suspend fun findMatchingLeave(personnelId: Long, regNo: String, startMillis: Long, returnMillis: Long): LeaveRecord? {
         return leaveRecordDao.findMatchingLeave(personnelId, regNo, startMillis, returnMillis)
     }

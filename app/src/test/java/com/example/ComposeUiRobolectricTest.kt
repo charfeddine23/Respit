@@ -112,8 +112,7 @@ class ComposeUiRobolectricTest {
     assertTrue(!controller.get().isFinishing)
 
     // Wait briefly and verify database starts completely empty with 0 default personnel and 0 leave records
-    val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-    val db = com.example.data.AppDatabase.getDatabase(context, scope)
+    val db = com.example.data.AppDatabase.getDatabase(context)
     val (personnelCount, leavesCount) = runBlocking {
       db.personnelDao().getPersonnelCount().first() to db.leaveRecordDao().getLeavesCount().first()
     }
@@ -301,7 +300,6 @@ class ComposeUiRobolectricTest {
           onSelectPage = { selectedPage = it },
           notificationsCount = 2,
           isDarkMode = false,
-          isNeumorphic = false,
           animationsEnabled = false,
           currentLang = AppLanguage.ENGLISH
         )
@@ -334,7 +332,6 @@ class ComposeUiRobolectricTest {
           onSelectStatus = {},
           onOpenAnalytics = { analyticsOpened = true },
           isDarkMode = false,
-          isNeumorphic = false,
           animationsEnabled = false
         )
       }
@@ -543,10 +540,7 @@ class ComposeUiRobolectricTest {
     val dbFile = context.getDatabasePath("personnel_leaves_db")
     if (dbFile.exists()) dbFile.delete()
 
-    val db = com.example.data.AppDatabase.getDatabase(
-      context,
-      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-    )
+    val db = com.example.data.AppDatabase.getDatabase(context)
     val initialPerson = Personnel(
       fullName = "فريد بن سالم",
       fullNameLatin = "Farid Bensalem",
@@ -596,10 +590,7 @@ class ComposeUiRobolectricTest {
     val dbFile = context.getDatabasePath("personnel_leaves_db")
     if (dbFile.exists()) dbFile.delete()
 
-    val db = com.example.data.AppDatabase.getDatabase(
-      context,
-      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-    )
+    val db = com.example.data.AppDatabase.getDatabase(context)
     val annualStart = getOffsetDateMillis(-60)
     val annualReturn = getOffsetDateMillis(-45)
     val annualType = com.example.data.algerianLeaveTypes[2] // "عطلة سنوية"
@@ -850,10 +841,7 @@ class ComposeUiRobolectricTest {
     val dbFile = context.getDatabasePath("personnel_leaves_db")
     if (dbFile.exists()) dbFile.delete()
 
-    val db = com.example.data.AppDatabase.getDatabase(
-      context,
-      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-    )
+    val db = com.example.data.AppDatabase.getDatabase(context)
     val overduePerson = Personnel(
       fullName = "رشيد بلحاج",
       fullNameLatin = "Rachid Belhadj",
@@ -1138,10 +1126,7 @@ class ComposeUiRobolectricTest {
   @Test
   fun `extendPersonnelLeave updates Personnel and LeaveRecord and supports undo`() {
     val context = ApplicationProvider.getApplicationContext<android.app.Application>()
-    val db = com.example.data.AppDatabase.getDatabase(
-      context,
-      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-    )
+    val db = com.example.data.AppDatabase.getDatabase(context)
     val startMillis = getOffsetDateMillis(-4)
     val origReturnMillis = getOffsetDateMillis(3)
     val newReturnMillis = getOffsetDateMillis(8)
@@ -1211,10 +1196,7 @@ class ComposeUiRobolectricTest {
   @Test
   fun `extendLeaveRecord on short leave updates only LeaveRecord without overwriting Personnel`() {
     val context = ApplicationProvider.getApplicationContext<android.app.Application>()
-    val db = com.example.data.AppDatabase.getDatabase(
-      context,
-      kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-    )
+    val db = com.example.data.AppDatabase.getDatabase(context)
     val mainStart = getOffsetDateMillis(-20)
     val mainReturn = getOffsetDateMillis(-10)
     val shortStart = getOffsetDateMillis(-1)
@@ -1255,12 +1237,12 @@ class ComposeUiRobolectricTest {
 
     repeat(30) {
       org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
-      val updated = runBlocking { db.leaveRecordDao().getLeaveById(shortRecord.id) }
+      val updated = runBlocking { db.leaveRecordDao().getAllLeaves().first().firstOrNull { it.id == shortRecord.id } }
       if (updated != null && updated.returnDateMillis == shortExtendedReturn) return@repeat
       Thread.sleep(40)
     }
 
-    val updatedShort = runBlocking { db.leaveRecordDao().getLeaveById(shortRecord.id) }!!
+    val updatedShort = runBlocking { db.leaveRecordDao().getAllLeaves().first().first { it.id == shortRecord.id } }
     assertEquals(shortExtendedReturn, updatedShort.returnDateMillis)
     assertEquals(Personnel.inclusiveLeaveDays(shortStart, shortExtendedReturn), updatedShort.durationDays)
 
@@ -1271,19 +1253,10 @@ class ComposeUiRobolectricTest {
 
   @Test
   @Config(qualifiers = "w412dp-h915dp")
-  fun `DashboardPillSearchBar DashboardQuickActionRow and AllPersonsSummaryBanner render and respond in English and Arabic`() {
+  fun `DashboardPillSearchBar and DashboardQuickActionRow render and respond in English`() {
     var filterOpened = false
-    var allPersonsOpened = false
     var addPersonnelClicked = false
     var latestSearch = ""
-    val stats = com.example.ui.DashboardStats(
-      total = 12,
-      atHome = 4,
-      returningToday = 1,
-      overdue = 1,
-      onDuty = 6,
-      eligible = 2
-    )
 
     composeTestRule.setContent {
       val searchVal = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
@@ -1309,12 +1282,6 @@ class ComposeUiRobolectricTest {
             onOpenUrgentAlerts = {},
             onOpenDatabase = {}
           )
-          com.example.ui.components.AllPersonsSummaryBanner(
-            stats = stats,
-            currentLang = AppLanguage.ENGLISH,
-            animationsEnabled = false,
-            onOpenAllPersons = { allPersonsOpened = true }
-          )
         }
       }
     }
@@ -1329,15 +1296,6 @@ class ComposeUiRobolectricTest {
 
     composeTestRule.onNodeWithTag("action_btn_add_personnel").assertIsDisplayed().performClick()
     assertTrue(addPersonnelClicked)
-
-    composeTestRule.onNodeWithTag("all_persons_summary_banner").assertIsDisplayed()
-    composeTestRule.onNodeWithText("All persons", useUnmergedTree = true).assertIsDisplayed()
-    composeTestRule.onNodeWithTag("all_persons_dotted_route", useUnmergedTree = true).assertIsDisplayed()
-    composeTestRule.onNodeWithTag("all_persons_summary_text", useUnmergedTree = true)
-      .assertIsDisplayed()
-      .assert(hasText("6 on duty", substring = true))
-    composeTestRule.onNodeWithTag("all_persons_summary_banner").performClick()
-    assertTrue(allPersonsOpened)
   }
 
   @Test
@@ -1524,7 +1482,6 @@ class ComposeUiRobolectricTest {
         com.example.ui.components.InAppUpdateDialog(
           updateState = availableState,
           isDarkMode = false,
-          isNeumorphic = false,
           animationsEnabled = false,
           currentLang = AppLanguage.ENGLISH,
           onStartDownload = { downloadStarted = true },

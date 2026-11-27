@@ -2,8 +2,8 @@ package com.example.ui.components
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -82,7 +82,7 @@ const val DEVELOPER_WHATSAPP_URL = "https://wa.me/charfeddineka?s=t"
 
 fun openDeveloperWhatsApp(context: Context, currentLang: AppLanguage) {
     try {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(DEVELOPER_WHATSAPP_URL)).apply {
+        val intent = Intent(Intent.ACTION_VIEW, DEVELOPER_WHATSAPP_URL.toUri()).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)

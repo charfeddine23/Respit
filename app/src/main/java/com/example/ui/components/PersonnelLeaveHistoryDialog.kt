@@ -90,7 +90,6 @@ fun PersonnelLeaveHistoryDialog(
     onDismiss: () -> Unit,
     isDarkMode: Boolean = false,
     currentLang: AppLanguage = AppLanguage.ARABIC,
-    isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
     isNoScreenshotEnabled: Boolean = false,
     onExtendRecord: ((LeaveRecord) -> Unit)? = null

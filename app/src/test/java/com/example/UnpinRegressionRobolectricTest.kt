@@ -14,8 +14,6 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.AppDatabase
 import com.example.data.Personnel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -51,8 +49,7 @@ class UnpinRegressionRobolectricTest {
     dbFile.parentFile?.mkdirs()
     if (dbFile.exists()) dbFile.delete()
 
-    val scope = CoroutineScope(Dispatchers.IO)
-    val db = AppDatabase.getDatabase(context, scope)
+    val db = AppDatabase.getDatabase(context)
     runBlocking {
       val dao = db.personnelDao()
       for (i in 1..5) {

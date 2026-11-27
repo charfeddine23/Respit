@@ -12,10 +12,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -45,6 +43,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Clear
@@ -57,7 +56,6 @@ import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -126,10 +124,8 @@ import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import java.util.Locale
 import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
 private enum class MonthlyChartMetric { COUNT, DAYS }
 private enum class PersonnelStatsSort { LEAVES_DESC, DAYS_DESC, DUTY_DESC }
@@ -163,7 +159,6 @@ fun AnalyticsDashboardScreen(
     val isDarkMode = activePreset?.isDark ?: isDarkModeState
     val primaryAccent = activePreset?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
     val secondaryAccent = activePreset?.secondary ?: RoyalBlueAccent
-    val isNeumorphic = false
     val animationsEnabled by viewModel.isDynamicAnimationsEnabled.collectAsState()
     val dutyThreshold by viewModel.dutyThresholdDays.collectAsState()
     val report by viewModel.analyticsReport.collectAsState()
@@ -258,7 +253,6 @@ fun AnalyticsDashboardScreen(
                                 elevation = 5.dp,
                                 borderAlpha = 0.9f,
                                 isDark = isDarkMode,
-                                isNeumorphic = isNeumorphic,
                                 cornerRadius = 24.dp
                             )
                             .padding(16.dp)
@@ -408,7 +402,6 @@ fun AnalyticsDashboardScreen(
                                 icon = Icons.Default.BarChart,
                                 accent = primaryAccent,
                                 isDarkMode = isDarkMode,
-                                isNeumorphic = isNeumorphic,
                                 modifier = Modifier.weight(1f)
                             )
                             AnalyticsKpiCard(
@@ -418,7 +411,6 @@ fun AnalyticsDashboardScreen(
                                 icon = Icons.Default.CalendarMonth,
                                 accent = EmeraldSuccess,
                                 isDarkMode = isDarkMode,
-                                isNeumorphic = isNeumorphic,
                                 modifier = Modifier.weight(1f)
                             )
                             AnalyticsKpiCard(
@@ -428,7 +420,6 @@ fun AnalyticsDashboardScreen(
                                 icon = Icons.Default.Schedule,
                                 accent = slateAccent,
                                 isDarkMode = isDarkMode,
-                                isNeumorphic = isNeumorphic,
                                 modifier = Modifier.weight(1f)
                             )
                             AnalyticsKpiCard(
@@ -438,7 +429,6 @@ fun AnalyticsDashboardScreen(
                                 icon = Icons.Default.Star,
                                 accent = AmberWarning,
                                 isDarkMode = isDarkMode,
-                                isNeumorphic = isNeumorphic,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -455,7 +445,6 @@ fun AnalyticsDashboardScreen(
                                     icon = Icons.Default.BarChart,
                                     accent = primaryAccent,
                                     isDarkMode = isDarkMode,
-                                    isNeumorphic = isNeumorphic,
                                     modifier = Modifier.weight(1f)
                                 )
                                 AnalyticsKpiCard(
@@ -465,7 +454,6 @@ fun AnalyticsDashboardScreen(
                                     icon = Icons.Default.CalendarMonth,
                                     accent = EmeraldSuccess,
                                     isDarkMode = isDarkMode,
-                                    isNeumorphic = isNeumorphic,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -480,7 +468,6 @@ fun AnalyticsDashboardScreen(
                                     icon = Icons.Default.Schedule,
                                     accent = slateAccent,
                                     isDarkMode = isDarkMode,
-                                    isNeumorphic = isNeumorphic,
                                     modifier = Modifier.weight(1f)
                                 )
                                 AnalyticsKpiCard(
@@ -490,7 +477,6 @@ fun AnalyticsDashboardScreen(
                                     icon = Icons.Default.Star,
                                     accent = AmberWarning,
                                     isDarkMode = isDarkMode,
-                                    isNeumorphic = isNeumorphic,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -513,7 +499,6 @@ fun AnalyticsDashboardScreen(
                         },
                         currentLang = currentLang,
                         isDarkMode = isDarkMode,
-                        isNeumorphic = isNeumorphic,
                         animationsEnabled = animationsEnabled
                     )
                 }
@@ -530,7 +515,6 @@ fun AnalyticsDashboardScreen(
                         },
                         currentLang = currentLang,
                         isDarkMode = isDarkMode,
-                        isNeumorphic = isNeumorphic,
                         animationsEnabled = animationsEnabled,
                         isTablet = isTablet
                     )
@@ -541,8 +525,7 @@ fun AnalyticsDashboardScreen(
                     DecisionInsightsCard(
                         report = report,
                         currentLang = currentLang,
-                        isDarkMode = isDarkMode,
-                        isNeumorphic = isNeumorphic
+                        isDarkMode = isDarkMode
                     )
                 }
 
@@ -556,7 +539,6 @@ fun AnalyticsDashboardScreen(
                                 elevation = 4.dp,
                                 borderAlpha = 0.85f,
                                 isDark = isDarkMode,
-                                isNeumorphic = isNeumorphic,
                                 cornerRadius = 24.dp
                             )
                             .padding(16.dp)
@@ -680,8 +662,7 @@ fun AnalyticsDashboardScreen(
                                 .liquidGlass(
                                     shape = LiquidGlassDefaults.CardShape,
                                     elevation = 3.dp,
-                                    isDark = isDarkMode,
-                                    isNeumorphic = isNeumorphic
+                                    isDark = isDarkMode
                                 )
                                 .padding(28.dp),
                             contentAlignment = Alignment.Center
@@ -705,7 +686,6 @@ fun AnalyticsDashboardScreen(
                             dutyThreshold = dutyThreshold,
                             currentLang = currentLang,
                             isDarkMode = isDarkMode,
-                            isNeumorphic = isNeumorphic,
                             onClick = if (stat.isActiveInPersonnel && stat.personnelId > 0L && onSelectPersonnel != null) {
                                 { onSelectPersonnel(stat.personnelId) }
                             } else null
@@ -729,7 +709,6 @@ private fun AnalyticsKpiCard(
     icon: ImageVector,
     accent: Color,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -739,7 +718,6 @@ private fun AnalyticsKpiCard(
                 elevation = 4.dp,
                 borderAlpha = 0.85f,
                 isDark = isDarkMode,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 20.dp
             )
             .padding(14.dp)
@@ -803,7 +781,6 @@ private fun MonthlyLeavesChartCard(
     onSelectMonth: (Int) -> Unit,
     currentLang: AppLanguage,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     animationsEnabled: Boolean
 ) {
     val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
@@ -832,7 +809,6 @@ private fun MonthlyLeavesChartCard(
                 elevation = 5.dp,
                 borderAlpha = 0.85f,
                 isDark = isDarkMode,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 24.dp
             )
             .padding(16.dp)
@@ -850,7 +826,7 @@ private fun MonthlyLeavesChartCard(
                 ) {
                     val chartAccent = LocalThemePreset.current?.primary ?: if (isDarkMode) CyanGlow else VibrantCyan
                     Icon(
-                        imageVector = Icons.Default.TrendingUp,
+                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                         contentDescription = null,
                         tint = chartAccent,
                         modifier = Modifier.size(22.dp)
@@ -1176,7 +1152,6 @@ private fun RankDistributionChartCard(
     onSelectRank: (Int) -> Unit,
     currentLang: AppLanguage,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     animationsEnabled: Boolean,
     isTablet: Boolean
 ) {
@@ -1197,7 +1172,6 @@ private fun RankDistributionChartCard(
                 elevation = 5.dp,
                 borderAlpha = 0.85f,
                 isDark = isDarkMode,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 24.dp
             )
             .padding(16.dp)
@@ -1457,8 +1431,7 @@ private fun RankDistributionChartCard(
 private fun DecisionInsightsCard(
     report: LeaveAnalyticsReport,
     currentLang: AppLanguage,
-    isDarkMode: Boolean,
-    isNeumorphic: Boolean
+    isDarkMode: Boolean
 ) {
     val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
     val textSecondary = if (isDarkMode) Color(0xFF94A3B8) else SlateTextSecondary
@@ -1472,7 +1445,6 @@ private fun DecisionInsightsCard(
                 elevation = 4.dp,
                 borderAlpha = 0.85f,
                 isDark = isDarkMode,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 24.dp
             )
             .padding(16.dp)
@@ -1611,7 +1583,6 @@ private fun PersonnelAnnualStatCard(
     dutyThreshold: Int,
     currentLang: AppLanguage,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     onClick: (() -> Unit)?
 ) {
     val textPrimary = if (isDarkMode) Color.White else SlateTextPrimary
@@ -1634,7 +1605,6 @@ private fun PersonnelAnnualStatCard(
                 elevation = 4.dp,
                 borderAlpha = 0.85f,
                 isDark = isDarkMode,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 22.dp
             )
             .then(

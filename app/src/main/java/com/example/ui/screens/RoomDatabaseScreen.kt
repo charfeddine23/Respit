@@ -7,24 +7,16 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -62,22 +54,13 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -90,16 +73,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -126,7 +102,6 @@ import com.example.ui.PersonnelViewModel
 import com.example.ui.components.LiquidGlassActionButton
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
-import com.example.ui.theme.LiquidGlassDefaults
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
 import com.example.ui.theme.RoyalBlueAccent
@@ -165,7 +140,6 @@ fun RoomDatabaseScreen(
     val effectiveDark = activePreset?.isDark ?: isDarkMode
     val primaryAccent = activePreset?.primary ?: if (effectiveDark) CyanGlow else RoyalBlueAccent
     val secondaryAccent = activePreset?.secondary ?: VibrantCyan
-    val isNeumorphic = false
 
     val personnelList by viewModel.allPersonnel.collectAsState()
     val leavesList by viewModel.allLeaves.collectAsState()
@@ -233,10 +207,9 @@ fun RoomDatabaseScreen(
                             .widthIn(max = 720.dp)
                             .liquidGlass(
                                 shape = RoundedCornerShape(24.dp),
-                                elevation = if (isNeumorphic) 7.dp else 5.dp,
+                                elevation = 5.dp,
                                 borderAlpha = 0.9f,
                                 isDark = effectiveDark,
-                                isNeumorphic = isNeumorphic,
                                 cornerRadius = 24.dp
                             )
                     ) {
@@ -410,7 +383,6 @@ fun RoomDatabaseScreen(
                         item {
                             RoomDatabaseHeaderCard(
                                 isDarkMode = effectiveDark,
-                                isNeumorphic = isNeumorphic,
                                 currentLang = currentLang,
                                 personnelCount = personnelCount,
                                 leavesCount = leavesCount,
@@ -519,7 +491,6 @@ fun RoomDatabaseScreen(
                                     item {
                                         EmptyDatabaseState(
                                             isDarkMode = effectiveDark,
-                                            isNeumorphic = isNeumorphic,
                                             title = AppStrings.get("no_results", currentLang),
                                             description = AppStrings.get("no_results_desc", currentLang)
                                         )
@@ -529,7 +500,6 @@ fun RoomDatabaseScreen(
                                         RoomPersonnelRowCard(
                                             personnel = person,
                                             isDarkMode = effectiveDark,
-                                            isNeumorphic = isNeumorphic,
                                             currentLang = currentLang,
                                             onDelete = {
                                                 viewModel.deletePersonnelFromRoom(person)
@@ -554,7 +524,6 @@ fun RoomDatabaseScreen(
                                     item {
                                         EmptyDatabaseState(
                                             isDarkMode = effectiveDark,
-                                            isNeumorphic = isNeumorphic,
                                             title = AppStrings.get("room_no_leaves", currentLang),
                                             description = AppStrings.get("room_no_leaves_desc", currentLang)
                                         )
@@ -564,7 +533,6 @@ fun RoomDatabaseScreen(
                                         RoomLeaveRecordRowCard(
                                             leave = leave,
                                             isDarkMode = effectiveDark,
-                                            isNeumorphic = isNeumorphic,
                                             currentLang = currentLang
                                         )
                                     }
@@ -574,7 +542,6 @@ fun RoomDatabaseScreen(
                                 item {
                                     RoomDiagnosticsCard(
                                         isDarkMode = effectiveDark,
-                                        isNeumorphic = isNeumorphic,
                                         currentLang = currentLang,
                                         personnelCount = personnelCount,
                                         leavesCount = leavesCount
@@ -612,7 +579,6 @@ fun RoomDatabaseScreen(
 @Composable
 private fun RoomDatabaseHeaderCard(
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     currentLang: AppLanguage,
     personnelCount: Int,
     leavesCount: Int,
@@ -643,10 +609,9 @@ private fun RoomDatabaseHeaderCard(
             .fillMaxWidth()
             .liquidGlass(
                 shape = RoundedCornerShape(24.dp),
-                elevation = if (isNeumorphic) 5.dp else 4.dp,
+                elevation = 4.dp,
                 borderAlpha = 0.88f,
                 isDark = effectiveDark,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 24.dp
             )
             .testTag("room_header_card")
@@ -676,8 +641,8 @@ private fun RoomDatabaseHeaderCard(
 
             val themePrimary = preset?.primary ?: MaterialTheme.colorScheme.primary
             val themeSecondary = preset?.secondary ?: MaterialTheme.colorScheme.secondary
-            val buttonShape = if (isNeumorphic) RoundedCornerShape(50.dp) else RoundedCornerShape(16.dp)
-            val buttonRadius = if (isNeumorphic) 50.dp else 16.dp
+            val buttonShape = RoundedCornerShape(16.dp)
+            val buttonRadius = 16.dp
 
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Row(
@@ -977,7 +942,6 @@ private fun SearchBox(
 private fun RoomPersonnelRowCard(
     personnel: Personnel,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     currentLang: AppLanguage,
     onDelete: () -> Unit
 ) {
@@ -995,7 +959,6 @@ private fun RoomPersonnelRowCard(
                 elevation = 3.dp,
                 borderAlpha = 0.85f,
                 isDark = effectiveDark,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 18.dp
             )
             .testTag("room_personnel_item_${personnel.id}")
@@ -1119,7 +1082,6 @@ private fun RoomPersonnelRowCard(
 private fun RoomLeaveRecordRowCard(
     leave: LeaveRecord,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     currentLang: AppLanguage
 ) {
     val preset = LocalThemePreset.current
@@ -1136,7 +1098,6 @@ private fun RoomLeaveRecordRowCard(
                 elevation = 3.dp,
                 borderAlpha = 0.85f,
                 isDark = effectiveDark,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 18.dp
             )
             .testTag("room_leave_item_${leave.id}")
@@ -1262,7 +1223,6 @@ private fun RoomLeaveRecordRowCard(
 @Composable
 private fun RoomDiagnosticsCard(
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     currentLang: AppLanguage,
     personnelCount: Int,
     leavesCount: Int
@@ -1282,7 +1242,6 @@ private fun RoomDiagnosticsCard(
                 elevation = 4.dp,
                 borderAlpha = 0.88f,
                 isDark = effectiveDark,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 22.dp
             )
             .testTag("room_diagnostics_card")
@@ -1355,7 +1314,6 @@ private fun DiagnosticRow(
 @Composable
 private fun EmptyDatabaseState(
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     title: String,
     description: String
 ) {
@@ -1371,7 +1329,6 @@ private fun EmptyDatabaseState(
                 shape = RoundedCornerShape(22.dp),
                 elevation = 4.dp,
                 isDark = effectiveDark,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 22.dp
             )
             .padding(vertical = 32.dp, horizontal = 24.dp),

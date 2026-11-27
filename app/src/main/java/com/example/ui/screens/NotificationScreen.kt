@@ -3,22 +3,14 @@ package com.example.ui.screens
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -37,7 +29,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,14 +55,9 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -84,13 +70,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -117,7 +98,6 @@ import com.example.ui.PersonnelViewModel
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CyanGlow
 import com.example.ui.theme.EmeraldSuccess
-import com.example.ui.theme.LiquidGlassDefaults
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
 import com.example.ui.theme.RoyalBlueAccent
@@ -152,7 +132,6 @@ fun NotificationScreen(
     val secondaryAccent = activePreset?.secondary ?: RoyalBlueAccent
     val textPrimary = activePreset?.textPrimary ?: if (effectiveDark) Color.White else SlateTextPrimary
     val textSecondary = activePreset?.textSecondary ?: if (effectiveDark) Color(0xFF94A3B8) else SlateTextSecondary
-    val isNeumorphic = false
     val notifications by viewModel.notifications.collectAsState()
     val allPersonnel by viewModel.allPersonnel.collectAsState()
     val dismissedIds by viewModel.dismissedNotificationIds.collectAsState()
@@ -205,10 +184,9 @@ fun NotificationScreen(
                         .widthIn(max = 840.dp)
                         .liquidGlass(
                             shape = RoundedCornerShape(24.dp),
-                            elevation = if (isNeumorphic) 7.dp else 5.dp,
+                            elevation = 5.dp,
                             borderAlpha = 0.9f,
                             isDark = effectiveDark,
-                            isNeumorphic = isNeumorphic,
                             cornerRadius = 24.dp
                         )
                 ) {
@@ -472,7 +450,6 @@ fun NotificationScreen(
                                             elevation = 6.dp,
                                             borderAlpha = 0.9f,
                                             isDark = effectiveDark,
-                                            isNeumorphic = isNeumorphic,
                                             cornerRadius = 26.dp
                                         )
                                 ) {
@@ -558,7 +535,6 @@ fun NotificationScreen(
                                     NotificationCard(
                                         notification = notification,
                                         isDark = effectiveDark,
-                                        isNeumorphic = isNeumorphic,
                                         currentLang = currentLang,
                                         haptic = haptic,
                                         onCardClick = { selectedNotificationForPopup = notification },
@@ -887,7 +863,6 @@ private fun rememberNotificationVisualSpec(
 private fun NotificationCard(
     notification: AppNotification,
     isDark: Boolean,
-    isNeumorphic: Boolean,
     currentLang: AppLanguage,
     haptic: HapticFeedback,
     onCardClick: () -> Unit,
@@ -918,10 +893,9 @@ private fun NotificationCard(
             }
             .liquidGlass(
                 shape = RoundedCornerShape(22.dp),
-                elevation = if (notification.isPinned) 7.dp else if (isNeumorphic) 6.dp else 4.dp,
+                elevation = if (notification.isPinned) 7.dp else 4.dp,
                 borderAlpha = if (notification.isPinned) 0.95f else 0.85f,
                 isDark = effectiveDark,
-                isNeumorphic = isNeumorphic,
                 cornerRadius = 22.dp
             )
             .clickable(

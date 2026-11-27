@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Check
@@ -47,7 +48,6 @@ import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
@@ -122,7 +122,6 @@ fun FilterSortDialog(
     onResetFilters: () -> Unit,
     onDismiss: () -> Unit,
     isDarkMode: Boolean = false,
-    isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
     isNoScreenshotEnabled: Boolean = false,
     currentLang: AppLanguage = AppLanguage.ARABIC
@@ -407,7 +406,7 @@ fun FilterSortDialog(
                             // SECTION B: Sort Order (Liquid Glass Panel + Interactive Rows)
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 SectionHeaderRow(
-                                    icon = Icons.Default.Sort,
+                                    icon = Icons.AutoMirrored.Filled.Sort,
                                     title = AppStrings.get("sort", currentLang),
                                     accent = secondaryColor,
                                     isDark = effectiveDark,

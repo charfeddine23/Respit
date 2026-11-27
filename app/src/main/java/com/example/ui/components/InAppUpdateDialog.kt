@@ -24,7 +24,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -117,7 +116,6 @@ import kotlin.math.roundToInt
 fun InAppUpdateDialog(
     updateState: AppUpdateState,
     isDarkMode: Boolean,
-    isNeumorphic: Boolean,
     animationsEnabled: Boolean,
     currentLang: AppLanguage,
     onStartDownload: () -> Unit,

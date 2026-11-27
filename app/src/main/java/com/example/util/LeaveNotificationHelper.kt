@@ -17,6 +17,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import com.example.MainActivity
 import com.example.R
 import com.example.data.LeaveStatus
@@ -123,7 +124,7 @@ object LeaveNotificationHelper {
         glyphText: String
     ): Bitmap {
         val sizePx = 128
-        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(sizePx, sizePx)
         val canvas = Canvas(bitmap)
 
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

@@ -36,7 +36,7 @@ data class ParsedFullBackup(
 object FullBackupCodec {
 
     private const val BACKUP_FORMAT_VERSION = 2
-    private const val DB_SCHEMA_VERSION = 6
+    private const val DB_SCHEMA_VERSION = 9
 
     fun exportFullBackupJson(
         personnelList: List<Personnel>,
@@ -140,8 +140,8 @@ object FullBackupCodec {
                     put("leaveTypeLocalized", formatLeaveType(p.leaveType, language))
                     put("startDateMillis", p.startDateMillis)
                     put("returnDateMillis", p.returnDateMillis)
-                    put("startDate", dateFmt.format(Date(p.startDateMillis)))
-                    put("returnDate", dateFmt.format(Date(p.returnDateMillis)))
+                    put("startDate", if (p.startDateMillis > 0L) dateFmt.format(Date(p.startDateMillis)) else "-")
+                    put("returnDate", if (p.returnDateMillis > 0L) dateFmt.format(Date(p.returnDateMillis)) else "-")
                     put("addedAtMillis", p.addedAtMillis)
                     put("addedAtDate", dateTimeFmt.format(Date(p.addedAtMillis)))
                     put("isReturnedToDuty", p.isReturnedToDuty)
@@ -184,6 +184,7 @@ object FullBackupCodec {
                     put("id", leave.id)
                     put("personnelId", leave.personnelId)
                     put("personnelName", leave.personnelName)
+                    put("personnelNameLatin", leave.personnelNameLatin)
                     put("rank", leave.rank)
                     put("rankLocalized", formatRank(leave.rank, language))
                     put("registrationNumber", leave.registrationNumber)
@@ -191,8 +192,8 @@ object FullBackupCodec {
                     put("leaveTypeLocalized", formatLeaveType(leave.leaveType, language))
                     put("startDateMillis", leave.startDateMillis)
                     put("returnDateMillis", leave.returnDateMillis)
-                    put("startDate", dateFmt.format(Date(leave.startDateMillis)))
-                    put("returnDate", dateFmt.format(Date(leave.returnDateMillis)))
+                    put("startDate", if (leave.startDateMillis > 0L) dateFmt.format(Date(leave.startDateMillis)) else "-")
+                    put("returnDate", if (leave.returnDateMillis > 0L) dateFmt.format(Date(leave.returnDateMillis)) else "-")
                     put("durationDays", leave.durationDays)
                     put("statusText", leave.statusText)
                     put("destinationWilaya", leave.destinationWilaya)
@@ -279,20 +280,26 @@ object FullBackupCodec {
             var startMillis = obj.optLong("startDateMillis", 0L)
             if (startMillis == 0L) {
                 val dateStr = obj.optString("startDate", "").replace("\u200E", "").replace("\u200F", "").trim()
-                startMillis = if (dateStr.isNotBlank()) {
-                    runCatching { sdf.parse(dateStr)?.time }.getOrNull() ?: fallbackNowMillis
-                } else {
-                    fallbackNowMillis
+                val parsedStart = if (dateStr.isNotBlank() && dateStr != "-") {
+                    runCatching { sdf.parse(dateStr)?.time }.getOrNull() ?: 0L
+                } else 0L
+                startMillis = when {
+                    parsedStart > 0L -> parsedStart
+                    !isReturnedToDuty -> fallbackNowMillis
+                    else -> 0L
                 }
             }
 
             var returnMillis = obj.optLong("returnDateMillis", 0L)
             if (returnMillis == 0L) {
                 val dateStr = obj.optString("returnDate", "").replace("\u200E", "").replace("\u200F", "").trim()
-                returnMillis = if (dateStr.isNotBlank()) {
-                    runCatching { sdf.parse(dateStr)?.time }.getOrNull() ?: (startMillis + 10 * 86400000L)
-                } else {
-                    startMillis + 10 * 86400000L
+                val parsedReturn = if (dateStr.isNotBlank() && dateStr != "-") {
+                    runCatching { sdf.parse(dateStr)?.time }.getOrNull() ?: 0L
+                } else 0L
+                returnMillis = when {
+                    parsedReturn > 0L -> parsedReturn
+                    startMillis > 0L -> startMillis + 9 * 86_400_000L
+                    else -> 0L
                 }
             }
 
@@ -327,6 +334,9 @@ object FullBackupCodec {
             val personnelName = obj.optString("personnelName", "").ifBlank {
                 obj.optString("fullName", "غير محدد")
             }
+            val personnelNameLatin = obj.optString("personnelNameLatin", "").ifBlank {
+                obj.optString("fullNameLatin", "")
+            }.trim()
             val rank = normalizeRank(obj.optString("rank", "جندي - Djoundi / Soldat"))
             val regNumber = obj.optString("registrationNumber", "DZ-000000")
             val leaveType = obj.optString("leaveType", "عطلة سنوية")
@@ -344,6 +354,7 @@ object FullBackupCodec {
                     id = 0L,
                     personnelId = pId,
                     personnelName = personnelName,
+                    personnelNameLatin = personnelNameLatin,
                     rank = rank,
                     registrationNumber = regNumber,
                     leaveType = leaveType,

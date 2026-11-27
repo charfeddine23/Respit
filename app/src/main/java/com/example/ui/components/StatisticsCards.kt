@@ -64,7 +64,6 @@ fun StatisticsSection(
     onSelectStatus: (String) -> Unit = {},
     onOpenAnalytics: () -> Unit = {},
     isDarkMode: Boolean = false,
-    isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {

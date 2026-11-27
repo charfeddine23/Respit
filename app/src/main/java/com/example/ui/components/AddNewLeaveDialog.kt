@@ -116,7 +116,6 @@ fun AddNewLeaveDialog(
     ) -> Unit,
     isDarkMode: Boolean = false,
     currentLang: AppLanguage = AppLanguage.ARABIC,
-    isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
     isNoScreenshotEnabled: Boolean = false
 ) {

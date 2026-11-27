@@ -9,6 +9,7 @@ import com.example.data.AppDatabase
 import com.example.data.AppNotification
 import com.example.data.AppThemeMode
 import com.example.data.DutyReferenceInfo
+import com.example.data.FullBackupCodec
 import com.example.data.LastShortLeaveInfo
 import com.example.data.LeaveAnalyticsCalculator
 import com.example.data.LeaveAnalyticsReport
@@ -38,8 +39,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -212,7 +211,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     init {
-        val db = AppDatabase.getDatabase(application, viewModelScope)
+        val db = AppDatabase.getDatabase(application)
         repository = PersonnelRepository(db.personnelDao(), db.leaveRecordDao())
         allPersonnel = repository.allPersonnel
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -1339,148 +1338,124 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun generateJsonContent(): String {
-        val list = allPersonnel.value
-        val sb = StringBuilder("[\n")
-        list.forEachIndexed { i, p ->
-            sb.append("  {\n")
-            sb.append("    \"id\": ${p.id},\n")
-            sb.append("    \"fullName\": \"${p.fullName.replace("\"", "\\\"")}\",\n")
-            sb.append("    \"fullNameLatin\": \"${p.fullNameLatin.replace("\"", "\\\"")}\",\n")
-            sb.append("    \"rank\": \"${p.rank}\",\n")
-            sb.append("    \"wilaya\": \"${p.wilaya}\",\n")
-            sb.append("    \"registrationNumber\": \"${p.registrationNumber}\",\n")
-            sb.append("    \"startDateMillis\": ${p.startDateMillis},\n")
-            sb.append("    \"returnDateMillis\": ${p.returnDateMillis},\n")
-            sb.append("    \"startDate\": \"${p.formattedStartDate}\",\n")
-            sb.append("    \"returnDate\": \"${p.formattedReturnDate}\",\n")
-            sb.append("    \"totalDays\": ${p.totalLeaveDays},\n")
-            sb.append("    \"isReturnedToDuty\": ${p.isReturnedToDuty},\n")
-            sb.append("    \"status\": \"${p.status.name}\",\n")
-            sb.append("    \"countdownText\": \"${p.countdownTextAr}\",\n")
-            sb.append("    \"leaveType\": \"${p.leaveType}\",\n")
-            sb.append("    \"notes\": \"${p.notes.replace("\"", "\\\"")}\",\n")
-            sb.append("    \"addedAtMillis\": ${p.addedAtMillis}\n")
-            sb.append("  }${if (i < list.size - 1) "," else ""}\n")
-        }
-        sb.append("]")
-        return sb.toString()
+        return FullBackupCodec.exportFullBackupJson(
+            personnelList = allPersonnel.value,
+            leaveRecords = allLeaves.value,
+            stats = stats.value,
+            dutyThresholdDays = dutyThresholdDays.value,
+            themeMode = currentThemeMode.value,
+            themeEngineId = selectedThemeEngineId.value,
+            language = currentLanguage.value,
+            isDynamicAnimationsEnabled = isDynamicAnimationsEnabled.value,
+            isLivingLuxuryMode = isLivingLuxuryMode.value,
+            isBiometricEnabled = isBiometricEnabled.value,
+            isNoScreenshotEnabled = isNoScreenshotEnabled.value,
+            isDriveSyncEnabled = isDriveSyncEnabled.value,
+            lastDriveBackupTime = lastDriveBackupTime.value,
+            selectedAnalyticsYear = selectedAnalyticsYear.value,
+            pinnedNotificationIds = pinnedNotificationIds.value,
+            dismissedNotificationIds = dismissedNotificationIds.value,
+            recentSearches = recentSearches.value
+        )
     }
 
     fun importPersonnelFromJson(jsonString: String, replaceAll: Boolean = false): Pair<Boolean, String> {
         val lang = currentLanguage.value
         return try {
-            val trimmed = jsonString.trim()
-            val array = if (trimmed.startsWith("{")) {
-                val rootObj = JSONObject(trimmed)
-                rootObj.optJSONArray("records") 
-                    ?: rootObj.optJSONArray("personnel") 
-                    ?: rootObj.optJSONArray("data") 
-                    ?: JSONArray()
-            } else {
-                JSONArray(trimmed)
-            }
-            if (array.length() == 0) {
+            val parsed = FullBackupCodec.parseFullBackupJson(jsonString, replaceAll)
+            if (parsed.personnelList.isEmpty() && parsed.leaveRecords.isEmpty()) {
                 return Pair(false, AppStrings.get("import_empty_error", lang))
             }
 
-            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val importedList = mutableListOf<Personnel>()
-
-            for (i in 0 until array.length()) {
-                val obj = array.getJSONObject(i)
-                val fullNameLatin = obj.optString("fullNameLatin", "").ifBlank {
-                    obj.optString("full_name_latin", "")
-                }.trim()
-                val rawFullName = obj.optString("fullName", "").ifBlank {
-                    obj.optString("name", "")
-                }.trim()
-                val fullName = if (rawFullName.isBlank() && fullNameLatin.isBlank()) "غير محدد" else rawFullName
-                val rank = normalizeRank(obj.optString("rank", "جندي - Djoundi / Soldat"))
-                val regNumber = obj.optString("registrationNumber", "").ifBlank {
-                    obj.optString("regNumber", "DZ-000000")
-                }
-                val wilaya = normalizeWilaya(obj.optString("wilaya", "16 - الجزائر - Alger"))
-                val leaveType = obj.optString("leaveType", "عطلة سنوية")
-                val notes = obj.optString("notes", "")
-                val isReturnedToDuty = obj.optBoolean("isReturnedToDuty", false)
-
-                var startMillis = obj.optLong("startDateMillis", 0L)
-                if (startMillis == 0L) {
-                    val dateStr = obj.optString("startDate", "")
-                        .replace("\u200E", "")
-                        .replace("\u200F", "")
-                        .trim()
-                    val parsedStart = if (dateStr.isNotBlank() && dateStr != "-") {
-                        sdf.parse(dateStr)?.time ?: 0L
-                    } else 0L
-                    startMillis = when {
-                        parsedStart > 0L -> parsedStart
-                        !isReturnedToDuty -> Personnel.toStartOfDay(System.currentTimeMillis())
-                        else -> 0L
-                    }
-                }
-
-                var returnMillis = obj.optLong("returnDateMillis", 0L)
-                if (returnMillis == 0L) {
-                    val dateStr = obj.optString("returnDate", "")
-                        .replace("\u200E", "")
-                        .replace("\u200F", "")
-                        .trim()
-                    val parsedReturn = if (dateStr.isNotBlank() && dateStr != "-") {
-                        sdf.parse(dateStr)?.time ?: 0L
-                    } else 0L
-                    returnMillis = when {
-                        parsedReturn > 0L -> parsedReturn
-                        startMillis > 0L -> {
-                            val cal = Calendar.getInstance().apply {
-                                timeInMillis = Personnel.toStartOfDay(startMillis)
-                                add(Calendar.DAY_OF_YEAR, 9)
-                            }
-                            cal.timeInMillis
-                        }
-                        else -> 0L
-                    }
-                }
-
-                val id = if (replaceAll) obj.optLong("id", 0L) else 0L
-                val addedAt = obj.optLong("addedAtMillis", 0L).let { if (it > 0L) it else System.currentTimeMillis() }
-
-                importedList.add(
-                    Personnel(
-                        id = id,
-                        fullName = fullName,
-                        fullNameLatin = fullNameLatin,
-                        rank = rank,
-                        registrationNumber = regNumber,
-                        startDateMillis = startMillis,
-                        returnDateMillis = returnMillis,
-                        isReturnedToDuty = isReturnedToDuty,
-                        leaveType = leaveType,
-                        wilaya = wilaya,
-                        notes = notes,
-                        addedAtMillis = addedAt
-                    )
-                )
-            }
-
             viewModelScope.launch {
-                val current = allPersonnel.value
-                lastUndoAction.value = UndoAction.Imported(current)
-                if (replaceAll) {
-                    repository.clearAndReset(importedList)
-                } else {
-                    repository.insertAll(importedList)
-                }
-                importedList.forEach { p ->
-                    if (!p.isReturnedToDuty) {
-                        autoRecordLeaveIfNeeded(p)
-                    } else {
-                        markLeaveRecordCompleted(p)
+                try {
+                    val current = allPersonnel.value
+                    lastUndoAction.value = UndoAction.Imported(current)
+                    if (replaceAll) {
+                        repository.clearPersonnel()
                     }
+
+                    val oldIdToNewId = mutableMapOf<Long, Long>()
+                    val regToNewId = mutableMapOf<String, Long>()
+                    val insertedPersonnel = mutableListOf<Personnel>()
+
+                    parsed.personnelList.forEach { p ->
+                        val entityToInsert = if (replaceAll && p.id > 0L) p else p.copy(id = 0L)
+                        val newId = repository.insert(entityToInsert)
+                        if (p.id > 0L) {
+                            oldIdToNewId[p.id] = newId
+                        }
+                        val normReg = p.registrationNumber.trim()
+                        if (normReg.isNotBlank()) {
+                            regToNewId[normReg.lowercase(Locale.getDefault())] = newId
+                        }
+                        val inserted = entityToInsert.copy(id = newId)
+                        insertedPersonnel.add(inserted)
+                    }
+
+                    // Restore archived leave records when present, deduplicating by regNo + dates
+                    if (parsed.leaveRecords.isNotEmpty()) {
+                        parsed.leaveRecords.forEach { leave ->
+                            val mappedPersonnelId = oldIdToNewId[leave.personnelId]
+                                ?: regToNewId[leave.registrationNumber.trim().lowercase(Locale.getDefault())]
+                                ?: leave.personnelId
+                            if (leave.startDateMillis > 0L && leave.returnDateMillis > 0L) {
+                                val existsById = mappedPersonnelId > 0L &&
+                                    repository.countExactLeave(mappedPersonnelId, leave.startDateMillis, leave.returnDateMillis) > 0
+                                val existsByReg = leave.registrationNumber.isNotBlank() &&
+                                    repository.countExactLeaveByReg(leave.registrationNumber, leave.startDateMillis, leave.returnDateMillis) > 0
+                                if (!existsById && !existsByReg) {
+                                    repository.insertLeave(leave.copy(id = 0L, personnelId = mappedPersonnelId))
+                                }
+                            }
+                        }
+                    }
+
+                    // Ensure current active/completed leaves for imported personnel are recorded when valid
+                    insertedPersonnel.forEach { p ->
+                        if (p.startDateMillis > 0L && p.returnDateMillis > 0L) {
+                            if (!p.isReturnedToDuty) {
+                                autoRecordLeaveIfNeeded(p)
+                            } else {
+                                markLeaveRecordCompleted(p)
+                            }
+                        }
+                    }
+
+                    // Restore app settings on full-replace import when included in backup
+                    if (replaceAll) {
+                        parsed.settings?.let { s ->
+                            s.dutyThresholdDays?.let { setDutyThreshold(it) }
+                            s.themeEngineId?.takeIf { it.isNotBlank() }?.let { setThemeEngine(it) }
+                                ?: s.themeMode?.let { setThemeMode(AppThemeMode.fromCode(it)) }
+                            s.language?.let { setLanguage(AppLanguage.fromCode(it)) }
+                            s.isDynamicAnimationsEnabled?.let { setDynamicAnimationsEnabled(it) }
+                            s.isLivingLuxuryMode?.let { setLivingLuxuryMode(it) }
+                            s.isBiometricEnabled?.let { setBiometricLock(it) }
+                            s.isNoScreenshotEnabled?.let { setNoScreenshotEnabled(it) }
+                            s.isDriveSyncEnabled?.let { setDriveSyncEnabled(it) }
+                            s.lastDriveBackupTime?.takeIf { it > 0L }?.let { updateLastDriveBackup(it) }
+                            s.selectedAnalyticsYear?.let { setAnalyticsYear(it) }
+                            s.pinnedNotificationIds?.let {
+                                pinnedNotificationIds.value = it
+                                settingsManager.pinnedNotificationIds = it
+                            }
+                            s.dismissedNotificationIds?.let {
+                                dismissedNotificationIds.value = it
+                                settingsManager.dismissedNotificationIds = it
+                            }
+                            s.recentSearches?.let {
+                                settingsManager.recentSearches = it
+                                recentSearches.value = it
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Safely ignore unexpected DB write error after validation
                 }
             }
 
-            Pair(true, "${AppStrings.get("import_success_prefix", lang)} ${importedList.size} ${AppStrings.get("import_records_unit", lang)}")
+            Pair(true, "${AppStrings.get("import_success_prefix", lang)} ${parsed.personnelList.size} ${AppStrings.get("import_records_unit", lang)}")
         } catch (e: Exception) {
             Pair(false, "${AppStrings.get("import_json_error", lang)} ${e.localizedMessage ?: AppStrings.get("import_invalid_data", lang)}")
         }
@@ -1579,6 +1554,7 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun markLeaveRecordCompleted(person: Personnel) {
+        if (person.startDateMillis <= 0L || person.returnDateMillis <= 0L) return
         val completedLabel = when (currentLanguage.value) {
             AppLanguage.TAMAZIGHT -> "Yemmed (Yuɣal ɣer umahil)"
             AppLanguage.FRENCH -> "Terminé (Repris le service)"
@@ -1617,18 +1593,6 @@ class PersonnelViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 )
             }
-        }
-    }
-
-    fun insertLeaveRecord(leave: LeaveRecord) {
-        viewModelScope.launch {
-            repository.insertLeave(leave)
-        }
-    }
-
-    fun updateLeaveRecord(leave: LeaveRecord) {
-        viewModelScope.launch {
-            repository.updateLeave(leave)
         }
     }
 

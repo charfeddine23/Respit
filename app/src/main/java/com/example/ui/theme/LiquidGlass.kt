@@ -53,7 +53,6 @@ object LiquidGlassDefaults {
 @Composable
 fun DynamicAuroraBackground(
     isDark: Boolean = false,
-    isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -202,7 +201,6 @@ fun Modifier.liquidGlass(
     elevation: Dp = 4.dp,
     borderAlpha: Float = 0.9f,
     isDark: Boolean = false,
-    isNeumorphic: Boolean = false,
     cornerRadius: Dp = 20.dp
 ): Modifier {
     val preset = LocalThemePreset.current
@@ -324,7 +322,6 @@ fun Modifier.liquidGlassInteractive(
     shape: Shape = LiquidGlassDefaults.SmallShape,
     isDark: Boolean = false,
     glowColor: Color = VibrantCyan,
-    isNeumorphic: Boolean = false,
     cornerRadius: Dp = 14.dp
 ): Modifier {
     val preset = LocalThemePreset.current

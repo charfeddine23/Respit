@@ -17,10 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
@@ -30,17 +27,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -59,7 +51,6 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
@@ -72,14 +63,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -88,8 +75,6 @@ import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
@@ -97,8 +82,6 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Notifications
@@ -110,10 +93,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -135,22 +115,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.rememberGraphicsLayer
-import kotlin.math.cos
-import kotlin.math.sin
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -209,7 +181,6 @@ import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
 import com.example.ui.theme.liquidGlass
 import com.example.ui.theme.liquidGlassDialogShell
-import com.example.ui.theme.liquidGlassInteractive
 import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
@@ -563,7 +534,6 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled
         )
         return
@@ -605,13 +575,12 @@ fun LeaveTrackerMainApp(
                         cachedStatusBarTopPx = observedStatusBarTopPx
                     }
                     val preservedStatusBarTopDp = remember(observedStatusBarTopPx, cachedStatusBarTopPx, cutoutTopPx, isFitToScreenEnabled, localDensity) {
-                        val fallbackResourcePx = if (observedStatusBarTopPx == 0 && cachedStatusBarTopPx == 0 && isFitToScreenEnabled) {
-                            val resId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
-                            if (resId > 0) context.resources.getDimensionPixelSize(resId) else 0
+                        val fallbackTopPx = if (observedStatusBarTopPx == 0 && cachedStatusBarTopPx == 0 && isFitToScreenEnabled) {
+                            with(localDensity) { 24.dp.roundToPx() }
                         } else {
                             0
                         }
-                        val effectiveTopPx = maxOf(observedStatusBarTopPx, cachedStatusBarTopPx, cutoutTopPx, fallbackResourcePx)
+                        val effectiveTopPx = maxOf(observedStatusBarTopPx, cachedStatusBarTopPx, cutoutTopPx, fallbackTopPx)
                         with(localDensity) { effectiveTopPx.toDp() }
                     }
 
@@ -850,7 +819,6 @@ fun LeaveTrackerMainApp(
                                 onSelectPage = { selectedNavPage = it },
                                 notificationsCount = notificationsCount,
                                 isDarkMode = isDarkMode,
-                                isNeumorphic = false,
                                 animationsEnabled = isDynamicAnimationsEnabled,
                                 currentLang = currentLang,
                                 backdropLayer = backdropLayer,
@@ -874,7 +842,6 @@ fun LeaveTrackerMainApp(
                             // Ambient Liquid Dynamic Aurora Mesh Background captured inside backdropLayer
                             DynamicAuroraBackground(
                                 isDark = isDarkMode,
-                                isNeumorphic = false,
                                 animationsEnabled = isDynamicAnimationsEnabled
                             )
 
@@ -1116,7 +1083,6 @@ fun LeaveTrackerMainApp(
                                                     selectedNavPage = AppNavPage.ANALYTICS
                                                 },
                                                 isDarkMode = isDarkMode,
-                                                isNeumorphic = false,
                                                 animationsEnabled = isDynamicAnimationsEnabled
                                             )
                                         }
@@ -1324,7 +1290,6 @@ fun LeaveTrackerMainApp(
                                                         } else null
                                                     ),
                                                     isDarkMode = isDarkMode,
-                                                    isNeumorphic = false,
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
@@ -1673,7 +1638,6 @@ fun LeaveTrackerMainApp(
                                                                     personnel = person,
                                                                     dutyThresholdDays = dutyThreshold,
                                                                     isDarkMode = isDarkMode,
-                                                                    isNeumorphic = false,
                                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                                     currentLang = currentLang,
                                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
@@ -1741,7 +1705,6 @@ fun LeaveTrackerMainApp(
                                                         )
                                                     ),
                                                     isDarkMode = isDarkMode,
-                                                    isNeumorphic = false,
                                                     animationsEnabled = isDynamicAnimationsEnabled,
                                                     currentLang = currentLang,
                                                     effectiveDaysSinceDuty = dutyReferenceMap[person.id]?.daysSinceReference ?: person.daysSinceDutyReturn,
@@ -1968,7 +1931,6 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled
         )
@@ -2016,7 +1978,6 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled
         )
@@ -2031,7 +1992,6 @@ fun LeaveTrackerMainApp(
             onDismiss = { personnelForHistory = null },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled,
             onExtendRecord = { record ->
@@ -2060,7 +2020,6 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled
         )
@@ -2087,7 +2046,6 @@ fun LeaveTrackerMainApp(
             },
             isDarkMode = isDarkMode,
             currentLang = currentLang,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled
         )
@@ -2140,7 +2098,6 @@ fun LeaveTrackerMainApp(
             },
             onDismiss = { showFilterSortDialog = false },
             isDarkMode = isDarkMode,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             isNoScreenshotEnabled = isNoScreenshotEnabled,
             currentLang = currentLang
@@ -2208,7 +2165,6 @@ fun LeaveTrackerMainApp(
         InAppUpdateDialog(
             updateState = appUpdateState,
             isDarkMode = isDarkMode,
-            isNeumorphic = false,
             animationsEnabled = isDynamicAnimationsEnabled,
             currentLang = currentLang,
             onStartDownload = { viewModel.startAppUpdateDownload() },

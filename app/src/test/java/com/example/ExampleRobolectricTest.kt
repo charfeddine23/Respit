@@ -30,7 +30,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.robolectric.Robolectric
 import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -952,19 +951,15 @@ class ExampleRobolectricTest {
   fun `verify 0_5s hold and directional swipe delete rules for Arabic Left and English Right`() {
     assertEquals(500L, com.example.ui.components.SwipeDeleteGestureHelper.HOLD_ARM_DURATION_MS)
 
-    // Arabic (RTL): swipe LEFT (negative X) deletes; positive right drag is clamped to 0
+    // Arabic (RTL): swipe LEFT (negative X) deletes
     assertEquals(-1f, com.example.ui.components.SwipeDeleteGestureHelper.expectedDirectionSign(AppLanguage.ARABIC))
-    assertEquals(0f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(260f, AppLanguage.ARABIC))
-    assertEquals(-320f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(-320f, AppLanguage.ARABIC))
     assertTrue(com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(-320f, 900f, AppLanguage.ARABIC))
     assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(320f, 900f, AppLanguage.ARABIC))
     assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(-120f, 900f, AppLanguage.ARABIC))
 
-    // English & French (LTR): swipe RIGHT (positive X) deletes; negative left drag is clamped to 0
+    // English & French (LTR): swipe RIGHT (positive X) deletes
     listOf(AppLanguage.ENGLISH, AppLanguage.FRENCH).forEach { lang ->
       assertEquals(1f, com.example.ui.components.SwipeDeleteGestureHelper.expectedDirectionSign(lang))
-      assertEquals(0f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(-260f, lang))
-      assertEquals(320f, com.example.ui.components.SwipeDeleteGestureHelper.coerceDirectionalOffset(320f, lang))
       assertTrue(com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(320f, 900f, lang))
       assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(-320f, 900f, lang))
       assertTrue(!com.example.ui.components.SwipeDeleteGestureHelper.shouldTriggerDelete(120f, 900f, lang))
@@ -1374,7 +1369,7 @@ class ExampleRobolectricTest {
   fun `verify PersonnelViewModel savePersonnel on-duty records leave and updates Days Served from last return date`() = runBlocking {
     val app = ApplicationProvider.getApplicationContext<android.app.Application>()
     val vm = com.example.ui.PersonnelViewModel(app)
-    val db = AppDatabase.getDatabase(app, this)
+    val db = AppDatabase.getDatabase(app)
 
     val start15DaysAgo = getOffsetDateMillis(-15)
     val return6DaysAgo = getOffsetDateMillis(-6)

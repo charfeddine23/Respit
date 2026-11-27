@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -39,7 +38,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -60,14 +58,10 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -101,7 +95,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
@@ -123,13 +116,10 @@ import com.example.ui.theme.EmeraldSuccess
 import com.example.ui.theme.LocalLivingLuxuryMode
 import com.example.ui.theme.LocalThemePreset
 import com.example.ui.theme.RedDanger
-import com.example.ui.theme.RoyalBlueAccent
 import com.example.ui.theme.SkyLeaveBlue
 import com.example.ui.theme.SlateTextPrimary
 import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.VibrantCyan
-import com.example.ui.theme.liquidGlass
-import com.example.ui.theme.liquidGlassPanel
 import com.example.util.AppLanguage
 import com.example.util.AppStrings
 import kotlin.math.abs
@@ -143,14 +133,6 @@ object SwipeDeleteGestureHelper {
     /** Physical screen X direction sign: -1f (Left) for Arabic/RTL, +1f (Right) for English/French. */
     fun expectedDirectionSign(lang: AppLanguage): Float =
         if (lang == AppLanguage.ARABIC || lang.isRtl) -1f else 1f
-
-    fun coerceDirectionalOffset(rawDeltaX: Float, lang: AppLanguage): Float {
-        return if (expectedDirectionSign(lang) < 0f) {
-            rawDeltaX.coerceAtMost(0f)
-        } else {
-            rawDeltaX.coerceAtLeast(0f)
-        }
-    }
 
     /**
      * Applies physically realistic drag displacement:
@@ -211,7 +193,6 @@ fun PersonnelCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     isDarkMode: Boolean = false,
-    isNeumorphic: Boolean = false,
     animationsEnabled: Boolean = true,
     currentLang: AppLanguage = AppLanguage.ARABIC,
     effectiveDaysSinceDuty: Long = personnel.daysSinceDutyReturn,
@@ -293,7 +274,7 @@ fun PersonnelCard(
     val localizedWilaya = formatWilaya(personnel.wilaya, currentLang, includeCode = false)
     val localizedLeaveType = formatLeaveType(personnel.leaveType, currentLang)
 
-    val avatarShape = if (isNeumorphic) RoundedCornerShape(18.dp) else CircleShape
+    val avatarShape = CircleShape
     var isExpanded by rememberSaveable(personnel.id) { mutableStateOf(false) }
 
     val arrowRotation by animateFloatAsState(

@@ -2,6 +2,7 @@ package com.example.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 enum class AppThemeMode(val code: String, val titleAr: String) {
     LIGHT("light", "الوضع النهاري (افتراضي)"),
@@ -67,10 +68,10 @@ class SettingsManager(context: Context) {
             }
         }
         set(value) {
-            prefs.edit()
-                .putString(KEY_THEME_MODE, value.code)
-                .putBoolean(KEY_DARK_MODE, value == AppThemeMode.DARK)
-                .apply()
+            prefs.edit {
+                putString(KEY_THEME_MODE, value.code)
+                    .putBoolean(KEY_DARK_MODE, value == AppThemeMode.DARK)
+            }
         }
 
     var isDarkMode: Boolean
@@ -81,55 +82,55 @@ class SettingsManager(context: Context) {
 
     var dutyThresholdDays: Int
         get() = safeGetInt(KEY_DUTY_THRESHOLD, DEFAULT_DUTY_THRESHOLD)
-        set(value) = prefs.edit().putInt(KEY_DUTY_THRESHOLD, value).apply()
+        set(value) = prefs.edit { putInt(KEY_DUTY_THRESHOLD, value) }
 
     var selectedThemeEngineId: String
         get() = safeGetString(KEY_THEME_ENGINE_ID, "") ?: ""
-        set(value) = prefs.edit().putString(KEY_THEME_ENGINE_ID, value).apply()
+        set(value) = prefs.edit { putString(KEY_THEME_ENGINE_ID, value) }
 
     var lastCustomThemeEngineId: String
         get() = safeGetString(KEY_LAST_THEME_ENGINE_ID, "") ?: ""
-        set(value) = prefs.edit().putString(KEY_LAST_THEME_ENGINE_ID, value).apply()
+        set(value) = prefs.edit { putString(KEY_LAST_THEME_ENGINE_ID, value) }
 
     var isBiometricEnabled: Boolean
         get() = safeGetBoolean(KEY_BIOMETRIC_ENABLED, false)
-        set(value) = prefs.edit().putBoolean(KEY_BIOMETRIC_ENABLED, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_BIOMETRIC_ENABLED, value) }
 
     var language: String
         get() = safeGetString(KEY_LANGUAGE, "ar") ?: "ar"
-        set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
+        set(value) = prefs.edit { putString(KEY_LANGUAGE, value) }
 
     var pinnedNotificationIds: Set<String>
         get() = safeGetStringSet(KEY_PINNED_NOTIFICATIONS, emptySet()).toSet()
-        set(value) = prefs.edit().putStringSet(KEY_PINNED_NOTIFICATIONS, value).apply()
+        set(value) = prefs.edit { putStringSet(KEY_PINNED_NOTIFICATIONS, value) }
 
     var dismissedNotificationIds: Set<String>
         get() = safeGetStringSet(KEY_DISMISSED_NOTIFICATIONS, emptySet()).toSet()
-        set(value) = prefs.edit().putStringSet(KEY_DISMISSED_NOTIFICATIONS, value).apply()
+        set(value) = prefs.edit { putStringSet(KEY_DISMISSED_NOTIFICATIONS, value) }
 
     var isGoogleDriveSyncEnabled: Boolean
         get() = safeGetBoolean(KEY_DRIVE_SYNC_ENABLED, false)
-        set(value) = prefs.edit().putBoolean(KEY_DRIVE_SYNC_ENABLED, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_DRIVE_SYNC_ENABLED, value) }
 
     var lastGoogleDriveBackupTime: Long
         get() = safeGetLong(KEY_LAST_DRIVE_BACKUP, 0L)
-        set(value) = prefs.edit().putLong(KEY_LAST_DRIVE_BACKUP, value).apply()
+        set(value) = prefs.edit { putLong(KEY_LAST_DRIVE_BACKUP, value) }
 
     var isDynamicAnimationsEnabled: Boolean
         get() = safeGetBoolean(KEY_DYNAMIC_ANIMATIONS, true) // default true for lively UI
-        set(value) = prefs.edit().putBoolean(KEY_DYNAMIC_ANIMATIONS, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_DYNAMIC_ANIMATIONS, value) }
 
     var isLivingLuxuryMode: Boolean
         get() = safeGetBoolean(KEY_LIVING_LUXURY_MODE, false)
-        set(value) = prefs.edit().putBoolean(KEY_LIVING_LUXURY_MODE, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_LIVING_LUXURY_MODE, value) }
 
     var isNoScreenshotEnabled: Boolean
         get() = safeGetBoolean(KEY_NO_SCREENSHOT_ENABLED, false) // Disabled by default; toggle in Security Settings
-        set(value) = prefs.edit().putBoolean(KEY_NO_SCREENSHOT_ENABLED, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_NO_SCREENSHOT_ENABLED, value) }
 
     var isFitToScreenEnabled: Boolean
         get() = safeGetBoolean(KEY_FIT_TO_SCREEN, false)
-        set(value) = prefs.edit().putBoolean(KEY_FIT_TO_SCREEN, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_FIT_TO_SCREEN, value) }
 
     var recentSearches: List<String>
         get() {
@@ -149,7 +150,7 @@ class SettingsManager(context: Context) {
         set(value) {
             val array = org.json.JSONArray()
             value.take(5).forEach { array.put(it) }
-            prefs.edit().putString("pref_recent_searches", array.toString()).apply()
+            prefs.edit { putString("pref_recent_searches", array.toString()) }
         }
 
     fun addRecentSearch(query: String) {

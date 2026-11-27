@@ -20,14 +20,6 @@ enum class LeaveStatus(
     UPCOMING("إجازة مبرمجة ⏳", 0xFF7C3AED, 0xFFEDE9FE),
     ON_DUTY("حاضر بالخدمة 🎖️", 0xFF059669, 0xFFD1FAE5);
 
-    fun getLabel(lang: AppLanguage): String = when (this) {
-        AT_HOME -> AppStrings.get("status_at_home", lang)
-        RETURNING_TODAY -> AppStrings.get("status_returning_today", lang)
-        OVERDUE -> AppStrings.get("status_overdue", lang)
-        UPCOMING -> AppStrings.get("status_upcoming", lang)
-        ON_DUTY -> AppStrings.get("status_on_duty", lang)
-    }
-
     fun getCompactBadgeLabel(lang: AppLanguage): String = when (this) {
         AT_HOME -> AppStrings.get("badge_at_home", lang)
         RETURNING_TODAY -> AppStrings.get("badge_returning_today", lang)
